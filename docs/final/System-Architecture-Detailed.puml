@@ -1,0 +1,132 @@
+@startuml ASignX_System_Architecture
+title ASignX - Proposed System Architecture
+top to bottom direction
+skinparam nodesep 25
+skinparam ranksep 45
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultFontName Arial
+skinparam ArrowColor #526581
+skinparam componentBackgroundColor #EDF3FF
+skinparam packageBackgroundColor #FAFCFF
+
+actor "Guest" as Guest
+actor "Registered Learner" as Learner
+actor "Administrator" as Admin
+actor "ML Developer" as MLDev
+
+node "User Device / Web Browser" {
+  component "ASignX Web Application\nReact + Vite" as Web
+  component "ASignLive\nLive recognition and text output" as Live
+  component "ASign Learn\nCourses, lessons, quizzes, practice" as Learn
+  component "Sign Strike Arcade\nAlphabet and fingerspelling game" as Arcade
+  component "Profile and Progress\nCompleted lessons, XP, streaks, badges" as Progress
+  component "Administration Interface\nManage learning content" as AdminUI
+  component "Camera Capture\nBrowser MediaDevices API" as Camera
+  component "Landmark Extraction and\nTemporal Sequence Buffer" as Features <<proposed>>
+  component "Prediction Feedback\nLabel, confidence, stability filtering" as Feedback <<proposed>>
+}
+
+node "Application Server\nNode.js + Express + TypeScript" {
+  component "REST API\nRequest validation, token verification,\nrole and ownership checks" as API
+  component "Learning and Content Logic\nEnrollment, quizzes, lesson completion" as LearningAPI
+  component "Progress Logic\nValidated XP awards, streaks, achievements" as ProgressAPI
+  component "Recognition History Logic\nOpt-in Live results and practice attempts" as HistoryAPI
+  component "Drizzle ORM" as ORM
+}
+
+node "Recognition Service (Proposed)\nRuntime and model framework to be selected" {
+  component "Inference Endpoint\nValidate landmark sequences" as Inference
+  component "ASL Recognition Model\nStatic signs and movement sequences" as Model
+}
+
+cloud "Supabase" {
+  component "Supabase Auth\nIdentity and access tokens" as Auth
+  database "PostgreSQL\n16 proposed application tables" as DB
+  storage "Supabase Storage\nCurated sign demonstrations\nand versioned model artifacts" as Storage
+}
+
+package "Offline Model Development" {
+  artifact "ASL Datasets\nStatic and movement examples" as Dataset
+  component "Preprocessing, Training\nand Evaluation" as Training
+}
+
+Guest --> Web : Explore / use transient Live
+Learner --> Web : Learn / practice / track progress
+Admin --> Web : Manage published content
+Web --> Live
+Web --> Learn
+Web --> Progress
+Web --> AdminUI
+Learn --> Arcade
+Live --> Camera
+Learn --> Camera : Camera practice
+Arcade --> Camera : Sign input
+Camera --> Features : Transient frames
+Features --> Inference : Landmark sequences\nproposed secure inference connection
+Inference --> Model : Predict
+Model --> Inference : Sign label + confidence\n+ model version
+Inference --> Feedback : Prediction response
+Feedback --> Live : Build recognized text
+Feedback --> Learn : Practice feedback
+Feedback --> Arcade : Match fingerspelled targets
+
+Web --> Auth : Register / sign in / refresh
+Auth --> Web : Access token
+Web --> API : HTTPS / JSON + access token\npublic routes allow guests
+API --> Auth : Verify issued tokens
+API --> LearningAPI
+API --> ProgressAPI
+API --> HistoryAPI
+LearningAPI --> ORM
+ProgressAPI --> ORM
+HistoryAPI --> ORM
+ORM --> DB : SQL over TLS
+Auth --> DB : Managed auth.users identity
+API --> Storage : Authorized media management
+Web --> Storage : Read permitted demonstration media
+Storage --> Model : Load approved model artifact
+
+MLDev --> Training : Develop and evaluate model
+Dataset --> Training
+Training --> Storage : Publish versioned artifact
+MLDev --> DB : Controlled registration of model metadata
+
+note bottom of Features
+  Design assumption: extract landmarks in the browser
+  and run recognition in a separate model service.
+  Confirm deployment placement before implementation.
+end note
+
+note bottom of DB
+  Identity: profiles (linked to auth.users)
+  Content: signs, courses, lessons, lesson_signs,
+    exercises, exercise_options
+  Learning: enrollments, lesson_progress, exercise_attempts,
+    practice_attempts
+  Recognition: model_versions, recognition_sessions,
+    recognition_results
+  Rewards: achievements, user_achievements
+end note
+
+note bottom of HistoryAPI
+  Save Live history only for authenticated users who opt in.
+  Guest and unsaved Live sessions remain transient.
+  Do not persist camera frames or raw video.
+end note
+
+note bottom of Arcade
+  Arcade scores remain separate from lesson XP.
+  Persistent arcade results are outside the current schema.
+end note
+
+legend bottom
+  This is the intended architecture, not the current implementation.
+  Current app: React UI, local camera preview, browser-saved progress,
+  simulated recognition/game input, demo accounts, basic Express server.
+  The 16-table schema, authentication integration, business APIs,
+  recognition service and model integration remain proposed.
+  ML Developer is an operational actor, not an application role.
+endlegend
+@enduml

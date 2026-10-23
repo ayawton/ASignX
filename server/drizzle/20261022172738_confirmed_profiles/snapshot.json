@@ -1,0 +1,2725 @@
+{
+  "id": "d6068bdc-d2ca-4b41-b7c0-9b8cb4aff6c1",
+  "prevIds": [
+    "339ba5a2-888f-4c3a-804f-0b0d97d1a433"
+  ],
+  "version": "8",
+  "dialect": "postgres",
+  "ddl": [
+    {
+      "isRlsEnabled": true,
+      "name": "achievements",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "courses",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "enrollments",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "exercise_attempts",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "exercise_options",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "exercises",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "lesson_progress",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "lesson_signs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "lessons",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "model_versions",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "practice_attempts",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "profiles",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "recognition_results",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "recognition_sessions",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "signs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": true,
+      "name": "user_achievements",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "type": "varchar(50)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "type": "varchar(25)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "metric",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "threshold",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "courses"
+    },
+    {
+      "type": "varchar(150)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "courses"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "courses"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_published",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "courses"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "courses"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "course_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "enrolled_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "enrollment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exercise_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "selected_option_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "is_correct",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "attempted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exercise_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "option_text",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_correct",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sort_order",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "lesson_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "prompt",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sign_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sort_order",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "enrollment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "lesson_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "started_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "completed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "xp_earned",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "lesson_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sign_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sort_order",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "course_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "type": "varchar(150)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "content",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sort_order",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "10",
+      "generated": null,
+      "identity": null,
+      "name": "xp_reward",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_published",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "type": "varchar(50)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "artifact_path",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "type": "numeric(6,5)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'0.80000'",
+      "generated": null,
+      "identity": null,
+      "name": "confidence_threshold",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "lesson_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "target_sign_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "predicted_sign_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "model_version_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "numeric(6,5)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "confidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "is_correct",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "attempted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "display_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "type": "varchar(10)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'learner'",
+      "generated": null,
+      "identity": null,
+      "name": "role",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "type": "varchar(64)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'UTC'",
+      "generated": null,
+      "identity": null,
+      "name": "timezone",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sign_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "model_version_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sequence_no",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "type": "numeric(6,5)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "confidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "recognized_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "started_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ended_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "final_text",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gloss",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "meaning",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "varchar(60)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "category",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "instructions",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "demo_path",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_published",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_achievements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "achievement_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_achievements"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "unlocked_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_achievements"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "course_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "enrollments_course_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "enrollment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exercise_attempts_enrollment_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "exercise_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "selected_option_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exercise_attempts_exercise_option_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "exercise_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"is_correct\"",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exercise_options_one_correct_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "sign_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exercises_sign_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "lesson_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "lesson_progress_lesson_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "sign_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "lesson_signs_sign_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "attempted_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "practice_attempts_user_time_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "lesson_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "practice_attempts_lesson_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "target_sign_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "practice_attempts_target_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "predicted_sign_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "practice_attempts_prediction_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "model_version_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "practice_attempts_model_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "sign_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "recognition_results_sign_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "model_version_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "recognition_results_model_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "started_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "recognition_sessions_user_time_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "achievement_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "user_achievements_achievement_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "user_achievements"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "profiles",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "enrollments_user_id_profiles_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "course_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "courses",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "enrollments_course_id_courses_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "enrollment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "enrollments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "exercise_attempts_enrollment_id_enrollments_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "exercise_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "exercises",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "exercise_attempts_exercise_id_exercises_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "exercise_id",
+        "selected_option_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "exercise_options",
+      "columnsTo": [
+        "exercise_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "exercise_attempts_selected_option_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "exercise_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "exercises",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "exercise_options_exercise_id_exercises_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "exercises_lesson_id_lessons_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "sign_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "signs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "exercises_sign_id_signs_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "enrollment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "enrollments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "lesson_progress_enrollment_id_enrollments_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "lesson_progress_lesson_id_lessons_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "lesson_signs_lesson_id_lessons_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "sign_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "signs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "lesson_signs_sign_id_signs_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "course_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "courses",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "lessons_course_id_courses_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "profiles",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "practice_attempts_user_id_profiles_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "practice_attempts_lesson_id_lessons_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "target_sign_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "signs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "practice_attempts_target_sign_id_signs_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "predicted_sign_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "signs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "practice_attempts_predicted_sign_id_signs_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "model_version_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "model_versions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "practice_attempts_model_version_id_model_versions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "schemaTo": "auth",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "profiles_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "session_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "recognition_sessions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "recognition_results_session_id_recognition_sessions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "sign_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "signs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "recognition_results_sign_id_signs_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "model_version_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "model_versions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "recognition_results_model_version_id_model_versions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "profiles",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "recognition_sessions_user_id_profiles_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "profiles",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "user_achievements_user_id_profiles_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "user_achievements"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "achievement_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "achievements",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "user_achievements_achievement_id_achievements_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "user_achievements"
+    },
+    {
+      "columns": [
+        "enrollment_id",
+        "lesson_id"
+      ],
+      "nameExplicit": false,
+      "name": "lesson_progress_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "columns": [
+        "lesson_id",
+        "sign_id"
+      ],
+      "nameExplicit": false,
+      "name": "lesson_signs_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "columns": [
+        "user_id",
+        "achievement_id"
+      ],
+      "nameExplicit": false,
+      "name": "user_achievements_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "user_achievements"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "achievements_pkey",
+      "schema": "public",
+      "table": "achievements",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "courses_pkey",
+      "schema": "public",
+      "table": "courses",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "enrollments_pkey",
+      "schema": "public",
+      "table": "enrollments",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "exercise_attempts_pkey",
+      "schema": "public",
+      "table": "exercise_attempts",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "exercise_options_pkey",
+      "schema": "public",
+      "table": "exercise_options",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "exercises_pkey",
+      "schema": "public",
+      "table": "exercises",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "lessons_pkey",
+      "schema": "public",
+      "table": "lessons",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "model_versions_pkey",
+      "schema": "public",
+      "table": "model_versions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "practice_attempts_pkey",
+      "schema": "public",
+      "table": "practice_attempts",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "profiles_pkey",
+      "schema": "public",
+      "table": "profiles",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "recognition_results_pkey",
+      "schema": "public",
+      "table": "recognition_results",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "recognition_sessions_pkey",
+      "schema": "public",
+      "table": "recognition_sessions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "signs_pkey",
+      "schema": "public",
+      "table": "signs",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "user_id",
+        "course_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "enrollments_user_course_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "exercise_id",
+        "sort_order"
+      ],
+      "nullsNotDistinct": false,
+      "name": "exercise_options_order_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "exercise_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "exercise_options_exercise_id_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "lesson_id",
+        "sort_order"
+      ],
+      "nullsNotDistinct": false,
+      "name": "exercises_lesson_order_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "lesson_id",
+        "sort_order"
+      ],
+      "nullsNotDistinct": false,
+      "name": "lesson_signs_order_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "course_id",
+        "sort_order"
+      ],
+      "nullsNotDistinct": false,
+      "name": "lessons_course_order_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "session_id",
+        "sequence_no"
+      ],
+      "nullsNotDistinct": false,
+      "name": "recognition_results_session_sequence_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "code"
+      ],
+      "nullsNotDistinct": false,
+      "name": "achievements_code_key",
+      "schema": "public",
+      "table": "achievements",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "version"
+      ],
+      "nullsNotDistinct": false,
+      "name": "model_versions_version_key",
+      "schema": "public",
+      "table": "model_versions",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "gloss"
+      ],
+      "nullsNotDistinct": false,
+      "name": "signs_gloss_key",
+      "schema": "public",
+      "table": "signs",
+      "entityType": "uniques"
+    },
+    {
+      "value": "length(btrim(\"code\")) > 0",
+      "name": "achievements_code_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "value": "length(btrim(\"name\")) > 0",
+      "name": "achievements_name_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "value": "length(btrim(\"description\")) > 0",
+      "name": "achievements_description_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "value": "\"metric\" in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days')",
+      "name": "achievements_metric_valid",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "value": "\"threshold\" > 0",
+      "name": "achievements_threshold_positive",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "value": "length(btrim(\"title\")) > 0",
+      "name": "courses_title_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "courses"
+    },
+    {
+      "value": "length(btrim(\"option_text\")) > 0",
+      "name": "exercise_options_text_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "value": "\"sort_order\" > 0",
+      "name": "exercise_options_sort_order_positive",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "exercise_options"
+    },
+    {
+      "value": "length(btrim(\"prompt\")) > 0",
+      "name": "exercises_prompt_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "value": "\"sort_order\" > 0",
+      "name": "exercises_sort_order_positive",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "value": "\"xp_earned\" >= 0",
+      "name": "lesson_progress_xp_nonnegative",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "value": "(\"completed_at\" is null and \"xp_earned\" = 0) or (\"completed_at\" is not null and \"completed_at\" >= \"started_at\")",
+      "name": "lesson_progress_completion_valid",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "value": "\"sort_order\" > 0",
+      "name": "lesson_signs_sort_order_positive",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "value": "length(btrim(\"title\")) > 0",
+      "name": "lessons_title_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "value": "\"sort_order\" > 0",
+      "name": "lessons_sort_order_positive",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "value": "\"xp_reward\" >= 0",
+      "name": "lessons_xp_nonnegative",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "value": "length(btrim(\"version\")) > 0",
+      "name": "model_versions_version_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "value": "length(btrim(\"artifact_path\")) > 0",
+      "name": "model_versions_artifact_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "value": "\"confidence_threshold\" between 0 and 1",
+      "name": "model_versions_threshold_range",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "model_versions"
+    },
+    {
+      "value": "\"confidence\" between 0 and 1",
+      "name": "practice_attempts_confidence_range",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "value": "length(btrim(\"display_name\")) > 0",
+      "name": "profiles_display_name_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "value": "\"role\" in ('learner', 'admin')",
+      "name": "profiles_role_valid",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "value": "\"sequence_no\" > 0",
+      "name": "recognition_results_sequence_positive",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "value": "\"confidence\" between 0 and 1",
+      "name": "recognition_results_confidence_range",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "value": "\"ended_at\" is null or \"ended_at\" >= \"started_at\"",
+      "name": "recognition_sessions_end_valid",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "value": "\"final_text\" is null or \"ended_at\" is not null",
+      "name": "recognition_sessions_text_valid",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "value": "length(btrim(\"gloss\")) > 0",
+      "name": "signs_gloss_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "value": "length(btrim(\"meaning\")) > 0",
+      "name": "signs_meaning_nonblank",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "using": "true",
+      "withCheck": null,
+      "name": "achievements_read",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "achievements"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "using": "\"courses\".\"is_published\"",
+      "withCheck": null,
+      "name": "courses_read_published",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "courses"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "\"enrollments\".\"user_id\" = (select auth.uid())",
+      "withCheck": null,
+      "name": "enrollments_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "enrollments"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "exists (select 1 from public.enrollments e where e.id = \"exercise_attempts\".\"enrollment_id\" and e.user_id = (select auth.uid()))",
+      "withCheck": null,
+      "name": "exercise_attempts_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "exercise_attempts"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "using": "exists (select 1 from public.lessons l join public.courses c on c.id = l.course_id where l.id = \"exercises\".\"lesson_id\" and l.is_published and c.is_published)",
+      "withCheck": null,
+      "name": "exercises_read_published",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "exercises"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "exists (select 1 from public.enrollments e where e.id = \"lesson_progress\".\"enrollment_id\" and e.user_id = (select auth.uid()))",
+      "withCheck": null,
+      "name": "lesson_progress_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "lesson_progress"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "using": "exists (select 1 from public.lessons l join public.courses c on c.id = l.course_id where l.id = \"lesson_signs\".\"lesson_id\" and l.is_published and c.is_published) and exists (select 1 from public.signs s where s.id = \"lesson_signs\".\"sign_id\" and s.is_published)",
+      "withCheck": null,
+      "name": "lesson_signs_read_published",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "lesson_signs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "using": "\"lessons\".\"is_published\" and exists (select 1 from public.courses c where c.id = \"lessons\".\"course_id\" and c.is_published)",
+      "withCheck": null,
+      "name": "lessons_read_published",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "lessons"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "\"practice_attempts\".\"user_id\" = (select auth.uid())",
+      "withCheck": null,
+      "name": "practice_attempts_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "practice_attempts"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "\"profiles\".\"id\" = (select auth.uid())",
+      "withCheck": null,
+      "name": "profiles_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "UPDATE",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "\"profiles\".\"id\" = (select auth.uid())",
+      "withCheck": "\"profiles\".\"id\" = (select auth.uid())",
+      "name": "profiles_update_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "profiles"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "exists (select 1 from public.recognition_sessions s where s.id = \"recognition_results\".\"session_id\" and s.user_id = (select auth.uid()))",
+      "withCheck": null,
+      "name": "recognition_results_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "recognition_results"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "\"recognition_sessions\".\"user_id\" = (select auth.uid())",
+      "withCheck": null,
+      "name": "recognition_sessions_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "recognition_sessions"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "using": "\"signs\".\"is_published\"",
+      "withCheck": null,
+      "name": "signs_read_published",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "signs"
+    },
+    {
+      "as": "PERMISSIVE",
+      "for": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "using": "\"user_achievements\".\"user_id\" = (select auth.uid())",
+      "withCheck": null,
+      "name": "user_achievements_read_own",
+      "entityType": "policies",
+      "schema": "public",
+      "table": "user_achievements"
+    }
+  ],
+  "renames": []
+}

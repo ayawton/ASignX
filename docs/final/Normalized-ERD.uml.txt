@@ -1,0 +1,236 @@
+@startuml
+title Normalized ASL Learning and Recognition Database (3NF)
+
+hide circle
+skinparam linetype ortho
+skinparam entity {
+    BackgroundColor #F5F0FF
+    BorderColor #9370DB
+    FontColor #222222
+}
+skinparam ArrowColor #777777
+
+' =========================
+' AUTHENTICATION AND USERS
+' =========================
+
+entity "auth_users" as auth_users {
+    * id : uuid <<PK>>
+    --
+    Supabase-managed authentication
+}
+
+entity "profiles" as profiles {
+    * id : uuid <<PK, FK>>
+    --
+    display_name : varchar(100)
+    role : varchar(10)
+    timezone : varchar(64)
+    created_at : timestamptz
+    updated_at : timestamptz
+}
+
+' =========================
+' COURSES AND ENROLLMENT
+' =========================
+
+entity "courses" as courses {
+    * id : uuid <<PK>>
+    --
+    title : varchar(150)
+    description : text
+    is_published : boolean
+    created_at : timestamptz
+}
+
+entity "enrollments" as enrollments {
+    * id : uuid <<PK>>
+    --
+    user_id : uuid <<FK>>
+    course_id : uuid <<FK>>
+    enrolled_at : timestamptz
+}
+
+entity "lessons" as lessons {
+    * id : uuid <<PK>>
+    --
+    course_id : uuid <<FK>>
+    title : varchar(150)
+    content : text
+    sort_order : integer
+    xp_reward : integer
+    is_published : boolean
+}
+
+entity "lesson_progress" as lesson_progress {
+    * enrollment_id : uuid <<PK, FK>>
+    * lesson_id : uuid <<PK, FK>>
+    --
+    started_at : timestamptz
+    completed_at : timestamptz
+    xp_earned : integer
+}
+
+' =========================
+' ASL SIGNS
+' =========================
+
+entity "signs" as signs {
+    * id : uuid <<PK>>
+    --
+    gloss : varchar(100) <<UK>>
+    meaning : text
+    category : varchar(60)
+    instructions : text
+    demo_path : text
+    is_published : boolean
+    created_at : timestamptz
+}
+
+entity "lesson_signs" as lesson_signs {
+    * lesson_id : uuid <<PK, FK>>
+    * sign_id : uuid <<PK, FK>>
+    --
+    sort_order : integer
+}
+
+' =========================
+' EXERCISES AND OPTIONS
+' =========================
+
+entity "exercises" as exercises {
+    * id : uuid <<PK>>
+    --
+    lesson_id : uuid <<FK>>
+    prompt : text
+    sign_id : uuid <<FK, nullable>>
+    sort_order : integer
+}
+
+entity "exercise_options" as exercise_options {
+    * id : uuid <<PK>>
+    --
+    exercise_id : uuid <<FK>>
+    option_text : text
+    is_correct : boolean
+    sort_order : integer
+}
+
+entity "exercise_attempts" as exercise_attempts {
+    * id : uuid <<PK>>
+    --
+    enrollment_id : uuid <<FK>>
+    exercise_id : uuid <<FK>>
+    selected_option_id : uuid <<FK>>
+    attempted_at : timestamptz
+}
+
+' =========================
+' ACHIEVEMENTS
+' =========================
+
+entity "achievements" as achievements {
+    * id : uuid <<PK>>
+    --
+    code : varchar(50) <<UK>>
+    name : varchar(100)
+    description : text
+    metric : varchar(25)
+    threshold : integer
+}
+
+entity "user_achievements" as user_achievements {
+    * user_id : uuid <<PK, FK>>
+    * achievement_id : uuid <<PK, FK>>
+    --
+    unlocked_at : timestamptz
+}
+
+' =========================
+' MACHINE LEARNING MODELS
+' =========================
+
+entity "model_versions" as model_versions {
+    * id : uuid <<PK>>
+    --
+    version : varchar(50) <<UK>>
+    artifact_path : text
+    confidence_threshold : numeric(6,5)
+    created_at : timestamptz
+}
+
+' =========================
+' PRACTICE AND RECOGNITION
+' =========================
+
+entity "practice_attempts" as practice_attempts {
+    * id : uuid <<PK>>
+    --
+    user_id : uuid <<FK>>
+    lesson_id : uuid <<FK, nullable>>
+    target_sign_id : uuid <<FK>>
+    predicted_sign_id : uuid <<FK, nullable>>
+    model_version_id : uuid <<FK>>
+    confidence : numeric(6,5)
+    attempted_at : timestamptz
+}
+
+entity "recognition_sessions" as recognition_sessions {
+    * id : uuid <<PK>>
+    --
+    user_id : uuid <<FK>>
+    started_at : timestamptz
+    ended_at : timestamptz
+    final_text : text
+}
+
+entity "recognition_results" as recognition_results {
+    * id : uuid <<PK>>
+    --
+    session_id : uuid <<FK>>
+    sign_id : uuid <<FK, nullable>>
+    model_version_id : uuid <<FK>>
+    sequence_no : integer
+    confidence : numeric(6,5)
+    recognized_at : timestamptz
+}
+
+' =========================
+' RELATIONSHIPS
+' =========================
+
+auth_users ||--|| profiles : has profile
+
+profiles ||--o{ enrollments : enrolls
+courses ||--o{ enrollments : receives
+courses ||--o{ lessons : contains
+
+enrollments ||--o{ lesson_progress : tracks
+lessons ||--o{ lesson_progress : progress for
+
+lessons ||--o{ lesson_signs : includes
+signs ||--o{ lesson_signs : appears in
+
+lessons ||--o{ exercises : contains
+signs |o--o{ exercises : reference sign
+exercises ||--o{ exercise_options : offers
+
+enrollments ||--o{ exercise_attempts : makes
+exercises ||--o{ exercise_attempts : attempted in
+exercise_options ||--o{ exercise_attempts : selected option
+
+profiles ||--o{ user_achievements : earns
+achievements ||--o{ user_achievements : awarded as
+
+profiles ||--o{ practice_attempts : performs
+lessons |o--o{ practice_attempts : practiced in
+signs ||--o{ practice_attempts : target sign
+signs |o--o{ practice_attempts : predicted sign
+model_versions ||--o{ practice_attempts : evaluates with
+
+profiles ||--o{ recognition_sessions : starts
+recognition_sessions ||--o{ recognition_results : contains
+signs |o--o{ recognition_results : recognized sign
+model_versions ||--o{ recognition_results : generated by
+
+@enduml

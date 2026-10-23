@@ -1,0 +1,395 @@
+{
+  "generated": "2026-10-19",
+  "source": "Selected option 2, AX monogram",
+  "layouts": [
+    {
+      "layout": "horizontal",
+      "variant": "color",
+      "width": 1869,
+      "height": 545,
+      "folder": "exports/horizontal/color",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "horizontal",
+      "variant": "reverse",
+      "width": 1869,
+      "height": 545,
+      "folder": "exports/horizontal/reverse",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "horizontal",
+      "variant": "navy",
+      "width": 1869,
+      "height": 545,
+      "folder": "exports/horizontal/navy",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "horizontal",
+      "variant": "cobalt",
+      "width": 1869,
+      "height": 545,
+      "folder": "exports/horizontal/cobalt",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "horizontal",
+      "variant": "black",
+      "width": 1869,
+      "height": 545,
+      "folder": "exports/horizontal/black",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "horizontal",
+      "variant": "white",
+      "width": 1869,
+      "height": 545,
+      "folder": "exports/horizontal/white",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "stacked",
+      "variant": "color",
+      "width": 1200,
+      "height": 1000,
+      "folder": "exports/stacked/color",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "stacked",
+      "variant": "reverse",
+      "width": 1200,
+      "height": 1000,
+      "folder": "exports/stacked/reverse",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "stacked",
+      "variant": "navy",
+      "width": 1200,
+      "height": 1000,
+      "folder": "exports/stacked/navy",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "stacked",
+      "variant": "cobalt",
+      "width": 1200,
+      "height": 1000,
+      "folder": "exports/stacked/cobalt",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "stacked",
+      "variant": "black",
+      "width": 1200,
+      "height": 1000,
+      "folder": "exports/stacked/black",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "stacked",
+      "variant": "white",
+      "width": 1200,
+      "height": 1000,
+      "folder": "exports/stacked/white",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "symbol",
+      "variant": "color",
+      "width": 759,
+      "height": 545,
+      "folder": "exports/symbol/color",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "symbol",
+      "variant": "reverse",
+      "width": 759,
+      "height": 545,
+      "folder": "exports/symbol/reverse",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "symbol",
+      "variant": "navy",
+      "width": 759,
+      "height": 545,
+      "folder": "exports/symbol/navy",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "symbol",
+      "variant": "cobalt",
+      "width": 759,
+      "height": 545,
+      "folder": "exports/symbol/cobalt",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "symbol",
+      "variant": "black",
+      "width": 759,
+      "height": 545,
+      "folder": "exports/symbol/black",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "symbol",
+      "variant": "white",
+      "width": 759,
+      "height": 545,
+      "folder": "exports/symbol/white",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "wordmark",
+      "variant": "color",
+      "width": 1218,
+      "height": 451,
+      "folder": "exports/wordmark/color",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "wordmark",
+      "variant": "reverse",
+      "width": 1218,
+      "height": 451,
+      "folder": "exports/wordmark/reverse",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "wordmark",
+      "variant": "navy",
+      "width": 1218,
+      "height": 451,
+      "folder": "exports/wordmark/navy",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "wordmark",
+      "variant": "cobalt",
+      "width": 1218,
+      "height": 451,
+      "folder": "exports/wordmark/cobalt",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "wordmark",
+      "variant": "black",
+      "width": 1218,
+      "height": 451,
+      "folder": "exports/wordmark/black",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    },
+    {
+      "layout": "wordmark",
+      "variant": "white",
+      "width": 1218,
+      "height": 451,
+      "folder": "exports/wordmark/white",
+      "formats": [
+        "svg",
+        "eps",
+        "pdf",
+        "png",
+        "webp",
+        "jpg",
+        "tiff"
+      ]
+    }
+  ],
+  "colors": [
+    "#2962F5",
+    "#FFE66D",
+    "#18294C"
+  ]
+}

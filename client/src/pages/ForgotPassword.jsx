@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowUpRight, Mail, ShieldCheck } from 'lucide-react'
-import { Artwork } from '../components/StudioKit'
 import { internalPath, supabase } from '../auth'
 
 export default function ForgotPassword() {
@@ -31,12 +30,6 @@ export default function ForgotPassword() {
  }
 
  return <section className="container studio-auth studio-recovery">
-  <div className="studio-auth-art">
-   <span className="text-label">Your next connection is waiting.</span>
-   <h2>A little reset.<br />Then keep going.</h2>
-   <Artwork />
-   <p>Find your way back to your learning journey.</p>
-  </div>
   <div className="studio-auth-form studio-recovery-form">
    <Link className="text-link studio-recovery-back" to={loginPath}><ArrowLeft size={16} /> Back to log in</Link>
    <span className="studio-recovery-icon" aria-hidden="true"><Mail size={26} /></span>

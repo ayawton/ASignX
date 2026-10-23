@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 import { registerAccount } from '../registration'
 import ConfirmationResend from '../components/ConfirmationResend'
-import { Artwork } from '../components/StudioKit'
 import { internalPath, supabase, useAuth } from '../auth'
 
 export { default as Login } from './Login'
@@ -41,7 +40,6 @@ function Auth({ register = false }) {
   } catch (error) { setMessage(error.message) } finally { setBusy(false) }
  }
  return <section className="container studio-auth">
-  <div className="studio-auth-art"><span className="text-label">Good to have you here.</span><h2>Different hands.<br />A shared world.</h2><Artwork /><p>Your next connection starts with a little curiosity.</p></div>
   <div className="studio-auth-form"><span className="text-label">Your ASignX journey</span><h1>{register ? 'Start something good.' : 'A fresh start.'}</h1><p>{register ? 'Create your account to keep your learning journey in one place. All four fields are required.' : 'Choose a new password to get back to your learning journey.'}</p>
    {register && registeredEmail ? <div className="studio-auth-message" role="status">
     <h2>Check your email.</h2><p>If this address is eligible, a confirmation link has been sent to <strong>{registeredEmail}</strong>. Open it to confirm your account, then log in.</p><p>Check your spam folder if you don’t see the message.</p>

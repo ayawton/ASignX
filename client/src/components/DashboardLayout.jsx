@@ -29,7 +29,6 @@ export default function DashboardLayout() {
      <NavLink to="/dashboard/progress"><Trophy size={18} /> My progress</NavLink>
      <NavLink to="/dashboard/profile"><UserRound size={18} /> My profile</NavLink>
     </nav>
-    <div className="learner-sidebar-note"><Hand size={25} /><p>A little practice.<br />More ways to connect.</p></div>
     {error && <p role="alert">{error}</p>}
     <button type="button" onClick={leave} disabled={busy}><LogOut size={17} />{busy ? 'Logging out…' : 'Log out'}</button>
    </aside>

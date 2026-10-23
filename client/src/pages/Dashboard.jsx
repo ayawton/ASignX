@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Link from '../components/WorkspaceLink'
-import { ArrowUpRight, BookOpen, Camera, Gamepad2, Hand, Trophy, UserRound } from 'lucide-react'
+import { ArrowUpRight, BookOpen, Camera, Gamepad2, Trophy, UserRound } from 'lucide-react'
 import { api, useAuth } from '../auth'
 import './Dashboard.css'
 
@@ -37,7 +37,6 @@ export default function Dashboard() {
    <header className="learner-heading"><div><p>Your dashboard</p><h1>Hello, {name}.</h1><p>Make room for your next sign.</p></div><Link className="text-link" to="/profile">Your account <UserRound size={18} /></Link></header>
    {Object.keys(errors).length > 0 && <div className="learner-notice" role="alert"><p>Some dashboard information couldn’t load. Your saved records are safe.</p><ul>{Object.entries(errors).map(([key, error]) => <li key={key}>{key}: {error}</li>)}</ul><button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
    {message && <p className="learner-notice" role="status">{message}</p>}
-   <div className="learner-welcome"><div><span className="learner-pill">ASign Learn</span><h2>Your hands have<br />a lot to say.</h2><p>Choose a course and start building your ASL vocabulary, one sign at a time.</p><a className="btn" href="#dashboard-courses">Explore courses <ArrowUpRight size={18} /></a></div><Hand className="learner-hand" strokeWidth={1} aria-hidden="true" /></div>
    <dl className="learner-metrics">{[['Enrolled courses', enrollments?.length], ['Completed lessons', progress?.lessons.filter(lesson => lesson.completed_at).length], ['Learning XP', progress?.xp], ['Day streak', progress?.streak]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? '—'}</dd></div>)}</dl>
    <div className="learner-columns"><div>
     <section className="learner-section"><div className="learner-section-heading"><h2>My courses</h2><BookOpen size={21} /></div>

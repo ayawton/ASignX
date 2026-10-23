@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
-import { Artwork } from '../components/StudioKit'
 import ConfirmationResend from '../components/ConfirmationResend'
 import { internalPath, supabase, useAuth } from '../auth'
 import { loginAccount } from '../login'
@@ -36,7 +35,6 @@ export default function Login() {
   } finally { submitted.current = false; setBusy(false) }
  }
  return <section className="container studio-auth">
-  <div className="studio-auth-art"><span className="text-label">Good to have you here.</span><h2>Different hands.<br />A shared world.</h2><Artwork /><p>Your next connection starts with a little curiosity.</p></div>
   <div className="studio-auth-form"><span className="text-label">Your ASignX journey</span><h1>Hello again.</h1><p>Log in to keep your learning journey going.</p>
    <form onSubmit={submit} aria-busy={busy}>
     <label htmlFor="login-email">Email address<input id="login-email" name="email" required type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" disabled={busy} value={email} onChange={e => { setEmail(e.target.value); setError(''); setNeedsConfirmation(false) }} /></label>

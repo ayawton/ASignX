@@ -1,0 +1,32 @@
+@startuml ASignX_System_Architecture
+title ASignX - Simplified System Architecture
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam roundCorner 8
+skinparam ranksep 40
+skinparam rectangleBackgroundColor White
+skinparam rectangleBorderColor Black
+
+rectangle "Users\nGuest, Learner, Administrator" as Users
+
+rectangle "ASignX Web Application\nReact\n\nASignLive | ASign Learn | Sign Strike\nProfile, Progress and Administration" as Web
+
+rectangle "Backend API\nNode.js + Express\n\nAccess control and application logic\nDrizzle ORM for database queries" as API
+
+rectangle "ASL Recognition Service\n(Proposed)\n\nRecognizes static and movement signs\nReturns sign labels and confidence" as AI
+
+rectangle "Supabase\n\nAuth: user accounts\nPostgreSQL: application data\nStorage: demonstrations and model files" as Data
+
+Users -down-> Web : Use application
+Web -down-> API : Requests / responses
+API -[hidden]down-> AI
+AI -[hidden]down-> Data
+Web -right-> AI : Camera-derived sequences / predictions
+API -left-> Data : Read / write data
+Web -left-> Data : Sign-in / media
+AI -down-> Data : Load model
+
+footer Proposed architecture | Camera video is not stored
+@enduml

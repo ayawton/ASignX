@@ -1,0 +1,14 @@
+{
+  "svgs": 24,
+  "pdfs": 24,
+  "transparentPngs": 96,
+  "icoFiles": 3,
+  "icnsFiles": 3,
+  "result": "PASS",
+  "checks": [
+    "SVGs contain true vector paths and no raster or font dependencies",
+    "All PDFs opened and rendered with PDF.js",
+    "All raster logo PNGs have alpha channels",
+    "ICO and ICNS structures are valid"
+  ]
+}

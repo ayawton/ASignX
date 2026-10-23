@@ -248,3 +248,34 @@ Live verification after migration: one pending Auth identity, zero profiles, and
 zero unconfirmed profiles. No email confirmation flag was manually changed.
 All 25 backend tests pass, including delayed creation, repeated confirmation,
 direct-insert protection, pending-account deletion, and upgrade data protection.
+
+### Login implementation (2026-10-23)
+
+The dedicated login page uses `loginAccount` to trim the email (never the password),
+validate inputs, sign in through Supabase, and verify the returned identity using
+`getUser`. Only email-confirmed accounts are accepted. Invalid credentials use a
+generic message; confirmation resend is offered only after email-not-confirmed
+errors. Resending uses the existing confirmation controls and cooldown.
+
+Persistent sessions and auto refresh are explicit SDK settings. Session restoration
+and incoming auth events are checked with Supabase outside the synchronous Auth
+callback. Revisions prevent a slow restore/verification from reviving a session
+after logout or replacing a newer login. A rejected restored session clears the
+UI account state and asks the user to log in again. Backend personal endpoints
+continue to verify each bearer token independently and enforce ownership.
+Logout signs out the current session and clears the current UI state.
+
+`client/scripts/login.test.mjs` covers the real SDK password-grant request with
+mocked Auth responses, verified user retrieval, persistent storage and logout,
+invalid/unconfirmed/rate-limited logins, revoked sessions, restore/logout races,
+and exclusion of passwords from session storage. Client registration/confirmation
+and route smoke tests, lint, production build, and 25 backend tests pass. A real
+password login requires the user to enter their own credentials; no password was
+requested in chat or saved by the implementation.
+
+Browser verification also reached the live configured Supabase service: a dummy
+invalid login was rejected with the generic credentials message, and guest access
+to Progress redirected to `/login?next=%2Fprogress`. The login screen was visually
+reviewed. A successful real-account login has not been performed without the
+user's own confirmed account credentials; successful login/session behavior is
+covered by the SDK tests described above.

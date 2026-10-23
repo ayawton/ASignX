@@ -1,10 +1,11 @@
 /* eslint-disable react/only-export-components -- Shared authentication context and its helpers form one module. */
 import { createContext, useContext, useEffect, useState } from 'react'
+import { observeSession } from './login'
 import { createClient } from '@supabase/supabase-js'
 import { Navigate, useLocation } from 'react-router-dom'
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-export const supabase = url && key ? createClient(url, key, { auth: { detectSessionInUrl: typeof window === 'undefined' || window.location.pathname !== '/auth/callback' } }) : null
+export const supabase = url && key ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: typeof window === 'undefined' || window.location.pathname !== '/auth/callback' } }) : null
 const Context = createContext(null)
 export { internalPath } from './auth-path'
 export function AuthProvider({ children }) {
@@ -13,12 +14,12 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState('')
   useEffect(() => {
     if (!supabase) return
-    let active = true
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, next) => { if (active) { setSession(next); setLoading(false) } })
-    supabase.auth.getSession().then(({ data, error }) => { if (active) { setSession(data.session); setError(error?.message || ''); setLoading(false) } }).catch(() => { if (active) { setError('Unable to restore your account session.'); setLoading(false) } })
-    return () => { active = false; subscription.unsubscribe() }
+    const observer = observeSession(supabase, state => {
+      setSession(state.session); setError(state.error); setLoading(state.loading)
+    })
+    return observer.unsubscribe
   }, [])
-  async function logout() { const { error } = await supabase.auth.signOut(); if (error) throw error; setSession(null) }
+  async function logout() { if (!supabase) return; const { error } = await supabase.auth.signOut({ scope: 'local' }); if (error) throw error; setSession(null); setError('') }
   return <Context.Provider value={{ session, user: session?.user, loading, error, logout }}>{children}</Context.Provider>
 }
 export const useAuth = () => useContext(Context)

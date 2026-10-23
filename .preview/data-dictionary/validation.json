@@ -1,0 +1,10 @@
+{
+  "application_tables": 16,
+  "application_columns": 89,
+  "foreign_keys": 25,
+  "auth_reference_fields": 7,
+  "pdf_pages": 13,
+  "all_column_names_in_pdf": true,
+  "orientation": "portrait",
+  "all_pages_portrait": true
+}

@@ -1,0 +1,1179 @@
+{
+  "entities": [
+    {
+      "name": "auth_users",
+      "alias": "auth_users",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        }
+      ]
+    },
+    {
+      "name": "profiles",
+      "alias": "profiles",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK",
+            "FK"
+          ],
+          "mandatory": true,
+          "reference": {
+            "parent": "auth_users",
+            "child": "profiles",
+            "field": "id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 1",
+            "label": "has profile"
+          }
+        },
+        {
+          "name": "display_name",
+          "type": "varchar(100)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "role",
+          "type": "varchar(10)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "timezone",
+          "type": "varchar(64)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "courses",
+      "alias": "courses",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "title",
+          "type": "varchar(150)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "is_published",
+          "type": "boolean",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "enrollments",
+      "alias": "enrollments",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "profiles",
+            "child": "enrollments",
+            "field": "user_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "enrolls"
+          }
+        },
+        {
+          "name": "course_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "courses",
+            "child": "enrollments",
+            "field": "course_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "receives"
+          }
+        },
+        {
+          "name": "enrolled_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "lessons",
+      "alias": "lessons",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "course_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "courses",
+            "child": "lessons",
+            "field": "course_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "contains"
+          }
+        },
+        {
+          "name": "title",
+          "type": "varchar(150)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "xp_reward",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "is_published",
+          "type": "boolean",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "lesson_progress",
+      "alias": "lesson_progress",
+      "fields": [
+        {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "tags": [
+            "PK",
+            "FK"
+          ],
+          "mandatory": true,
+          "reference": {
+            "parent": "enrollments",
+            "child": "lesson_progress",
+            "field": "enrollment_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "tracks"
+          }
+        },
+        {
+          "name": "lesson_id",
+          "type": "uuid",
+          "tags": [
+            "PK",
+            "FK"
+          ],
+          "mandatory": true,
+          "reference": {
+            "parent": "lessons",
+            "child": "lesson_progress",
+            "field": "lesson_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "progress for"
+          }
+        },
+        {
+          "name": "started_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "xp_earned",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "signs",
+      "alias": "signs",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "gloss",
+          "type": "varchar(100)",
+          "tags": [
+            "UK"
+          ],
+          "mandatory": false
+        },
+        {
+          "name": "meaning",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "category",
+          "type": "varchar(60)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "instructions",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "demo_path",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "is_published",
+          "type": "boolean",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "lesson_signs",
+      "alias": "lesson_signs",
+      "fields": [
+        {
+          "name": "lesson_id",
+          "type": "uuid",
+          "tags": [
+            "PK",
+            "FK"
+          ],
+          "mandatory": true,
+          "reference": {
+            "parent": "lessons",
+            "child": "lesson_signs",
+            "field": "lesson_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "includes"
+          }
+        },
+        {
+          "name": "sign_id",
+          "type": "uuid",
+          "tags": [
+            "PK",
+            "FK"
+          ],
+          "mandatory": true,
+          "reference": {
+            "parent": "signs",
+            "child": "lesson_signs",
+            "field": "sign_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "appears in"
+          }
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "exercises",
+      "alias": "exercises",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "lesson_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "lessons",
+            "child": "exercises",
+            "field": "lesson_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "contains"
+          }
+        },
+        {
+          "name": "prompt",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "sign_id",
+          "type": "uuid",
+          "tags": [
+            "FK",
+            "nullable"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "signs",
+            "child": "exercises",
+            "field": "sign_id",
+            "target": "id",
+            "optional": true,
+            "cardinality": "0..1 to 0..many",
+            "label": "reference sign"
+          }
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "exercise_options",
+      "alias": "exercise_options",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "exercise_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "exercises",
+            "child": "exercise_options",
+            "field": "exercise_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "offers"
+          }
+        },
+        {
+          "name": "option_text",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "is_correct",
+          "type": "boolean",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "exercise_attempts",
+      "alias": "exercise_attempts",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "enrollments",
+            "child": "exercise_attempts",
+            "field": "enrollment_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "makes"
+          }
+        },
+        {
+          "name": "exercise_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "exercises",
+            "child": "exercise_attempts",
+            "field": "exercise_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "attempted in"
+          }
+        },
+        {
+          "name": "selected_option_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "exercise_options",
+            "child": "exercise_attempts",
+            "field": "selected_option_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "selected option"
+          }
+        },
+        {
+          "name": "attempted_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "achievements",
+      "alias": "achievements",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "code",
+          "type": "varchar(50)",
+          "tags": [
+            "UK"
+          ],
+          "mandatory": false
+        },
+        {
+          "name": "name",
+          "type": "varchar(100)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "metric",
+          "type": "varchar(25)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "threshold",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "user_achievements",
+      "alias": "user_achievements",
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "tags": [
+            "PK",
+            "FK"
+          ],
+          "mandatory": true,
+          "reference": {
+            "parent": "profiles",
+            "child": "user_achievements",
+            "field": "user_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "earns"
+          }
+        },
+        {
+          "name": "achievement_id",
+          "type": "uuid",
+          "tags": [
+            "PK",
+            "FK"
+          ],
+          "mandatory": true,
+          "reference": {
+            "parent": "achievements",
+            "child": "user_achievements",
+            "field": "achievement_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "awarded as"
+          }
+        },
+        {
+          "name": "unlocked_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "model_versions",
+      "alias": "model_versions",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "version",
+          "type": "varchar(50)",
+          "tags": [
+            "UK"
+          ],
+          "mandatory": false
+        },
+        {
+          "name": "artifact_path",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "confidence_threshold",
+          "type": "numeric(6,5)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "practice_attempts",
+      "alias": "practice_attempts",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "profiles",
+            "child": "practice_attempts",
+            "field": "user_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "performs"
+          }
+        },
+        {
+          "name": "lesson_id",
+          "type": "uuid",
+          "tags": [
+            "FK",
+            "nullable"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "lessons",
+            "child": "practice_attempts",
+            "field": "lesson_id",
+            "target": "id",
+            "optional": true,
+            "cardinality": "0..1 to 0..many",
+            "label": "practiced in"
+          }
+        },
+        {
+          "name": "target_sign_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "signs",
+            "child": "practice_attempts",
+            "field": "target_sign_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "target sign"
+          }
+        },
+        {
+          "name": "predicted_sign_id",
+          "type": "uuid",
+          "tags": [
+            "FK",
+            "nullable"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "signs",
+            "child": "practice_attempts",
+            "field": "predicted_sign_id",
+            "target": "id",
+            "optional": true,
+            "cardinality": "0..1 to 0..many",
+            "label": "predicted sign"
+          }
+        },
+        {
+          "name": "model_version_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "model_versions",
+            "child": "practice_attempts",
+            "field": "model_version_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "evaluates with"
+          }
+        },
+        {
+          "name": "confidence",
+          "type": "numeric(6,5)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "attempted_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "recognition_sessions",
+      "alias": "recognition_sessions",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "profiles",
+            "child": "recognition_sessions",
+            "field": "user_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "starts"
+          }
+        },
+        {
+          "name": "started_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "ended_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "final_text",
+          "type": "text",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    },
+    {
+      "name": "recognition_results",
+      "alias": "recognition_results",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "tags": [
+            "PK"
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "recognition_sessions",
+            "child": "recognition_results",
+            "field": "session_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "contains"
+          }
+        },
+        {
+          "name": "sign_id",
+          "type": "uuid",
+          "tags": [
+            "FK",
+            "nullable"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "signs",
+            "child": "recognition_results",
+            "field": "sign_id",
+            "target": "id",
+            "optional": true,
+            "cardinality": "0..1 to 0..many",
+            "label": "recognized sign"
+          }
+        },
+        {
+          "name": "model_version_id",
+          "type": "uuid",
+          "tags": [
+            "FK"
+          ],
+          "mandatory": false,
+          "reference": {
+            "parent": "model_versions",
+            "child": "recognition_results",
+            "field": "model_version_id",
+            "target": "id",
+            "optional": false,
+            "cardinality": "1 to 0..many",
+            "label": "generated by"
+          }
+        },
+        {
+          "name": "sequence_no",
+          "type": "integer",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "confidence",
+          "type": "numeric(6,5)",
+          "tags": [],
+          "mandatory": false
+        },
+        {
+          "name": "recognized_at",
+          "type": "timestamptz",
+          "tags": [],
+          "mandatory": false
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "parent": "auth_users",
+      "child": "profiles",
+      "field": "id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 1",
+      "label": "has profile"
+    },
+    {
+      "parent": "profiles",
+      "child": "enrollments",
+      "field": "user_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "enrolls"
+    },
+    {
+      "parent": "courses",
+      "child": "enrollments",
+      "field": "course_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "receives"
+    },
+    {
+      "parent": "courses",
+      "child": "lessons",
+      "field": "course_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "contains"
+    },
+    {
+      "parent": "enrollments",
+      "child": "lesson_progress",
+      "field": "enrollment_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "tracks"
+    },
+    {
+      "parent": "lessons",
+      "child": "lesson_progress",
+      "field": "lesson_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "progress for"
+    },
+    {
+      "parent": "lessons",
+      "child": "lesson_signs",
+      "field": "lesson_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "includes"
+    },
+    {
+      "parent": "signs",
+      "child": "lesson_signs",
+      "field": "sign_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "appears in"
+    },
+    {
+      "parent": "lessons",
+      "child": "exercises",
+      "field": "lesson_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "contains"
+    },
+    {
+      "parent": "signs",
+      "child": "exercises",
+      "field": "sign_id",
+      "target": "id",
+      "optional": true,
+      "cardinality": "0..1 to 0..many",
+      "label": "reference sign"
+    },
+    {
+      "parent": "exercises",
+      "child": "exercise_options",
+      "field": "exercise_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "offers"
+    },
+    {
+      "parent": "enrollments",
+      "child": "exercise_attempts",
+      "field": "enrollment_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "makes"
+    },
+    {
+      "parent": "exercises",
+      "child": "exercise_attempts",
+      "field": "exercise_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "attempted in"
+    },
+    {
+      "parent": "exercise_options",
+      "child": "exercise_attempts",
+      "field": "selected_option_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "selected option"
+    },
+    {
+      "parent": "profiles",
+      "child": "user_achievements",
+      "field": "user_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "earns"
+    },
+    {
+      "parent": "achievements",
+      "child": "user_achievements",
+      "field": "achievement_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "awarded as"
+    },
+    {
+      "parent": "profiles",
+      "child": "practice_attempts",
+      "field": "user_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "performs"
+    },
+    {
+      "parent": "lessons",
+      "child": "practice_attempts",
+      "field": "lesson_id",
+      "target": "id",
+      "optional": true,
+      "cardinality": "0..1 to 0..many",
+      "label": "practiced in"
+    },
+    {
+      "parent": "signs",
+      "child": "practice_attempts",
+      "field": "target_sign_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "target sign"
+    },
+    {
+      "parent": "signs",
+      "child": "practice_attempts",
+      "field": "predicted_sign_id",
+      "target": "id",
+      "optional": true,
+      "cardinality": "0..1 to 0..many",
+      "label": "predicted sign"
+    },
+    {
+      "parent": "model_versions",
+      "child": "practice_attempts",
+      "field": "model_version_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "evaluates with"
+    },
+    {
+      "parent": "profiles",
+      "child": "recognition_sessions",
+      "field": "user_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "starts"
+    },
+    {
+      "parent": "recognition_sessions",
+      "child": "recognition_results",
+      "field": "session_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "contains"
+    },
+    {
+      "parent": "signs",
+      "child": "recognition_results",
+      "field": "sign_id",
+      "target": "id",
+      "optional": true,
+      "cardinality": "0..1 to 0..many",
+      "label": "recognized sign"
+    },
+    {
+      "parent": "model_versions",
+      "child": "recognition_results",
+      "field": "model_version_id",
+      "target": "id",
+      "optional": false,
+      "cardinality": "1 to 0..many",
+      "label": "generated by"
+    }
+  ]
+}

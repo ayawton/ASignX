@@ -279,3 +279,26 @@ to Progress redirected to `/login?next=%2Fprogress`. The login screen was visual
 reviewed. A successful real-account login has not been performed without the
 user's own confirmed account credentials; successful login/session behavior is
 covered by the SDK tests described above.
+
+### Learner dashboard
+
+The signed-in workspace has its own header and sidebar under `/dashboard/*`,
+without the public Home, Our Story, or marketing footer. Its protected child
+routes include Live, learning, courses, sample lessons, arcade, progress, and
+profile. Shared learning links retain the workspace path; public preview routes
+remain available separately. Route smoke tests cover this separation.
+
+Normal login and safe fallback redirects now open `/dashboard`. Explicit internal
+return destinations are preserved. The protected dashboard reads the existing
+profile, progress, and published course services. `GET /api/me/enrollments` returns
+only the verified user's saved enrollments, including courses no longer published.
+Enrollment uses the existing idempotent POST endpoint; the dashboard updates its
+course list after a successful save. Profile editing and logout remain available.
+Independent loading/error states allow available sections to remain usable.
+
+The dashboard does not create sample published courses or award practice XP.
+If no courses are published, it displays an empty state and links to guest practice.
+Enrolled courses currently show membership; a published-course lesson player is
+not part of this dashboard change. Automated checks cover redirects and guest
+route protection; a real-account dashboard session and enrollment round trip
+have not been verified against the live service.

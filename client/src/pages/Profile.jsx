@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import Link from '../components/WorkspaceLink'
 import { api, useAuth } from '../auth'
 export default function Profile() {
  const [profile, setProfile] = useState(null), [message, setMessage] = useState(''), [busy, setBusy] = useState(false)

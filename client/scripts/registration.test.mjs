@@ -40,7 +40,7 @@ console.log('PASS validation and missing-configuration handling')
 let called = false
 const safeClient = { auth: { signUp: async payload => {
  called = true
- assert.equal(new URL(payload.options.emailRedirectTo).searchParams.get('next'), '/profile')
+ assert.equal(new URL(payload.options.emailRedirectTo).searchParams.get('next'), '/dashboard')
  return { data: { user: { id: 'account-id' }, session: null }, error: null }
 } } }
 await registerAccount(safeClient, values, 'https://asignx.example', '//untrusted.example')

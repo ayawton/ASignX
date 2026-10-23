@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from './WorkspaceLink'
 import Logo from './Logo'
 
 export function Button({ to, children, secondary = false }) { return <Link to={to} className={`btn ${secondary ? 'btn-secondary' : ''}`}>{children}</Link> }

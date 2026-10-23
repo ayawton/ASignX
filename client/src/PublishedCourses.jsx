@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from './components/WorkspaceLink'
 import { api, useAuth } from './auth'
 export default function PublishedCourses() {
  const { user } = useAuth(), [courses, setCourses] = useState([]), [message, setMessage] = useState(''), [busy, setBusy] = useState(false)

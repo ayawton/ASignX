@@ -51,5 +51,5 @@ const sdk = createClient('https://test-project.supabase.co', 'sb_publishable_tes
 await resendConfirmation(sdk, ' learner@example.com ', 'https://asignx.example', '/learn/courses')
 await assert.rejects(resendConfirmation(sdk, 'invalid', 'https://asignx.example'), /valid email/)
 assert.equal(sent, 1)
-assert.equal(new URL(confirmationRedirect('https://asignx.example', '//untrusted.example')).searchParams.get('next'), '/profile')
+assert.equal(new URL(confirmationRedirect('https://asignx.example', '//untrusted.example')).searchParams.get('next'), '/dashboard')
 console.log('PASS resend through Supabase SDK and safe internal return links')

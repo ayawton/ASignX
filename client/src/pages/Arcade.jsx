@@ -1,5 +1,5 @@
-﻿import { useEffect, useReducer, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useReducer, useState } from 'react'
+import Link from '../components/WorkspaceLink'
 import { ArrowLeft, ArrowRight, BookOpen, Camera, Check, ChevronRight, Crosshair, Hand, Heart, Keyboard, Pause, Play, RotateCcw, Shield, Sparkles, Target, Trophy, X, Zap } from 'lucide-react'
 import CameraPanel from '../components/CameraPanel'
 import LearningModes from '../components/LearningModes'

@@ -38,6 +38,10 @@ personal.get('/progress', async (_req, res) => {
     const [streak] = await sql`select asignx_private.current_streak(${res.locals.user.id}::uuid) as days`;
     res.json({ lessons, achievements, streak: streak?.days ?? 0, xp: lessons.reduce((sum, row) => sum + row.xp_earned, 0) });
 });
+personal.get('/enrollments', async (_req, res) => {
+    const rows = await sql`select e.id, e.course_id, e.enrolled_at, c.title, c.description, c.is_published from enrollments e join courses c on c.id = e.course_id where e.user_id = ${res.locals.user.id} order by e.enrolled_at desc`;
+    res.json(rows);
+});
 personal.post('/enrollments', async (req, res) => {
     if (typeof req.body.course_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(req.body.course_id)) { res.status(400).json({ error: 'Choose a published course.' }); return; }
     const rows = await sql`insert into enrollments (user_id, course_id) select ${res.locals.user.id}, id from courses where id = ${req.body.course_id} and is_published on conflict (user_id, course_id) do update set user_id = excluded.user_id returning id, course_id, enrolled_at`;

@@ -1,0 +1,6 @@
+import Link from './WorkspaceLink'
+import Logo from './Logo'
+
+export function Button({ to, children, secondary = false }) { return <Link to={to} className={`btn ${secondary ? 'btn-secondary' : ''}`}>{children}</Link> }
+export function Brand(props) { return <Logo {...props} /> }
+export function Artwork({ small = false }) { return <div className={`hand-art ${small ? 'hand-art-small' : ''}`} aria-hidden="true"><svg viewBox="0 0 440 460" fill="none"><circle cx="226" cy="230" r="177" fill="#DCE9FF" /><path d="M120 385c6-61-10-88-29-122L58 207c-8-15-4-29 8-35 13-7 26-1 35 11l36 45-28-130c-4-18 4-32 18-34 15-3 28 7 31 24l22 97-9-137c-1-18 9-30 24-30s25 12 26 29l8 135 9-119c1-17 11-27 26-26 14 1 24 13 23 31l-7 131 21-88c4-16 15-23 29-20 14 4 21 16 17 33l-23 139c-6 40-25 61-36 90-8 20-11 42-9 65" fill="#2962F5" stroke="#1647CB" strokeWidth="3" strokeLinejoin="round" /><path d="M137 228c36-3 75 18 81 61M180 185l5 41m44-44 1 44m50-17-8 27" stroke="#8FB2FF" strokeWidth="3" strokeLinecap="round" /><path d="M115 387c48 20 115 24 172 6l7 59H111z" fill="#FFE66D" stroke="#1647CB" strokeWidth="3" /><path d="m349 107 16-15m-7 43 26-4M77 106 60 90m27 51-27-5" stroke="#2962F5" strokeWidth="4" strokeLinecap="round" /><circle cx="358" cy="299" r="10" fill="#FFE66D"/><path d="m64 313 6 14 15 5-15 5-6 15-5-15-15-5 15-5z" fill="#2962F5" /></svg></div> }

@@ -48,7 +48,7 @@ export default function Dashboard() {
     </section>
    </div><aside className="learner-details">
     <section className="learner-account"><UserRound size={23} /><h2>Your information</h2>{profile ? <dl><dt>Name</dt><dd>{profile.display_name}</dd><dt>Email</dt><dd>{profile.email}</dd><dt>Time zone</dt><dd>{profile.timezone}</dd></dl> : <p>{errors.profile ? 'Your information is unavailable.' : 'Loading your information…'}</p>}<Link className="text-link" to="/profile">Edit profile <ArrowUpRight size={16} /></Link></section>
-    <section className="learner-shortcuts"><h2>Keep exploring</h2><Link to="/live"><Camera size={22} /><div><strong>ASignLive</strong><p>Camera preview & demo</p></div><ArrowUpRight size={17} /></Link><Link to="/learn/arcade"><Gamepad2 size={22} /><div><strong>Sign Strike</strong><p>A little playful practice</p></div><ArrowUpRight size={17} /></Link><Link to="/progress"><Trophy size={22} /><div><strong>Your achievements</strong><p>{progress ? `${progress.achievements.length} unlocked` : 'View your learning record'}</p></div><ArrowUpRight size={17} /></Link></section>
+    <section className="learner-shortcuts"><h2>Keep exploring</h2><Link to="/live"><Camera size={22} /><div><strong>ASignLive</strong><p>Live alphabet recognition</p></div><ArrowUpRight size={17} /></Link><Link to="/learn/arcade"><Gamepad2 size={22} /><div><strong>Sign Strike</strong><p>A little playful practice</p></div><ArrowUpRight size={17} /></Link><Link to="/progress"><Trophy size={22} /><div><strong>Your achievements</strong><p>{progress ? `${progress.achievements.length} unlocked` : 'View your learning record'}</p></div><ArrowUpRight size={17} /></Link></section>
    </aside></div>
   </section>
  </div>

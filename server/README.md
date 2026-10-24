@@ -280,6 +280,17 @@ reviewed. A successful real-account login has not been performed without the
 user's own confirmed account credentials; successful login/session behavior is
 covered by the SDK tests described above.
 
+### Server-side ASignLive recognition
+
+Run `npm run recognition` alongside `npm run dev` to start the private Python
+ONNX/MediaPipe service and the Express gateway. The client uploads bounded JPEG
+frames; it downloads no trained models and performs no model inference. Model
+files live under ignored `server/private/models`, outside client public assets.
+Both services read a shared backend-only token from `server/.env`; the Python
+service binds only to localhost. No frames or recognition history are persisted.
+Setup, architecture, limits and checks are in `docs/ASignLive-Recognition.md` at
+the repository root. Run `npm run test:recognition` for the Python/ONNX checks.
+
 ### Learner dashboard
 
 The signed-in workspace has its own header and sidebar under `/dashboard/*`,

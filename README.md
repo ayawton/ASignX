@@ -1,6 +1,6 @@
 # ASignX
 
-ASign uses a conventional MERN monorepo layout:
+ASignX uses a conventional MERN monorepo layout:
 
 - `frontend/` — React and Vite user interface
 - `backend/` — Express API and MongoDB connection

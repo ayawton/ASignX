@@ -53,6 +53,22 @@ class RecognitionTests(unittest.TestCase):
         self.assertEqual(stable.update('B'), (None, None))
         stable.update(None); stable.update(None); stable.update('A'); stable.update('A')
         self.assertEqual(stable.update('A'), ('A','A'))
+    def test_repeated_letters_release_by_elapsed_time_at_different_frame_rates(self):
+        for step in [67, 500]:
+            stable = Stabilizer(required=3)
+            for timestamp in [0, step, step*2]:
+                _, emitted = stable.update('T', timestamp)
+            self.assertEqual(emitted, 'T')
+            self.assertEqual(stable.update('T', step*3), ('T', None), 'Holding a sign must not repeat it')
+            stable.update(None, step*4)
+            stable.update('T', step*4+300)
+            stable.update('T', step*5+300)
+            self.assertEqual(stable.update('T', step*6+300), ('T', 'T'), 'A hand-away interval must permit double letters')
+    def test_brief_detection_flicker_does_not_duplicate_a_letter(self):
+        stable = Stabilizer(required=2)
+        stable.update('T', 0); self.assertEqual(stable.update('T', 67), ('T', 'T'))
+        stable.update(None, 100); stable.update('T', 167)
+        self.assertEqual(stable.update('T', 234), ('T', None))
     def test_internal_authorization_and_no_model_downloads(self):
         with TestClient(create_app(FakeEngine, KEY)) as client:
             self.assertEqual(client.post('/sessions').status_code, 401)

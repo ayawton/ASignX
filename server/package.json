@@ -15,7 +15,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "recognition": "node scripts/recognition.mjs",
-    "test:recognition": "node scripts/recognition.mjs --test"
+    "test:recognition": "node scripts/recognition.mjs --test",
+    "test:nlp": "node scripts/test-nlp.mjs"
   },
   "dependencies": {
     "approve": "^0.0.12",

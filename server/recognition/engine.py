@@ -53,16 +53,23 @@ def sequence_features(frames, length=30):
     return np.vstack((np.zeros((length-len(raw), 126), np.float32), out))
 
 class Stabilizer:
-    def __init__(self, required=5, release=10):
+    def __init__(self, required=5, release=10, release_ms=250):
         self.required, self.release = required, release
+        self.release_ms, self.missing_since = release_ms, None
         self.candidate, self.emitted, self.count, self.missing = None, None, 0, 0
-    def update(self, label):
+    def update(self, label, timestamp=None):
         if label is None:
             self.candidate, self.count = None, 0
             self.missing += 1
-            if self.missing >= self.release:
+            if self.missing_since is None:
+                self.missing_since = timestamp
+            if (timestamp is not None and timestamp-self.missing_since >= self.release_ms) or (timestamp is None and self.missing >= self.release):
                 self.emitted = None
             return None, None
+        # A sampled hand-away interval also counts when the hand returns between requests.
+        if timestamp is not None and self.missing_since is not None and timestamp-self.missing_since >= self.release_ms:
+            self.emitted = None
+        self.missing_since = None
         self.missing = 0
         self.count = self.count + 1 if label == self.candidate else 1
         self.candidate = label
@@ -135,7 +142,7 @@ class Recognition:
         readings, emissions, moving = [], [], False
         for side in ['Left', 'Right']:
             if side not in hands:
-                self.motion[side].clear(); self.stable[side].update(None)
+                self.motion[side].clear(); self.stable[side].update(None, timestamp)
                 continue
             is_moving = self.moving(side, hands[side], timestamp)
             moving |= is_moving
@@ -160,12 +167,12 @@ class Recognition:
             self.frames.append(frame); self.next_sample += interval
             features = sequence_features(list(self.frames)) if dynamic_active else None
             label, confidence = self.models.predict('sequence', features) if features is not None else (None, 0.)
-            stable, emitted = self.dynamic.update(label)
+            stable, emitted = self.dynamic.update(label, timestamp)
             self.dynamic_reading = {'hand': 'Motion', 'label': label, 'confidence': confidence, 'stable': stable} if dynamic_active else None
             if emitted:
                 emissions.append({'label': emitted, 'hand': 'Motion', 'confidence': confidence})
         for reading in readings:
-            stable, emitted = self.stable[reading['hand']].update(None if dynamic_active else reading['label'])
+            stable, emitted = self.stable[reading['hand']].update(None if dynamic_active else reading['label'], timestamp)
             reading['stable'] = stable
             if emitted:
                 emissions.append({'label': emitted, 'hand': reading['hand'], 'confidence': reading['confidence']})

@@ -17,6 +17,9 @@ try {
   assert.equal((html.match(/<h1/g) || []).length, 1)
   console.log(`PASS public route ${path}`)
  }
+ const live = render('/live')
+ assert.ok(live.includes('Automatic word recognition') && live.includes('Sentence assembly'), 'Live exposes both automatic pipeline stages')
+ assert.ok(!live.includes('Finish word') && !live.includes('Select a word'), 'Word selection is not required')
  assert.ok(!render('/dashboard').includes('Your hands have'), 'Guest dashboard is protected')
  assert.equal(internalPath(null), '/dashboard')
  for (const path of ['/dashboard', '/dashboard/live', '/dashboard/learn', '/dashboard/profile', '/dashboard/progress']) {

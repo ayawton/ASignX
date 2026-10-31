@@ -25,6 +25,10 @@ export function createRecognitionRouter(fetcher: typeof fetch = fetch) {
             headers['X-Frame-Timestamp'] = req.get('x-frame-timestamp') ?? '';
             body = new Uint8Array(req.body);
         }
+        if (path === '/nlp/word' || path === '/nlp/sentence') {
+            headers['Content-Type'] = 'application/json';
+            body = new Uint8Array(Buffer.from(JSON.stringify({ text: req.body.text, ...(path === '/nlp/sentence' ? { fallback: req.body.fallback } : {}) })));
+        }
         try {
             const base = process.env.RECOGNITION_URL ?? 'http://127.0.0.1:8001';
             const response = await fetcher(`${base}${path}`, { method: req.method, headers, ...(body ? { body } : {}), signal: AbortSignal.timeout(12000), redirect: 'error' });
@@ -38,6 +42,14 @@ export function createRecognitionRouter(fetcher: typeof fetch = fetch) {
             res.json(data);
         } catch { res.status(503).json({ error: 'Recognition is unavailable. Start the recognition service and try again.' }); }
     }
+    router.post('/nlp/sentence', express.json({ limit: '8kb' }), (req, res) => {
+        if (typeof req.body?.text !== 'string' || req.body.text.length > 2000 || !/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(req.body.text) || typeof req.body.fallback !== 'string' || req.body.fallback.length > 4000 || !/^[A-Z]+(?:[' ][A-Z]+)*$/.test(req.body.fallback)) { res.status(400).json({ error: 'Send valid sentence letters and provisional words.' }); return; }
+        return forward(req, res, '/nlp/sentence');
+    });
+    router.post('/nlp/word', express.json({ limit: '2kb' }), (req, res) => {
+        if (typeof req.body?.text !== 'string' || !/^[A-Za-z]{1,200}$/.test(req.body.text)) { res.status(400).json({ error: 'Send 1 to 200 English letters.' }); return; }
+        return forward(req, res, '/nlp/word');
+    });
     router.post('/sessions', (req, res) => {
         const now = Date.now();
         for (const [key, value] of starts) if (value.expires < now) starts.delete(key);

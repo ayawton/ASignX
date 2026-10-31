@@ -6,9 +6,15 @@ import os
 import secrets
 import threading
 import time
+from functools import lru_cache
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 from engine import Models, Recognition
+from english_words import EnglishWords
+
+@lru_cache(maxsize=1)
+def english_words():
+    return EnglishWords()
 
 MAX_FRAME = 256 * 1024
 TTL = 60
@@ -124,6 +130,36 @@ def create_app(factory=None, token=None):
     async def create():
         key = await run_in_threadpool(registry.create)
         return {'session_id': key}
+    @app.post('/nlp/word', dependencies=[Depends(authorized)])
+    async def word(request: Request):
+        body = bytearray()
+        async for chunk in request.stream():
+            body.extend(chunk)
+            if len(body) > 2048:
+                raise HTTPException(413, 'Word input is too large')
+        try:
+            import json
+            data = json.loads(body)
+            if not isinstance(data, dict):
+                raise ValueError('Send a word')
+            return await run_in_threadpool(lambda: english_words().suggest(data.get('text')))
+        except (ValueError, TypeError):
+            raise HTTPException(422, 'Send 1 to 200 English letters') from None
+    @app.post('/nlp/sentence', dependencies=[Depends(authorized)])
+    async def sentence(request: Request):
+        body = bytearray()
+        async for chunk in request.stream():
+            body.extend(chunk)
+            if len(body) > 8192:
+                raise HTTPException(413, 'Sentence input is too large')
+        try:
+            import json
+            data = json.loads(body)
+            if not isinstance(data, dict):
+                raise ValueError('Send sentence words')
+            return await run_in_threadpool(lambda: english_words().sentence(data.get('text'), data.get('fallback')))
+        except (ValueError, TypeError):
+            raise HTTPException(422, 'Send valid sentence letters and provisional words') from None
     @app.post('/sessions/{key}/frames', dependencies=[Depends(authorized)])
     async def frame(key: str, request: Request, x_frame_timestamp: str = Header(default='')):
         if request.headers.get('content-type', '').split(';')[0] != 'image/jpeg':

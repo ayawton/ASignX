@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { readdir } from 'node:fs/promises'
 import { createFrameStream } from '../src/recognition/frameStream.js'
+
 const id = 'a'.repeat(43)
 const empty = { hands: [], readings: [], emissions: [], dynamic: null, moving: false }
 function setup(override = {}) {
  const calls = [], states = [], results = [], queue = []
+ let timestamp = 1000
  const video = { readyState: 4, paused: false, currentTime: 1, videoWidth: 1920, videoHeight: 1080 }
  const canvas = { getContext: () => ({ drawImage: target => assert.equal(target, video) }), toBlob: done => done(new Blob(['jpeg'], { type: 'image/jpeg' })) }
  const fetcher = async (url, options) => {
@@ -12,7 +14,7 @@ function setup(override = {}) {
   if (override.fetcher) return override.fetcher(url, options)
   return Response.json(url.endsWith('/sessions') ? { session_id: id } : empty)
  }
- const stream = createFrameStream(video, { onState: (...args) => states.push(args), onResult: data => results.push(data), fetcher, canvasFactory: () => canvas, schedule: (fn, delay) => { const item = { fn, delay }; queue.push(item); return item }, cancel: item => { if (item) item.cancelled = true }, clock: () => 1000, visible: () => true })
+ const stream = createFrameStream(video, { onState: (...args) => states.push(args), onResult: data => results.push(data), fetcher, canvasFactory: () => canvas, schedule: (fn, delay) => { const item = { fn, delay }; queue.push(item); return item }, cancel: item => { if (item) item.cancelled = true }, clock: () => timestamp += 100, visible: () => true })
  return { calls, states, results, video, canvas, queue, stream }
 }
 const test = setup()
@@ -38,7 +40,10 @@ const pending = setup({ fetcher: async url => url.endsWith('/frames') ? new Prom
 await pending.stream.start()
 const inFlight = pending.queue.shift().fn()
 for (let i = 0; i < 10 && !completeFrame; i++) await Promise.resolve()
-assert.equal(pending.queue.length, 0, 'No frames queued while inference is in flight')
+assert.equal(pending.queue.length, 1, 'Capture continues while inference is in flight')
+pending.video.currentTime++; await pending.queue.shift().fn()
+pending.video.currentTime++; await pending.queue.shift().fn()
+assert.equal(pending.calls.filter(call => call.url.endsWith('/frames')).length, 1, 'Only one inference request runs at a time')
 pending.stream.clear()
 completeFrame(Response.json({ ...empty, emissions: [{ label: 'A' }] }))
 await inFlight
@@ -58,6 +63,25 @@ await invalid.stream.start(); await invalid.queue.shift().fn()
 assert.equal(invalid.states.at(-1)[0], 'error')
 assert.equal(invalid.calls.at(-1).options.method, 'DELETE')
 console.log('PASS backpressure, stale-result rejection, busy retry, server failures and capture errors')
+
+let releaseFirst
+let frames = 0
+const latest = setup({ fetcher: async url => {
+ if (url.endsWith('/frames') && ++frames === 1) return new Promise(resolve => { releaseFirst = resolve })
+ return Response.json(url.endsWith('/sessions') ? { session_id: id } : empty)
+} })
+await latest.stream.start()
+const first = latest.queue.shift().fn()
+for (let i = 0; i < 10 && !releaseFirst; i++) await Promise.resolve()
+latest.video.currentTime++; await latest.queue.shift().fn()
+latest.video.currentTime++; await latest.queue.shift().fn()
+releaseFirst(Response.json(empty)); await first
+for (let i = 0; i < 20; i++) await Promise.resolve()
+const timestamps = latest.calls.filter(call => call.url.endsWith('/frames')).map(call => Number(call.options.headers['X-Frame-Timestamp']))
+assert.deepEqual(timestamps, [1100, 1300], 'Intermediate waiting frames are replaced with the newest capture')
+latest.stream.stop()
+
+console.log('PASS latest-frame replacement')
 
 async function scan(url) {
  for (const entry of await readdir(url, { withFileTypes: true })) {

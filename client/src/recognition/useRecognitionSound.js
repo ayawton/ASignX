@@ -24,7 +24,7 @@ export default function useRecognitionSound() {
    tone.frequency.setValueAtTime(1400, now)
    tone.frequency.exponentialRampToValueAtTime(650, now + .025)
    volume.gain.setValueAtTime(0, now)
-   volume.gain.linearRampToValueAtTime(.2, now + .002)
+   volume.gain.linearRampToValueAtTime(.5, now + .002)
    volume.gain.exponentialRampToValueAtTime(.0001, now + .028)
    tone.connect(volume); volume.connect(audio.destination)
    tone.onended = () => { tone.disconnect(); volume.disconnect() }

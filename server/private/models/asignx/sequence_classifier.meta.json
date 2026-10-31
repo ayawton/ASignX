@@ -1,0 +1,41 @@
+{
+  "model_type": "dynamic_sequence",
+  "labels": [
+    "J",
+    "Z"
+  ],
+  "input_name": "sequence",
+  "output_name": "logits",
+  "input_shape": [
+    "batch_size",
+    30,
+    126
+  ],
+  "input_dim": 126,
+  "output_shape": [
+    "batch_size",
+    2
+  ],
+  "preprocessing": "sequence_anchor_trajectory_v2",
+  "model_config": {
+    "num_classes": 2,
+    "input_size": 126,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "bidirectional": false,
+    "pooling": "mean",
+    "backbone": "tcn_attention",
+    "use_kinematics": true,
+    "cosine_head": true
+  },
+  "source_sha256": "1e2228a5970d18b19a25f62cb76fc560aa4c5e33962a8bc2a362a87309db2ec9",
+  "onnx_sha256": "8c5847b5485ca6cf40650d56c070113b9cd17407221e389c8e00620f6ab83077",
+  "opset": 17,
+  "use_kinematic_features": true,
+  "use_cosine_head": true,
+  "sequence_length": 30,
+  "sampling_fps": 15.0,
+  "backbone": "tcn_attention",
+  "input_contract": "30 preprocessed frames with 126 features: stable Left then Right hand slots, sequence_anchor_trajectory_v2. Graph includes kinematic features."
+}

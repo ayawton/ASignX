@@ -19,6 +19,38 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     } catch { res.status(503).json({ error: 'Account service is temporarily unavailable.' }); }
 }
 personal.use(authenticate);
+const uuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+personal.post('/lessons/:id/:action', async (req,res) => {
+ const { id,action } = req.params;
+ if (!uuid(id) || !['start','attempt','complete'].includes(action as string)) { res.status(400).json({error:'Choose a valid lesson action.'}); return; }
+ const body = req.body ?? {};
+ if (action==='attempt' && ![body.attempt_id,body.exercise_id,body.selected_option_id].every(uuid)) { res.status(400).json({error:'Choose an answer and valid submission ID.'}); return; }
+ const result = await sql.begin(async tx => {
+  const [access] = await tx`select l.id,e.id as enrollment_id from lessons l join courses c on c.id=l.course_id join enrollments e on e.course_id=c.id where l.id=${id as string} and l.is_published and c.is_published and e.user_id=${res.locals.user.id} for share of l,c,e`;
+  if (!access) return {status:404,body:{error:'Lesson unavailable.'}};
+  if (action==='start') {
+   await tx`insert into lesson_progress(enrollment_id,lesson_id) values(${access.enrollment_id},${access.id}) on conflict do nothing`;
+  }
+  const [progress] = await tx`select * from lesson_progress where enrollment_id=${access.enrollment_id} and lesson_id=${access.id} for update`;
+  if (!progress) return {status:409,body:{error:'Review the lesson material before continuing.'}};
+  if (action==='attempt') {
+   const [option] = await tx`select o.id from exercise_options o join exercises x on x.id=o.exercise_id where o.id=${body.selected_option_id} and x.id=${body.exercise_id} and x.lesson_id=${access.id}`;
+   if (!option) return {status:400,body:{error:'This choice does not belong to the question.'}};
+   await tx`insert into exercise_attempts(id,enrollment_id,exercise_id,selected_option_id,is_correct) values(${body.attempt_id},${access.enrollment_id},${body.exercise_id},${option.id},false) on conflict(id) do nothing`;
+   const [saved] = await tx`select is_correct from exercise_attempts where id=${body.attempt_id} and enrollment_id=${access.enrollment_id} and exercise_id=${body.exercise_id} and selected_option_id=${option.id}`;
+   if (!saved) return {status:409,body:{error:'Submission ID already used. Choose an answer again.'}};
+   return {status:200,body:{correct:saved.is_correct}};
+  }
+  if (action==='complete' && !progress.completed_at) {
+   const missing = await tx`select x.id from exercises x where x.lesson_id=${access.id} and not exists(select 1 from exercise_attempts a where a.enrollment_id=${access.enrollment_id} and a.exercise_id=x.id and a.is_correct)`;
+   if (missing.length) return {status:409,body:{error:'Answer every question correctly before completing the lesson.'}};
+   const [saved] = await tx`update lesson_progress set completed_at=now() where enrollment_id=${access.enrollment_id} and lesson_id=${access.id} returning *`;
+   return {status:200,body:saved};
+  }
+  return {status:200,body:progress};
+ });
+ res.status(result.status).json(result.body);
+});
 personal.get('/lessons/:id', async (req, res) => {
     const lessonId = req.params.id as string;
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)) {
@@ -29,14 +61,22 @@ personal.get('/lessons/:id', async (req, res) => {
         join enrollments e on e.course_id = c.id
         where l.id = ${lessonId} and l.is_published and c.is_published and e.user_id = ${res.locals.user.id}`;
     if (!lesson) { res.status(404).json({ error: 'Lesson unavailable. Choose a published lesson from your enrolled courses.' }); return; }
-    const signs = await sql`select s.id, s.gloss, s.meaning, s.instructions
+    const signs = await sql`select s.id, s.gloss, s.meaning, s.instructions, s.demo_path
         from lesson_signs ls join signs s on s.id = ls.sign_id
         where ls.lesson_id = ${lessonId} and s.is_published order by ls.sort_order`;
     const exercises = await sql`select id, prompt, sort_order from exercises where lesson_id = ${lessonId} order by sort_order`;
     const options = await sql`select o.id, o.exercise_id, o.option_text, o.sort_order
         from exercise_options o join exercises e on e.id = o.exercise_id
         where e.lesson_id = ${lessonId} order by o.sort_order`;
-    res.json({ ...lesson, signs, exercises: exercises.map(exercise => ({ ...exercise, options: options.filter(option => option.exercise_id === exercise.id) })) });
+    const [progress] = await sql`select lp.* from lesson_progress lp join enrollments e on e.id=lp.enrollment_id where lp.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}`;
+    const savedAnswers = await sql`select distinct on (a.exercise_id) a.exercise_id,a.selected_option_id,a.is_correct
+        from exercise_attempts a join enrollments e on e.id=a.enrollment_id join exercises x on x.id=a.exercise_id
+        where x.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}
+        order by a.exercise_id,a.is_correct desc,a.attempted_at desc,a.id desc`;
+    res.json({ ...lesson, signs, progress: progress ?? null, exercises: exercises.map(exercise => {
+        const saved = savedAnswers.find(row => row.exercise_id===exercise.id);
+        return { ...exercise, solved: saved?.is_correct ?? false, selected_option_id: saved?.selected_option_id ?? null, options: options.filter(option => option.exercise_id === exercise.id) };
+    }) });
 });
 personal.get('/courses/:id', async (req, res) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id as string)) {

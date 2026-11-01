@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { before, after, beforeEach, afterEach, test } from 'node:test';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { build } from 'esbuild';
 
 // Disposable PostgreSQL engine; never reads .env or connects to the user's database.
 const db = new PGlite();
@@ -13,6 +14,57 @@ const scalar = async sql => Object.values((await db.query(sql)).rows[0])[0];
 const attempt = (option = correct, claimed = false) => `INSERT INTO exercise_attempts
     (enrollment_id,exercise_id,selected_option_id,is_correct) VALUES ('${enrollment}','${exercise}','${option}',${claimed})`;
 const complete = () => `UPDATE lesson_progress SET completed_at=now(),xp_earned=999 WHERE enrollment_id='${enrollment}'`;
+test('media policies restrict uploads to admins and expose only published linked videos',async()=>{
+ await db.exec(`create schema storage;
+  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+  create table storage.objects(bucket_id text,name text,metadata jsonb);
+  alter table storage.objects enable row level security;
+  grant usage on schema storage to anon,authenticated;
+  grant select,insert,delete on storage.objects to anon,authenticated;
+  update profiles set role='admin' where id='${u1}';`);
+ await db.exec(await readFile(new URL('../storage/learning-media.sql',import.meta.url),'utf8'));
+ const path=`signs/${sign}/${uid(300)}.mp4`;
+ await asUser(u2);
+ await rejects(`insert into storage.objects values ('learning-media','${path}','{}')`,/row-level security/);
+ await db.exec('reset role');await asUser(u1);
+ await db.query('insert into storage.objects values ($1,$2,$3)',['learning-media',path,'{}']);
+ assert.equal(await scalar('select count(*) from storage.objects'),1);
+ await db.exec('reset role');await asUser(u2);
+ assert.equal(await scalar('select count(*) from storage.objects'),0,'Unattached media stays private');
+ await db.exec('reset role');await db.query('update signs set demo_path=$1 where id=$2',[path,sign]);await asUser(u2);
+ assert.equal(await scalar('select count(*) from storage.objects'),1);
+ await db.exec('reset role');await asUser(u1);
+ await db.exec('delete from storage.objects');
+ assert.equal(await scalar('select count(*) from storage.objects'),1,'Referenced media cannot be removed');
+});
+test('lesson API persists attempts, isolates accounts, and completes idempotently', async () => {
+ globalThis.__lessonSql = async (parts,...values) => (await db.query(parts.reduce((s,p,i) => s+(i?`$${i}`:'')+p,''),values)).rows;
+ globalThis.__lessonSql.begin = callback => callback(globalThis.__lessonSql);
+ try {
+  const bundle = await build({entryPoints:['src/personal.ts'],bundle:true,write:false,platform:'node',format:'esm',packages:'external',plugins:[{name:'test-db',setup(builder){
+   builder.onResolve({filter:/^\.\/db\/index\.js$/},()=>({path:'db',namespace:'test'}));
+   builder.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const connection = Object.assign((...args) => globalThis.__lessonSql(...args), {begin: fn => globalThis.__lessonSql.begin(fn)})'}));
+  }}]});
+  const source=bundle.outputFiles[0].text.replaceAll('from "express"',`from ${JSON.stringify(import.meta.resolve('express'))}`);
+  const {personal}=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const handler=personal.stack.find(layer=>layer.route?.path==='/lessons/:id/:action').route.stack[0].handle;
+  async function call(action,body={},user=u1) {
+   const res={locals:{user:{id:user}},code:200,status(code){this.code=code;return this},json(body){this.body=body}};
+   await handler({params:{id:l1,action},body},res);return res;
+  }
+  assert.equal((await call('complete',{},u2)).code,404);
+  assert.equal((await call('complete')).code,409);
+  const submission={attempt_id:uid(200),exercise_id:exercise,selected_option_id:wrong};
+  assert.equal((await call('attempt',submission)).body.correct,false);
+  assert.equal((await call('attempt',submission)).body.correct,false);
+  assert.equal(await scalar('select count(*) from exercise_attempts'),1);
+  assert.equal((await call('attempt',{...submission,selected_option_id:correct})).code,409);
+  assert.equal((await call('attempt',{...submission,attempt_id:uid(201),selected_option_id:correct})).body.correct,true);
+  const done=await call('complete');assert.equal(done.code,200);assert.equal(done.body.xp_earned,10);
+  const again=await call('complete');assert.deepEqual(again.body.completed_at,done.body.completed_at);
+  assert.equal(await scalar('select sum(xp_earned) from lesson_progress'),10);
+ } finally {delete globalThis.__lessonSql}
+});
 const practice = (score = '.9', prediction = `'${sign}'`, time = 'now()') => `INSERT INTO practice_attempts
     (user_id,target_sign_id,predicted_sign_id,model_version_id,confidence,is_correct,attempted_at)
     VALUES ('${u1}','${sign}',${prediction},'${model}',${score},true,${time})`;

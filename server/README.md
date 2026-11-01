@@ -72,8 +72,7 @@ discard populated ones. Never put database credentials in frontend configuration
   idempotent submissions. Complete lessons atomically using the existing
   `(enrollment_id, lesson_id)` row and preserve its first completion timestamp.
 
-Supabase Storage buckets (`learning-media` and private `model-artifacts`), their
-policies, content seeding, and full account lesson integration
+Private `model-artifacts` Storage setup and learning content seeding
 are separate setup work. The frontend uses sample learning content and isolated guest
 browser practice storage. No production lesson content or trained ML model is claimed by this schema.
 
@@ -132,8 +131,9 @@ learning-content management requires the admin API described below.
 Live remains local preview plus scripted results. Every demo session is transient
 for guests and accounts. No save-history endpoint is enabled; recognition and
 explicit opt-in must be implemented before persistent Live sessions are exposed.
-Published course enrollment is supported, but the existing sample lesson UI is
-not a production account grading/completion flow. Account XP/achievements/streaks
+Published course enrollment and the separate account lesson player support saved
+grading and completion. The numbered sample lesson UI remains guest practice.
+Account XP/achievements/streaks
 can be read from valid database records; sample practice never writes them.
 
 Run `npm test` in server (build, authentication boundary checks and the existing
@@ -295,6 +295,61 @@ the repository root. Run `npm run test:recognition` for the Python/ONNX checks.
 
 ### Admin course management
 
+### Admin sign library
+
+`/dashboard/admin/signs` lists, searches, creates, edits, and publishes vocabulary.
+GET/POST `/api/admin/signs` and PATCH `/api/admin/signs/:id` use the existing
+confirmed-admin middleware. Labels are trimmed and uppercased (up to 100
+characters), meanings are required (up to 2,000), categories are optional (60),
+and plain-text instructions are optional (6,000). Duplicate labels return 409.
+Published sign text is read only through this API; create a new draft for changes.
+These entries do not train or expand recognition models.
+
+The draft lesson editor selects up to 50 distinct published signs and orders
+them through `sign_ids`. Lesson saves validate publication and replace ordered
+`lesson_signs` links in the same transaction as the lesson/questions. Invalid
+sign selections leave the draft unchanged. Existing published/used lesson locks
+also protect its sign links through this API. Learners receive only published
+linked signs through the existing lesson endpoint. Demonstrations remain optional.
+
+### Sign demonstration MP4s
+
+Sign library entries now offer an optional MP4 upload after the sign is saved.
+Both drafts and published signs may receive or replace a demonstration, separately
+from the frozen sign text. Replacement affects all lessons using that sign.
+The browser checks size (1 byte–20 MiB), MIME type, extension, and MP4 `ftyp`
+header. It does not transcode; use browser-compatible MP4 such as H.264.
+Uploads go directly to Supabase using the current user's token, never a secret key.
+New files use `signs/<sign UUID>/<upload UUID>.mp4` with overwrite disabled.
+POST `/api/admin/signs/:id/video` verifies the admin, sign-specific object path,
+and existing Storage metadata/type/size before assigning `signs.demo_path`.
+The backend does not independently decode or inspect video contents.
+
+Provision `server/storage/learning-media.sql` through a trusted SQL connection
+on each environment (separate from application Drizzle migrations, because
+Supabase owns the Storage schema). It creates a private bucket with MP4-only
+20 MiB uploads and policies for admin insertion, admin draft reads, published
+sign reads, and admin deletion of unreferenced objects. No overwrite policy is
+provided. This setup was applied and the bucket/policies inspected on the
+connected project on 2026-11-01. Local policy regressions use disposable tables;
+they do not replace live Storage HTTP verification.
+
+Learner lesson responses include published sign object paths. The shared video
+component obtains one-hour signed URLs, uses native pause/replay controls and
+`preload="none"`, and offers Retry when a link expires or playback fails.
+Learner lesson demonstrations request muted inline autoplay and loop, with native
+pause controls retained. Browser/device settings may still require pressing Play.
+Autoplay players use metadata preload; admin previews retain no preload and do
+not autoplay or loop by default.
+Published vocabulary media is readable under Storage policies without requiring
+course enrollment, consistent with published learning content. Draft media is
+admin-only; signed links remain valid until expiry. Old replaced files and failed
+unattached uploads are cleaned up best-effort through Storage, never SQL row deletes.
+Failed cleanup can leave unreferenced objects for an admin to remove later.
+Uploading actual curated content and physical/browser playback remain live checks.
+
+### Course management workflow
+
 `/dashboard/admin` shows the admin system overview. Course management lives at
 `/dashboard/admin/courses` and supports creating and editing drafts. The
 workspace shows Manage courses only for a profile whose database role is admin.
@@ -341,7 +396,8 @@ Questions are optional, consistent with the schema. It publishes every lesson
 and the parent course together in a transaction. Course and lesson locks serialize
 authoring with publication; failed validation leaves the course unpublished.
 The UI asks for confirmation and explains that published content becomes read only.
-No unpublish or delete action is included. Admin JSON requests allow up to 128 KiB;
+Course archiving and copying are described below; no delete action is included.
+Admin JSON requests allow up to 128 KiB;
 other application JSON requests retain their existing limit.
 
 The editor reuses the dashboard palette, typography, panels, buttons, and layout,
@@ -350,6 +406,29 @@ validation, draft replacement, used/published guards, and atomic publication.
 Live admin authoring and publishing still require a configured-project browser check.
 
 ### Dashboard behavior
+
+### Course lifecycle
+
+The course editor offers confirmed Archive course and Create draft copy actions.
+POST `/api/admin/courses/:id/archive` hides a published course by clearing its
+publication flag, retaining published lesson flags and every learner record.
+An unpublished course with published lessons is displayed as Archived, including
+in the overview counts. Archived courses/lessons are read only in admin authoring.
+Existing enrollment listings retain the unavailable course; course and lesson APIs
+deny opening it while hidden. Historical progress and XP remain visible.
+The existing Publish course action validates content and restores learner access.
+
+POST `/api/admin/courses/:id/copy` atomically copies the course, ordered lessons,
+questions, answer choices, and ordered sign links into new unpublished identities.
+It appends “(draft copy)” to the title. It does not copy enrollments, submissions,
+progress, rewards, or standalone practice. Shared sign records and demonstration
+media are reused, not duplicated. Edit/rename and publish the draft independently;
+existing learners are not automatically migrated and must enroll in the new course.
+There is no version-family column; these copies are independent course records.
+Course/lesson locks serialize copies against authoring. Existing database guards
+remain enabled. Local regressions cover copied IDs/content/sign links, archive
+edit denial, preserving attempts, and republishing. A hosted lifecycle and mobile
+browser check remain outstanding.
 
 The signed-in workspace has its own header and sidebar under `/dashboard/*`,
 without the public Home, Our Story, or marketing footer. Its protected child
@@ -379,11 +458,35 @@ sample routes. `GET /api/me/lessons/:id` requires a confirmed identity, enrollme
 and both lesson and course publication. Invalid UUIDs return 400; unavailable
 lessons return a generic 404. The response contains plain-text material,
 published linked sign instructions, ordered exercise prompts, and explicitly
-selected safe option fields, never answer keys. Stored media paths are not
-exposed by this endpoint. The player renders text without interpreting HTML.
-Learners can view questions and select answers locally, but selections are
-temporary and ungraded. Loading the lesson creates no progress or rewards.
-Exercise submission and validated completion remain planned work.
+selected safe option fields, never answer keys. Published sign media paths are
+included for signed video playback. The player renders text without interpreting HTML.
+Loading the lesson returns the caller's saved progress and which questions they
+have already answered correctly, while leaving answer keys private. GET creates
+no activity. After reviewing the displayed material, the learner selects Continue:
+POST `/api/me/lessons/:id/start` creates the enrollment/lesson progress row once.
+This is an explicit learner acknowledgment, not proof of attention or comprehension.
+It is also the prerequisite for completing a lesson without questions.
+
+POST `/api/me/lessons/:id/attempt` accepts a UUID `attempt_id`, `exercise_id`,
+and `selected_option_id`. It validates the published lesson, enrollment, question,
+and option membership. The database grades the choice; caller correctness is ignored.
+Retries reuse the submission UUID and return its original result. Reusing an ID
+with a different account/question/choice returns 409 without revealing its result.
+Incorrect answers can be retried with a new submission ID.
+
+POST `/api/me/lessons/:id/complete` requires existing progress and a correct
+saved attempt for every question. The database supplies XP and freezes the first
+completion timestamp. Progress-row locks serialize attempts and completion;
+repeated completion returns the existing record without granting more XP.
+All three actions verify the confirmed identity, publication, and caller enrollment.
+The player restores solved/completed state and checked selections after refresh.
+Each question returns only the caller's saved correct choice, or their latest
+checked choice if unsolved; unsent choices are not persisted. Completed questions
+remain locked with their saved selection visible. Course, progress, and
+dashboard pages read the saved records when opened. No guest activity is promoted.
+New regressions exercise the real API handler and SQL against disposable migrated
+PostgreSQL, including account isolation, retry IDs, grading, and repeated completion.
+The complete hosted admin-to-learner journey still needs browser verification.
 Automated checks cover redirects and guest
 route protection; a real-account dashboard session and enrollment round trip
 have not been verified against the live service.

@@ -15,23 +15,56 @@ admin.get('/overview', async (_req, res) => {
   (select count(*)::int from profiles where role='learner') as learners,
   (select count(*)::int from courses) as courses,
   (select count(*)::int from courses where is_published) as published_courses,
+  (select count(*)::int from courses c where not is_published and exists(select 1 from lessons l where l.course_id=c.id and l.is_published)) as archived_courses,
   (select count(*)::int from lessons) as lessons,
   (select count(*)::int from enrollments) as enrollments,
   (select count(*)::int from lesson_progress where completed_at is not null) as completed_lessons`;
- const recent_courses = await sql`select id,title,is_published,created_at from courses order by created_at desc,id limit 5`;
+ const recent_courses = await sql`select c.id,c.title,c.is_published,c.created_at,(not c.is_published and exists(select 1 from lessons l where l.course_id=c.id and l.is_published)) as is_archived from courses c order by c.created_at desc,c.id limit 5`;
  res.json({ ...counts, recent_courses });
 });
 const validId = (id: unknown) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 admin.param('id', (req, res, next, id) => {
  if (!validId(id)) { res.status(400).json({ error: 'Choose a valid course.' }); return; } next();
 });
+admin.get('/signs', async (_req,res) => {
+ res.json(await sql`select id,gloss,meaning,category,instructions,is_published,demo_path from signs order by gloss`);
+});
+admin.post('/signs/:id/video',async(req,res)=>{
+ const path=req.body?.demo_path;
+ const id=req.params.id as string;
+ if(typeof path!=='string' || !path.startsWith(`signs/${id}/`) || !/^signs\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.mp4$/.test(path)){res.status(400).json({error:'Choose an MP4 uploaded for this sign.'});return;}
+ const [object]=await sql`select metadata from storage.objects where bucket_id='learning-media' and name=${path}`;
+ if(!object || object.metadata?.mimetype!=='video/mp4' || !(Number(object.metadata?.size)>0) || Number(object.metadata?.size)>20971520){res.status(400).json({error:'Upload an MP4 no larger than 20 MB before saving.'});return;}
+ const [sign]=await sql`update signs set demo_path=${path} where id=${id} returning id,demo_path`;
+ if(!sign){res.status(404).json({error:'Sign not found.'});return;}
+ res.json(sign);
+});
+function signValues(body: Record<string,unknown>) {
+ const {gloss,meaning,category,instructions,is_published} = body;
+ if (typeof gloss!=='string' || !gloss.trim() || gloss.trim().length>100 || typeof meaning!=='string' || !meaning.trim() || meaning.length>2000 || (category!=null && (typeof category!=='string' || category.length>60)) || (instructions!=null && (typeof instructions!=='string' || instructions.length>6000)) || typeof is_published!=='boolean') return null;
+ return {gloss:gloss.trim().toUpperCase(),meaning:meaning.trim(),category:typeof category==='string' ? category.trim() || null : null,instructions:typeof instructions==='string' ? instructions.trim() || null : null,is_published};
+}
+async function saveSign(req: Request,res: Response) {
+ const value=signValues(req.body ?? {});
+ if (!value) { res.status(400).json({error:'Enter a sign label (1–100 characters), meaning (up to 2,000), category (up to 60), and instructions (up to 6,000).'}); return; }
+ try {
+  const rows = req.params.id
+   ? await sql`update signs set gloss=${value.gloss},meaning=${value.meaning},category=${value.category},instructions=${value.instructions},is_published=${value.is_published} where id=${req.params.id as string} and not is_published returning id,gloss,meaning,category,instructions,is_published`
+   : await sql`insert into signs(gloss,meaning,category,instructions,is_published) values(${value.gloss},${value.meaning},${value.category},${value.instructions},${value.is_published}) returning id,gloss,meaning,category,instructions,is_published`;
+  if (!rows.length) { res.status(409).json({error:'This sign is published or unavailable. Create a new draft for changes.'}); return; }
+  res.status(req.params.id ? 200 : 201).json(rows[0]);
+ } catch(error) { if ((error as {code?:string}).code==='23505') {res.status(409).json({error:'That sign label already exists. Choose another label.'}); return;} throw error; }
+}
+admin.post('/signs',saveSign);
+admin.patch('/signs/:id',saveSign);
 admin.get('/courses/:id', async (req, res) => {
- const [course] = await sql`select id,title,description,is_published from courses where id=${req.params.id as string}`;
+ const [course] = await sql`select c.id,c.title,c.description,c.is_published,(not c.is_published and exists(select 1 from lessons l where l.course_id=c.id and l.is_published)) as is_archived from courses c where c.id=${req.params.id as string}`;
  if (!course) { res.status(404).json({ error: 'Course not found.' }); return; }
  const lessons = await sql`select l.*, (l.is_published or exists(select 1 from lesson_progress p where p.lesson_id=l.id and p.completed_at is not null) or exists(select 1 from exercise_attempts a join exercises x on x.id=a.exercise_id where x.lesson_id=l.id)) as locked from lessons l where course_id=${course.id} order by sort_order`;
  const exercises = await sql`select x.* from exercises x join lessons l on l.id=x.lesson_id where l.course_id=${course.id} order by x.sort_order`;
  const options = await sql`select o.* from exercise_options o join exercises x on x.id=o.exercise_id join lessons l on l.id=x.lesson_id where l.course_id=${course.id} order by o.sort_order`;
- res.json({ ...course, lessons: lessons.map(l => ({ ...l, exercises: exercises.filter(x => x.lesson_id===l.id).map(x => ({ ...x, options: options.filter(o => o.exercise_id===x.id) })) })) });
+ const links = await sql`select ls.lesson_id,ls.sign_id from lesson_signs ls join lessons l on l.id=ls.lesson_id where l.course_id=${course.id} order by ls.sort_order`;
+ res.json({ ...course, lessons: lessons.map(l => ({ ...l,sign_ids:links.filter(link => link.lesson_id===l.id).map(link => link.sign_id), exercises: exercises.filter(x => x.lesson_id===l.id).map(x => ({ ...x, options: options.filter(o => o.exercise_id===x.id) })) })) });
 });
 type Question = { prompt: string; options: { option_text: string; is_correct: boolean }[] };
 function lessonValues(body: Record<string, unknown>) {
@@ -45,11 +78,17 @@ function lessonValues(body: Record<string, unknown>) {
 // Course and lesson locks serialize authoring and publication; all quiz writes are atomic.
 admin.post('/courses/:id/lessons', async (req, res) => {
  const values = lessonValues(req.body ?? {});
+ const signIds = req.body?.sign_ids;
+ if (signIds!==undefined && (!Array.isArray(signIds) || signIds.length>50 || !signIds.every(validId) || new Set(signIds).size!==signIds.length)) {res.status(400).json({error:'Choose up to 50 distinct published signs.'}); return;}
  if (!values || (req.body.lesson_id && !validId(req.body.lesson_id))) { res.status(400).json({ error: 'Check the lesson fields. Each question needs 2–6 choices and exactly one correct answer.' }); return; }
  try {
   const saved = await sql.begin(async tx => {
-   const [course] = await tx`select id from courses where id=${req.params.id as string} and not is_published for update`;
+   const [course] = await tx`select id from courses c where id=${req.params.id as string} and not is_published and not exists(select 1 from lessons l where l.course_id=c.id and l.is_published) for update`;
    if (!course) return null;
+   if (signIds?.length) {
+    const available = await tx`select id from signs where id=any(${signIds}::uuid[]) and is_published for share`;
+    if (available.length!==signIds.length) return {error:'Some selected signs are unavailable. Choose published signs from the library.'};
+   }
    let lesson;
    if (req.body.lesson_id) {
     [lesson] = await tx`select * from lessons where id=${req.body.lesson_id} and course_id=${course.id} for update`;
@@ -63,6 +102,10 @@ admin.post('/courses/:id/lessons', async (req, res) => {
     [lesson] = await tx`insert into lessons(course_id,title,content,sort_order,xp_reward) values(${course.id},${values.title},${values.content},${values.sort_order},${values.xp_reward}) returning id`;
    }
    if (!lesson) throw new Error('Lesson could not be created');
+   if (signIds!==undefined) {
+    await tx`delete from lesson_signs where lesson_id=${lesson.id}`;
+    for (const [i,signId] of signIds.entries()) await tx`insert into lesson_signs(lesson_id,sign_id,sort_order) values(${lesson.id},${signId},${i+1})`;
+   }
    for (const [i,q] of values.exercises.entries()) {
     const [exercise] = await tx`insert into exercises(lesson_id,prompt,sort_order) values(${lesson.id},${q.prompt.trim()},${i+1}) returning id`;
     if (!exercise) throw new Error('Question could not be created');
@@ -71,6 +114,7 @@ admin.post('/courses/:id/lessons', async (req, res) => {
    return { id: lesson.id };
   });
   if (!saved) { res.status(409).json({ error: 'This course or lesson is published or already used. Create a new draft lesson.' }); return; }
+  if ('error' in saved) {res.status(409).json(saved); return;}
   res.json(saved);
  } catch (error) {
   if ((error as { code?: string }).code === '23505') { res.status(409).json({ error: 'Another lesson uses this position. Choose a different lesson order.' }); return; } throw error;
@@ -92,8 +136,36 @@ admin.post('/courses/:id/publish', async (req,res) => {
  if (result) { res.status(409).json({ error: result }); return; }
  res.json({ published: true });
 });
+admin.post('/courses/:id/archive',async(req,res)=>{
+ const [course]=await sql`update courses set is_published=false where id=${req.params.id as string} and is_published returning id`;
+ if(!course){res.status(409).json({error:'This course is already hidden or unavailable.'});return;}
+ res.json({id:course.id,archived:true});
+});
+admin.post('/courses/:id/copy',async(req,res)=>{
+ const result=await sql.begin(async tx=>{
+  const [original]=await tx`select * from courses where id=${req.params.id as string} for update`;
+  if(!original)return null;
+  const [copy]=await tx`insert into courses(title,description,is_published) values(${`${original.title.slice(0,137)} (draft copy)`},${original.description},false) returning id`;
+  if(!copy)throw new Error('Draft copy failed');
+  const lessons=await tx`select * from lessons where course_id=${original.id} order by sort_order for update`;
+  for(const lesson of lessons){
+   const [created]=await tx`insert into lessons(course_id,title,content,sort_order,xp_reward,is_published) values(${copy.id},${lesson.title},${lesson.content},${lesson.sort_order},${lesson.xp_reward},false) returning id`;
+   if(!created)throw new Error('Lesson copy failed');
+   await tx`insert into lesson_signs(lesson_id,sign_id,sort_order) select ${created.id},sign_id,sort_order from lesson_signs where lesson_id=${lesson.id}`;
+   const questions=await tx`select * from exercises where lesson_id=${lesson.id} order by sort_order`;
+   for(const question of questions){
+    const [q]=await tx`insert into exercises(lesson_id,prompt,sign_id,sort_order) values(${created.id},${question.prompt},${question.sign_id},${question.sort_order}) returning id`;
+    if(!q)throw new Error('Question copy failed');
+    await tx`insert into exercise_options(exercise_id,option_text,is_correct,sort_order) select ${q.id},option_text,is_correct,sort_order from exercise_options where exercise_id=${question.id}`;
+   }
+  }
+  return copy;
+ });
+ if(!result){res.status(404).json({error:'Course not found.'});return;}
+ res.status(201).json(result);
+});
 admin.get('/courses', async (_req, res) => {
- res.json(await sql`select id, title, description, is_published from courses order by created_at desc, id`);
+ res.json(await sql`select c.id,c.title,c.description,c.is_published,(not c.is_published and exists(select 1 from lessons l where l.course_id=c.id and l.is_published)) as is_archived from courses c order by c.created_at desc,c.id`);
 });
 function courseValues(body: Record<string, unknown>) {
  const title = typeof body.title === 'string' ? body.title.trim() : '';
@@ -112,7 +184,7 @@ admin.patch('/courses/:id', async (req, res) => {
  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) { res.status(400).json({ error: 'Choose a valid course.' }); return; }
  const values = courseValues(req.body ?? {});
  if (!values) { res.status(400).json({ error: 'Enter a title of 1–150 characters and a description of at most 5,000 characters.' }); return; }
- const [course] = await sql`update courses set title = ${values.title}, description = ${values.description} where id = ${id} and not is_published returning id, title, description, is_published`;
+ const [course] = await sql`update courses set title = ${values.title}, description = ${values.description} where id = ${id} and not is_published and not exists(select 1 from lessons l where l.course_id=courses.id and l.is_published) returning id, title, description, is_published`;
  if (!course) { res.status(409).json({ error: 'This draft is unavailable or has been published. Reload the course list.' }); return; }
  res.json(course);
 });

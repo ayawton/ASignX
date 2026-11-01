@@ -40,7 +40,7 @@ export default function DashboardLayout() {
      <NavLink to="/dashboard/learn/arcade"><Gamepad2 size={18} /> Sign Strike</NavLink>
      <NavLink to="/dashboard/progress"><Trophy size={18} /> My progress</NavLink></>}
      <NavLink to="/dashboard/profile"><UserRound size={18} /> My profile</NavLink>
-     {isAdmin && <><NavLink to="/dashboard/admin" end><LayoutDashboard size={18} /> Overview</NavLink><NavLink to="/dashboard/admin/courses"><BookOpen size={18} /> Manage courses</NavLink></>}
+     {isAdmin && <><NavLink to="/dashboard/admin" end><LayoutDashboard size={18} /> Overview</NavLink><NavLink to="/dashboard/admin/courses"><BookOpen size={18} /> Manage courses</NavLink><NavLink to="/dashboard/admin/signs"><Hand size={18} /> Sign library</NavLink></>}
     </nav>
     {error && <p role="alert">{error}</p>}
     <button type="button" onClick={leave} disabled={busy}><LogOut size={17} />{busy ? 'Logging out…' : 'Log out'}</button>

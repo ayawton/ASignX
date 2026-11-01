@@ -43,7 +43,7 @@ function AdminCourses() {
     {editing && <button className="btn btn-secondary" type="button" disabled={busy} onClick={reset}>Cancel editing</button>}</div>
    </form></article>
    {message && <p role="status">{message}</p>}
-   <article className="studio-progress-panel"><h2>All courses</h2>{courses.length ? courses.map(course => <section key={course.id}><h3><Link to={`/dashboard/admin/courses/${course.id}`}>{course.title}</Link></h3><p>{course.description}</p><p>{course.is_published ? 'Published · Read only' : 'Draft'}</p><div className="admin-actions"><Link className="btn btn-secondary" to={`/dashboard/admin/courses/${course.id}`}>{course.is_published ? 'View content' : 'Manage content'}</Link>{!course.is_published && <button className="text-link" type="button" disabled={busy} onClick={() => edit(course)}>Edit course details</button>}</div></section>) : <p>No courses yet. Create your first draft above.</p>}</article>
+   <article className="studio-progress-panel"><h2>All courses</h2>{courses.length ? courses.map(course => <section key={course.id}><h3><Link to={`/dashboard/admin/courses/${course.id}`}>{course.title}</Link></h3><p>{course.description}</p><p>{course.is_published ? 'Published · Read only' : course.is_archived ? 'Archived · Read only' : 'Draft'}</p><div className="admin-actions"><Link className="btn btn-secondary" to={`/dashboard/admin/courses/${course.id}`}>{(course.is_published || course.is_archived) ? 'View content' : 'Manage content'}</Link>{!course.is_published && !course.is_archived && <button className="text-link" type="button" disabled={busy} onClick={() => edit(course)}>Edit course details</button>}</div></section>) : <p>No courses yet. Create your first draft above.</p>}</article>
   </>}
  </section>
 }

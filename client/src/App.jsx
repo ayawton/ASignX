@@ -8,6 +8,7 @@ import AccountLesson from './pages/AccountLesson'
 import Admin from './pages/Admin'
 import AdminCourse from './pages/AdminCourse'
 import AdminOverview from './pages/AdminOverview'
+import AdminSigns from './pages/AdminSigns'
 import Live from './pages/Live'
 import Arcade from './pages/Arcade'
 import Profile from './pages/Profile'
@@ -36,6 +37,7 @@ export default function App() {
    <Route index element={<Dashboard />} />
    <Route path="admin" element={<AdminOverview />} />
    <Route path="admin/courses" element={<Admin />} />
+   <Route path="admin/signs" element={<AdminSigns />} />
    <Route path="admin/courses/:id" element={<AdminCourse />} />
    <Route path="live" element={<Live />} />
    <Route path="learn" element={<Learn />} />

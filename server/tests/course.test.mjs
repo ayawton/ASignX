@@ -27,10 +27,12 @@ test('course details enforce enrollment/publication and return only ordered pers
    create table lesson_signs(lesson_id uuid, sign_id uuid, sort_order integer);
    create table exercises(id uuid, lesson_id uuid, prompt text, sort_order integer);
    create table exercise_options(id uuid, exercise_id uuid, option_text text, sort_order integer, is_correct boolean);
+   create table exercise_attempts(id uuid,exercise_id uuid,enrollment_id uuid,selected_option_id uuid,is_correct boolean,attempted_at timestamptz);
    insert into signs values ('${id(40)}','A','Letter A','Instructions',true),('${id(41)}','Hidden','Private','Private',false);
    insert into lesson_signs values ('${id(31)}','${id(40)}',2),('${id(31)}','${id(41)}',1);
    insert into exercises values ('${id(50)}','${id(31)}','Second question',2),('${id(51)}','${id(31)}','First question',1);
    insert into exercise_options values ('${id(60)}','${id(51)}','Later choice',2,true),('${id(61)}','${id(51)}','First choice',1,false);`);
+  await db.exec('alter table signs add column demo_path text');
   const bundle = await build({ entryPoints: ['src/personal.ts'], bundle: true, write: false, platform: 'node', format: 'esm', packages: 'external', plugins: [{ name: 'isolated-db', setup(builder) {
    builder.onResolve({ filter: /^\.\/db\/index\.js$/ }, () => ({ path: 'db', namespace: 'test' }));
    builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const connection = (...args) => globalThis.__courseTestSql(...args)' }));
@@ -62,6 +64,17 @@ test('course details enforce enrollment/publication and return only ordered pers
   assert.deepEqual(loaded.exercises.map(exercise => exercise.prompt), ['First question', 'Second question']);
   assert.deepEqual(loaded.exercises[0].options.map(option => option.option_text), ['First choice', 'Later choice']);
   assert.ok(loaded.exercises[0].options.every(option => !('is_correct' in option)), 'No answer keys in response');
+  await db.exec(`insert into exercise_attempts values
+   ('${id(70)}','${id(51)}','${id(20)}','${id(60)}',true,now()-interval '1 minute'),
+   ('${id(71)}','${id(51)}','${id(20)}','${id(61)}',false,now()),
+   ('${id(72)}','${id(50)}','${id(21)}','${id(60)}',true,now());`);
+  const restored = (await lessonRequest(id(31))).body.exercises;
+  assert.equal(restored[0].selected_option_id,id(60),'Saved correct choice restores even after a later wrong attempt');
+  assert.equal(restored[0].solved,true);
+  assert.equal(restored[1].selected_option_id,null,'Other learner selections stay private');
+  await db.exec(`delete from exercise_attempts where id='${id(70)}'`);
+  const incorrect = (await lessonRequest(id(31))).body.exercises[0];
+  assert.equal(incorrect.selected_option_id,id(61)); assert.equal(incorrect.solved,false);
   assert.deepEqual((await lessonRequest(id(30))).body.exercises, []);
   assert.equal((await db.query('select count(*)::int as count from lesson_progress')).rows[0].count, 2, 'Reading does not create progress');
  } finally { delete globalThis.__courseTestSql; await db.close(); }

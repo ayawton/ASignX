@@ -1,6 +1,8 @@
 """Internal HTTP API. Bind to loopback; Express is the only public gateway."""
 import asyncio
 from contextlib import asynccontextmanager
+import hashlib
+import json
 import math
 import os
 import secrets
@@ -107,6 +109,12 @@ def create_app(factory=None, token=None):
         models = None if factory else Models()
         registry = Registry(factory or (lambda: Recognition(models)))
         app.state.registry = registry
+        metadata = models.metadata if models else {}
+        app.state.capabilities = {
+            'labels': sorted({label for item in metadata.values() for label in item.get('labels', [])}),
+            'model': hashlib.sha256(json.dumps(metadata, sort_keys=True).encode()).hexdigest(),
+            'threshold': .8,
+        }
         async def reap():
             while True:
                 await asyncio.sleep(15)
@@ -126,6 +134,9 @@ def create_app(factory=None, token=None):
         response = await call_next(request)
         response.headers['Cache-Control'] = 'no-store'
         return response
+    @app.get('/capabilities', dependencies=[Depends(authorized)])
+    async def capabilities():
+        return app.state.capabilities
     @app.post('/sessions', dependencies=[Depends(authorized)])
     async def create():
         key = await run_in_threadpool(registry.create)

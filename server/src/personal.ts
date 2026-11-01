@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { lessonRecognition } from './lessonRecognition.js';
 import { connection as sql } from './db/index.js';
 
 export const personal = Router();
@@ -9,22 +10,25 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_PUBLISHABLE_KEY;
     if (!url || !key) { res.status(503).json({ error: 'Account service is not configured.' }); return; }
+    const authStarted = performance.now();
     try {
         const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
         if (!response.ok) { res.status(response.status >= 500 ? 503 : 401).json({ error: 'Unable to verify your session. Please log in again.' }); return; }
         const user = await response.json() as { id?: string; email?: string; email_confirmed_at?: string };
         if (!user.id || !user.email_confirmed_at) { res.status(401).json({ error: 'Confirm your email before continuing.' }); return; }
+        res.locals.authDuration = (performance.now()-authStarted).toFixed(1);
         res.locals.user = user;
         next();
     } catch { res.status(503).json({ error: 'Account service is temporarily unavailable.' }); }
 }
 personal.use(authenticate);
+personal.use(lessonRecognition);
 const uuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 personal.post('/lessons/:id/:action', async (req,res) => {
  const { id,action } = req.params;
  if (!uuid(id) || !['start','attempt','complete'].includes(action as string)) { res.status(400).json({error:'Choose a valid lesson action.'}); return; }
  const body = req.body ?? {};
- if (action==='attempt' && ![body.attempt_id,body.exercise_id,body.selected_option_id].every(uuid)) { res.status(400).json({error:'Choose an answer and valid submission ID.'}); return; }
+ if (action==='attempt' && (![body.attempt_id,body.exercise_id].every(uuid) || (body.response_text===undefined ? !uuid(body.selected_option_id) : typeof body.response_text!=='string' || !body.response_text.trim() || body.response_text.length>500))) { res.status(400).json({error:'Choose an answer and valid submission ID.'}); return; }
  const result = await sql.begin(async tx => {
   const [access] = await tx`select l.id,e.id as enrollment_id from lessons l join courses c on c.id=l.course_id join enrollments e on e.course_id=c.id where l.id=${id as string} and l.is_published and c.is_published and e.user_id=${res.locals.user.id} for share of l,c,e`;
   if (!access) return {status:404,body:{error:'Lesson unavailable.'}};
@@ -34,10 +38,22 @@ personal.post('/lessons/:id/:action', async (req,res) => {
   const [progress] = await tx`select * from lesson_progress where enrollment_id=${access.enrollment_id} and lesson_id=${access.id} for update`;
   if (!progress) return {status:409,body:{error:'Review the lesson material before continuing.'}};
   if (action==='attempt') {
-   const [option] = await tx`select o.id from exercise_options o join exercises x on x.id=o.exercise_id where o.id=${body.selected_option_id} and x.id=${body.exercise_id} and x.lesson_id=${access.id}`;
-   if (!option) return {status:400,body:{error:'This choice does not belong to the question.'}};
-   await tx`insert into exercise_attempts(id,enrollment_id,exercise_id,selected_option_id,is_correct) values(${body.attempt_id},${access.enrollment_id},${body.exercise_id},${option.id},false) on conflict(id) do nothing`;
-   const [saved] = await tx`select is_correct from exercise_attempts where id=${body.attempt_id} and enrollment_id=${access.enrollment_id} and exercise_id=${body.exercise_id} and selected_option_id=${option.id}`;
+   const [exercise] = await tx`select id,answer_type from exercises where id=${body.exercise_id} and lesson_id=${access.id}`;
+   if(!exercise || exercise.answer_type==='recognition') return {status:400,body:{error:'Use the required answer control for this question.'}};
+   let option, responseText: string | null = null;
+   if(exercise.answer_type==='text'){
+    if(typeof body.response_text!=='string' || !body.response_text.trim() || body.response_text.length>500) return {status:400,body:{error:'Type an answer of up to 500 characters.'}};
+    const choices=await tx`select id,option_text,is_correct from exercise_options where exercise_id=${exercise.id} order by sort_order`;
+    const normalize=(text:string)=>text.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
+    const correct=choices.some(o=>o.is_correct && normalize(o.option_text)===normalize(body.response_text));
+    option=choices.find(o=>o.is_correct===correct);responseText=body.response_text.trim();
+   }else{
+    [option]=await tx`select o.id from exercise_options o where o.id=${body.selected_option_id} and o.exercise_id=${exercise.id}`;
+   }
+   if(!option) return {status:400,body:{error:'This answer does not belong to the question.'}};
+   if(progress.completed_at) return {status:409,body:{error:'This lesson is already complete.'}};
+   await tx`insert into exercise_attempts(id,enrollment_id,exercise_id,selected_option_id,response_text,is_correct) values(${body.attempt_id},${access.enrollment_id},${body.exercise_id},${option.id},${responseText},false) on conflict(id) do nothing`;
+   const [saved] = await tx`select is_correct from exercise_attempts where id=${body.attempt_id} and enrollment_id=${access.enrollment_id} and exercise_id=${body.exercise_id} and selected_option_id=${option.id} and response_text is not distinct from ${responseText}`;
    if (!saved) return {status:409,body:{error:'Submission ID already used. Choose an answer again.'}};
    return {status:200,body:{correct:saved.is_correct}};
   }
@@ -61,28 +77,30 @@ personal.get('/lessons/:id', async (req, res) => {
         join enrollments e on e.course_id = c.id
         where l.id = ${lessonId} and l.is_published and c.is_published and e.user_id = ${res.locals.user.id}`;
     if (!lesson) { res.status(404).json({ error: 'Lesson unavailable. Choose a published lesson from your enrolled courses.' }); return; }
-    const signs = await sql`select s.id, s.gloss, s.meaning, s.instructions, s.demo_path
+    const [signs, exercises, options, [progress], savedAnswers] = await Promise.all([
+        sql`select s.id, s.gloss, s.meaning, s.instructions, s.demo_path
         from lesson_signs ls join signs s on s.id = ls.sign_id
-        where ls.lesson_id = ${lessonId} and s.is_published order by ls.sort_order`;
-    const exercises = await sql`select id, prompt, sort_order from exercises where lesson_id = ${lessonId} order by sort_order`;
-    const options = await sql`select o.id, o.exercise_id, o.option_text, o.sort_order
+        where ls.lesson_id = ${lessonId} and s.is_published order by ls.sort_order`,
+        sql`select x.id, x.prompt, x.sort_order, x.answer_type, s.gloss as target_sign from exercises x left join signs s on s.id=x.sign_id where x.lesson_id = ${lessonId} order by x.sort_order`,
+        sql`select o.id, o.exercise_id, o.option_text, o.sort_order
         from exercise_options o join exercises e on e.id = o.exercise_id
-        where e.lesson_id = ${lessonId} order by o.sort_order`;
-    const [progress] = await sql`select lp.* from lesson_progress lp join enrollments e on e.id=lp.enrollment_id where lp.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}`;
-    const savedAnswers = await sql`select distinct on (a.exercise_id) a.exercise_id,a.selected_option_id,a.is_correct
+        where e.lesson_id = ${lessonId} order by o.sort_order`,
+        sql`select lp.* from lesson_progress lp join enrollments e on e.id=lp.enrollment_id where lp.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}`,
+        sql`select distinct on (a.exercise_id) a.exercise_id,a.selected_option_id,a.is_correct
         from exercise_attempts a join enrollments e on e.id=a.enrollment_id join exercises x on x.id=a.exercise_id
         where x.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}
-        order by a.exercise_id,a.is_correct desc,a.attempted_at desc,a.id desc`;
+        order by a.exercise_id,a.is_correct desc,a.attempted_at desc,a.id desc`
+    ]);
     res.json({ ...lesson, signs, progress: progress ?? null, exercises: exercises.map(exercise => {
         const saved = savedAnswers.find(row => row.exercise_id===exercise.id);
-        return { ...exercise, solved: saved?.is_correct ?? false, selected_option_id: saved?.selected_option_id ?? null, options: options.filter(option => option.exercise_id === exercise.id) };
+        return { ...exercise, solved: saved?.is_correct ?? false, response_text: saved?.response_text ?? null, recognition_confidence: saved?.recognition_confidence ?? null, selected_option_id: ['text','recognition'].includes(exercise.answer_type) ? null : saved?.selected_option_id ?? null, options: ['text','recognition'].includes(exercise.answer_type) ? [] : options.filter(option => option.exercise_id === exercise.id) };
     }) });
 });
 personal.get('/courses/:id', async (req, res) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id as string)) {
         res.status(400).json({ error: 'Choose a valid course.' }); return;
     }
-    const [course] = await sql`select c.id, c.title, c.description, e.id as enrollment_id
+    const [course] = await sql`select c.id, c.title, c.description, c.cover_text, c.cover_style, c.cover_tone, c.cover_font, c.cover_weight, c.cover_size, c.cover_density, c.cover_angle, e.id as enrollment_id
         from courses c join enrollments e on e.course_id = c.id
         where c.id = ${req.params.id as string} and c.is_published and e.user_id = ${res.locals.user.id}`;
     if (!course) { res.status(404).json({ error: 'Course unavailable. Open a published course you are enrolled in.' }); return; }
@@ -92,7 +110,43 @@ personal.get('/courses/:id', async (req, res) => {
         from lessons l join courses c on c.id = l.course_id
         left join lesson_progress lp on lp.lesson_id = l.id and lp.enrollment_id = ${course.enrollment_id}
         where l.course_id = ${course.id} and l.is_published and c.is_published order by l.sort_order`;
-    res.json({ id: course.id, title: course.title, description: course.description, lessons });
+    const { enrollment_id: _enrollmentId, ...details } = course;
+    res.json({ ...details, lessons });
+});
+
+async function readProfile(user: { id: string; email?: string }) {
+ const [profile] = await sql`select id, display_name, role, timezone from profiles where id = ${user.id}`;
+ if (!profile) throw new Error('Your account profile is not ready.');
+ return { ...profile, email: user.email };
+}
+async function readProgress(userId: string) {
+    const [lessons, achievements, [streak]] = await Promise.all([
+        sql`select lp.lesson_id, l.title, lp.completed_at, lp.xp_earned from lesson_progress lp join enrollments e on e.id = lp.enrollment_id join lessons l on l.id = lp.lesson_id where e.user_id = ${userId}`,
+        sql`select a.id, a.name, a.description, ua.unlocked_at from user_achievements ua join achievements a on a.id = ua.achievement_id where ua.user_id = ${userId}`,
+        sql`select asignx_private.current_streak(${userId}::uuid) as days`
+    ]);
+ return { lessons, achievements, streak: streak?.days ?? 0, xp: lessons.reduce((sum, row) => sum + row.xp_earned, 0) };
+}
+async function readEnrollments(userId: string) {
+ const rows = await sql`select e.id, e.course_id, e.enrolled_at, c.title, c.description, c.cover_text, c.cover_style, c.cover_tone, c.cover_font, c.cover_weight, c.cover_density, c.cover_angle, c.cover_size, c.is_published,
+ (select count(*)::int from lessons l where l.course_id=c.id and l.is_published) as total_lessons,
+ (select count(*)::int from lesson_progress lp join lessons l on l.id=lp.lesson_id where lp.enrollment_id=e.id and lp.started_at is not null and l.course_id=c.id and l.is_published) as started_lessons,
+ (select count(*)::int from lesson_progress lp join lessons l on l.id=lp.lesson_id where lp.enrollment_id=e.id and lp.completed_at is not null and l.course_id=c.id and l.is_published) as completed_lessons
+ from enrollments e join courses c on c.id = e.course_id where e.user_id = ${userId} order by e.enrolled_at desc`;
+ return rows;
+}
+async function readCourses() { return sql`select id,title,description,cover_text,cover_size,cover_angle,cover_density,cover_weight,cover_font,cover_style,cover_tone from courses where is_published order by title`; }
+
+
+personal.get('/dashboard', async (_req,res) => {
+ const user = res.locals.user;
+ const names = ['profile','progress','enrollments','courses'] as const;
+ const started = performance.now();
+ const results = await Promise.allSettled([readProfile(user),readProgress(user.id),readEnrollments(user.id),readCourses()]);
+ const resources: Record<string,unknown> = {}, errors: Record<string,string> = {};
+ results.forEach((result,index)=>{ if(result.status==='fulfilled') resources[names[index]!]=result.value; else errors[names[index]!]='Unable to load this section. Try again.'; });
+ res.setHeader?.('Server-Timing', `auth;dur=${res.locals.authDuration ?? 0}, data;dur=${(performance.now()-started).toFixed(1)}`);
+ res.json({resources,errors});
 });
 personal.get('/profile', async (_req, res) => {
     const [profile] = await sql`select id, display_name, role, timezone from profiles where id = ${res.locals.user.id}`;
@@ -107,14 +161,13 @@ personal.patch('/profile', async (req, res) => {
     if (!profile) { res.status(404).json({ error: 'Profile not found.' }); return; }
     res.json({ ...profile, email: res.locals.user.email });
 });
-personal.get('/progress', async (_req, res) => {
-    const lessons = await sql`select lp.lesson_id, l.title, lp.completed_at, lp.xp_earned from lesson_progress lp join enrollments e on e.id = lp.enrollment_id join lessons l on l.id = lp.lesson_id where e.user_id = ${res.locals.user.id}`;
-    const achievements = await sql`select a.id, a.name, a.description, ua.unlocked_at from user_achievements ua join achievements a on a.id = ua.achievement_id where ua.user_id = ${res.locals.user.id}`;
-    const [streak] = await sql`select asignx_private.current_streak(${res.locals.user.id}::uuid) as days`;
-    res.json({ lessons, achievements, streak: streak?.days ?? 0, xp: lessons.reduce((sum, row) => sum + row.xp_earned, 0) });
-});
+personal.get('/progress', async (_req, res) => { res.json(await readProgress(res.locals.user.id)); });
 personal.get('/enrollments', async (_req, res) => {
-    const rows = await sql`select e.id, e.course_id, e.enrolled_at, c.title, c.description, c.is_published from enrollments e join courses c on c.id = e.course_id where e.user_id = ${res.locals.user.id} order by e.enrolled_at desc`;
+    const rows = await sql`select e.id, e.course_id, e.enrolled_at, c.title, c.description, c.cover_text, c.cover_style, c.cover_tone, c.cover_font, c.cover_weight, c.cover_density, c.cover_angle, c.cover_size, c.is_published,
+ (select count(*)::int from lessons l where l.course_id=c.id and l.is_published) as total_lessons,
+ (select count(*)::int from lesson_progress lp join lessons l on l.id=lp.lesson_id where lp.enrollment_id=e.id and lp.started_at is not null and l.course_id=c.id and l.is_published) as started_lessons,
+ (select count(*)::int from lesson_progress lp join lessons l on l.id=lp.lesson_id where lp.enrollment_id=e.id and lp.completed_at is not null and l.course_id=c.id and l.is_published) as completed_lessons
+ from enrollments e join courses c on c.id = e.course_id where e.user_id = ${res.locals.user.id} order by e.enrolled_at desc`;
     res.json(rows);
 });
 personal.post('/enrollments', async (req, res) => {

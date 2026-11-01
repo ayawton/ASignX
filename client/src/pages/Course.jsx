@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Link from '../components/WorkspaceLink'
 import { api } from '../auth'
+import CourseCover from '../components/CourseCover'
 import { coursePath } from '../data/learningPath'
 import { Check, Play, ArrowRight, Circle } from 'lucide-react'
 
@@ -25,6 +26,7 @@ function CourseDetails({ id }) {
  return <section className="container studio-section studio-page">
   <Link className="text-link" to="/dashboard">Back to dashboard</Link>
   {error ? <div role="alert"><p>{error}</p><button className="btn" type="button" onClick={() => { setError(''); setAttempt(value => value + 1) }}>Try again</button></div> : !course ? <p role="status">Loading your course…</p> : <>
+   <div className="learner-course-banner"><CourseCover course={course}/></div>
    <div className="page-heading"><div><span className="text-label">Your enrolled course</span><h1>{course.title}</h1>{course.description && <p>{course.description}</p>}</div></div>
    <article className="studio-progress-panel"><h2>Course lessons</h2>
     {path.total>0 && <div className="learning-path-summary"><p>{path.completed} of {path.total} lessons completed</p><progress aria-label="Course completion" value={path.completed} max={path.total} /><Link className="btn" to={`/learn/lessons/${path.target.id}`}>{path.completed===path.total ? 'Review course' : course.lessons.some(l=>l.started_at) ? 'Continue learning' : 'Start learning'}</Link></div>}

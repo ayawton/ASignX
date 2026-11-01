@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Link from '../components/WorkspaceLink'
 import { api } from '../auth'
+import LessonSignAnswer from '../components/LessonSignAnswer'
 import SignVideo from '../components/SignVideo'
 import { coursePath, firstUnsolved } from '../data/learningPath'
 import LessonJourney from '../components/LessonJourney'
@@ -33,7 +34,7 @@ function LessonContent({ id }) {
    const result = await api(`/me/lessons/${id}/${name}`, {method:'POST',body:JSON.stringify(body)})
    if (name==='start') { setLesson(previous => ({...previous,progress:result})); setQuestionIndex(firstUnsolved(lesson.exercises)); setShowQuestions(true) }
    if (name==='attempt') {
-    setLesson(previous => ({...previous,exercises:previous.exercises.map(q => q.id===body.exercise_id ? {...q,solved:q.solved || result.correct} : q)}))
+    setLesson(previous => ({...previous,exercises:previous.exercises.map(q => q.id===body.exercise_id ? {...q,solved:q.solved || result.correct,response_text:body.response_text ?? q.response_text} : q)}))
     setMessage(result.correct ? 'Correct. Your answer is saved.' : 'Not quite. Review the material and try again.')
     delete submissions.current[body.exercise_id]
    }
@@ -44,14 +45,14 @@ function LessonContent({ id }) {
   const option = answers[q.id]
   if (!option) return
   const previous = submissions.current[q.id]
-  const submission = previous?.selected_option_id===option ? previous : {attempt_id:crypto.randomUUID(),exercise_id:q.id,selected_option_id:option}
+  const submission = q.answer_type==='text' ? previous?.response_text===option ? previous : {attempt_id:crypto.randomUUID(),exercise_id:q.id,response_text:option} : previous?.selected_option_id===option ? previous : {attempt_id:crypto.randomUUID(),exercise_id:q.id,selected_option_id:option}
   submissions.current[q.id] = submission
   action('attempt',submission)
  }
  useEffect(() => {
   let active = true
   api(`/me/lessons/${encodeURIComponent(id)}`).then(value => {
-   if (active) { setLesson(value); setAnswers(Object.fromEntries(value.exercises.filter(q => q.selected_option_id).map(q => [q.id,q.selected_option_id]))); setError('') }
+   if (active) { setLesson(value); setAnswers(Object.fromEntries(value.exercises.filter(q => q.selected_option_id || q.response_text).map(q => [q.id,q.answer_type==='text'?q.response_text:q.selected_option_id]))); setError('') }
   }).catch(error => { if (active) setError(error.message) })
   return () => { active = false }
  }, [id, attempt])
@@ -84,10 +85,10 @@ function LessonContent({ id }) {
      <h2 className="lesson-check-label" ref={questionHeading} tabIndex={-1}>A quick knowledge check</h2>
      {exercise&&<><p>Question {questionIndex+1} of {lesson.exercises.length}</p><progress aria-label="Questions answered correctly" value={lesson.exercises.filter(q=>q.solved).length} max={lesson.exercises.length}/></>}
      <p>{lesson.exercises.length ? 'Answer each question correctly to complete this lesson. Your checked answers are saved to your account.' : 'You’ve reviewed the material. You can now complete this lesson.'}</p>
-     {exercise&&<fieldset className="lesson-question reference-question" key={exercise.id} disabled={busy || exercise.solved || completed}><legend>{exercise.prompt}</legend>{exercise.options.length ? exercise.options.map((option,index) => <label key={option.id}><input className="lesson-choice-radio" type="radio" name={`exercise-${exercise.id}`} value={option.id} checked={answers[exercise.id] === option.id} onChange={() => {setAnswers(previous => ({ ...previous, [exercise.id]: option.id }));setMessage('')}} /><span className="lesson-choice-letter" aria-hidden="true">{String.fromCharCode(65+index)}</span><span className="lesson-choice-text">{option.option_text}</span>{answers[exercise.id]===option.id&&<Check size={22} aria-hidden="true" />}</label>) : <p>Answer choices are unavailable.</p>}</fieldset>}
+     {exercise&&<fieldset className="lesson-question reference-question" key={exercise.id} disabled={busy || exercise.solved || completed}><legend>{exercise.prompt}</legend>{exercise.answer_type==='text' ? <label className="lesson-typed-answer">Your answer<input type="text" maxLength={500} autoComplete="off" value={answers[exercise.id]||''} onChange={e=>{setAnswers(previous=>({...previous,[exercise.id]:e.target.value}));setMessage('')}}/></label> : exercise.answer_type==='recognition' ? exercise.solved||completed ? <p>Saved recognition: {exercise.response_text||exercise.target_sign}{exercise.recognition_confidence ? ` (${Math.round(Number(exercise.recognition_confidence)*100)}% model confidence)` : ''}</p> : <LessonSignAnswer lessonId={id} exercise={exercise} disabled={busy} onSolved={()=>{setLesson(previous=>({...previous,exercises:previous.exercises.map(q=>q.id===exercise.id?{...q,solved:true}:q)}));setMessage('Sign recognized. Your result is saved.')}}/> : exercise.options.length ? exercise.options.map((option,index) => <label key={option.id}><input className="lesson-choice-radio" type="radio" name={`exercise-${exercise.id}`} value={option.id} checked={answers[exercise.id] === option.id} onChange={() => {setAnswers(previous => ({ ...previous, [exercise.id]: option.id }));setMessage('')}} /><span className="lesson-choice-letter" aria-hidden="true">{String.fromCharCode(65+index)}</span><span className="lesson-choice-text">{option.option_text}</span>{answers[exercise.id]===option.id&&<Check size={22} aria-hidden="true" />}</label>) : <p>Answer choices are unavailable.</p>}</fieldset>}
      {(exercise?.solved || message)&&<div className={`lesson-answer-feedback${exercise?.solved?' is-correct':''}`} role="status">{exercise?.solved&&<CheckCircle2 size={22} aria-hidden="true" />}<p>{exercise?.solved?'That’s right. Your correct answer is saved.':message}</p></div>}
      <div className="lesson-check-actions"><div className="lesson-review-actions"><button className="btn btn-secondary" type="button" disabled={busy} onClick={() => {setShowQuestions(false);setMessage('')}}><ArrowLeft size={18} />Review guidance</button>{questionIndex>0&&<button className="text-link" type="button" disabled={busy} onClick={()=>{setMessage('');setQuestionIndex(i=>i-1)}}>Previous question</button>}</div>
-      {exercise&&!exercise.solved&&!completed?<button className="btn" type="button" disabled={busy||!answers[exercise.id]} onClick={()=>check(exercise)}>{busy?'Checking…':'Check answer'}<Check size={18}/></button>:questionIndex<lesson.exercises.length-1?<button className="btn" type="button" disabled={busy} onClick={()=>{setMessage('');setQuestionIndex(i=>i+1)}}>Next question<ArrowRight size={18}/></button>:!completed?<button className="btn" type="button" disabled={busy||!lesson.exercises.every(q=>q.solved)} onClick={()=>action('complete')}>{busy?'Saving…':'Complete lesson'}<Check size={18}/></button>:<button className="btn" type="button" onClick={()=>setReview(false)}>Back to completion<Check size={18}/></button>}
+      {exercise?.answer_type==='recognition'&&!exercise.solved&&!completed?<p className="lesson-recognition-note">Recognize the target sign to continue.</p>:exercise&&!exercise.solved&&!completed?<button className="btn" type="button" disabled={busy||!answers[exercise.id]} onClick={()=>check(exercise)}>{busy?'Checking…':'Check answer'}<Check size={18}/></button>:questionIndex<lesson.exercises.length-1?<button className="btn" type="button" disabled={busy} onClick={()=>{setMessage('');setQuestionIndex(i=>i+1)}}>Next question<ArrowRight size={18}/></button>:!completed?<button className="btn" type="button" disabled={busy||!lesson.exercises.every(q=>q.solved)} onClick={()=>action('complete')}>{busy?'Saving…':'Complete lesson'}<Check size={18}/></button>:<button className="btn" type="button" onClick={()=>setReview(false)}>Back to completion<Check size={18}/></button>}
      </div>
      {lesson.progress?.completed_at && <p><Link className="text-link" to="/progress">View saved progress</Link></p>}
     </>}

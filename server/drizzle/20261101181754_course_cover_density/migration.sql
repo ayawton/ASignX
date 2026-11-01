@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ADD COLUMN "cover_density" integer DEFAULT 5 NOT NULL;

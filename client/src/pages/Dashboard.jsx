@@ -1,3 +1,4 @@
+import CourseCover from '../components/CourseCover'
 import { useEffect, useState } from 'react'
 import Link from '../components/WorkspaceLink'
 import { ArrowUpRight, BookOpen, Camera, Gamepad2, Trophy, UserRound } from 'lucide-react'
@@ -13,18 +14,16 @@ export default function Dashboard() {
  const [message, setMessage] = useState('')
  useEffect(() => {
   let active = true
-  const paths = { profile: '/me/profile', progress: '/me/progress', enrollments: '/me/enrollments', courses: '/courses' }
-  for (const [key, path] of Object.entries(paths)) {
-   api(path).then(value => { if (active) { setResources(previous => ({ ...previous, [key]: value })); setErrors(previous => { const next = { ...previous }; delete next[key]; return next }) } })
-    .catch(error => { if (active) setErrors(previous => ({ ...previous, [key]: error.message })) })
-  }
+  api('/me/dashboard').then(({resources,errors})=>{if(active){setResources(resources);setErrors(errors)}})
+   .catch(error=>{if(active)setErrors(Object.fromEntries(['profile','progress','enrollments','courses'].map(key=>[key,error.message])))})
   return () => { active = false }
- }, [attempt])
+ }, [attempt, user?.id])
  async function enroll(course) {
   setBusy(course.id); setMessage('')
   try {
-   const saved = await api('/me/enrollments', { method: 'POST', body: JSON.stringify({ course_id: course.id }) })
-   setResources(previous => ({ ...previous, enrollments: [{ ...course, ...saved, is_published: true }, ...previous.enrollments.filter(row => row.course_id !== course.id)] }))
+   await api('/me/enrollments', { method: 'POST', body: JSON.stringify({ course_id: course.id }) })
+   const savedEnrollments = await api('/me/enrollments')
+   setResources(previous => ({ ...previous, enrollments: savedEnrollments }))
    setMessage(`You're enrolled in ${course.title}.`)
   } catch (error) { setMessage(error.message) }
   finally { setBusy('') }
@@ -40,11 +39,11 @@ export default function Dashboard() {
    <dl className="learner-metrics">{[['Enrolled courses', enrollments?.length], ['Completed lessons', progress?.lessons.filter(lesson => lesson.completed_at).length], ['Learning XP', progress?.xp], ['Day streak', progress?.streak]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? '—'}</dd></div>)}</dl>
    <div className="learner-columns"><div>
     <section className="learner-section"><div className="learner-section-heading"><h2>My courses</h2><BookOpen size={21} /></div>
-     {!enrollments ? <p role="status">{errors.enrollments ? 'Your courses are unavailable. Try again above.' : 'Loading your courses…'}</p> : enrollments.length ? <div className="learner-course-list">{enrollments.map(course => <article key={course.course_id}><span className="learner-course-icon"><BookOpen size={23} /></span><div><h3>{course.title}</h3><p>{course.is_published ? 'Enrolled' : 'Currently unavailable'} · Joined {new Date(course.enrolled_at).toLocaleDateString()}</p></div>{course.is_published ? <Link className="text-link" to={`/learn/courses/${course.course_id}`}>Open course <ArrowUpRight size={16} /></Link> : <span className="learner-enrolled">Unavailable</span>}</article>)}</div> : <div className="learner-empty"><BookOpen size={28} /><h3>Your first course starts here.</h3><p>Enroll in an available course below. It will appear here whenever you return.</p></div>}
+     {!enrollments ? <p role="status">{errors.enrollments ? 'Your courses are unavailable. Try again above.' : 'Loading your courses…'}</p> : enrollments.length ? <div className="learner-course-list">{enrollments.map(course => <article key={course.course_id}><div className="learner-course-thumbnail" aria-hidden="true"><CourseCover course={course}/></div><div className="learner-course-copy"><h3>{course.title}</h3><div className={`overview-course-progress${course.total_lessons>0 && course.completed_lessons===course.total_lessons ? ' is-complete' : ''}`}><span>{course.total_lessons ? course.completed_lessons===course.total_lessons ? 'Completed' : `${course.completed_lessons} of ${course.total_lessons} lessons completed` : 'No published lessons'}</span>{course.total_lessons>0 && <progress aria-label={`Progress for ${course.title}`} value={course.completed_lessons} max={course.total_lessons}/>}</div></div>{course.is_published ? <Link className="text-link" to={`/learn/courses/${course.course_id}`}>{course.total_lessons>0 && course.completed_lessons===course.total_lessons ? 'Review' : course.started_lessons>0 || course.completed_lessons>0 ? 'Continue' : 'Start'} <ArrowUpRight size={16} /></Link> : <span className="learner-enrolled">Unavailable</span>}</article>)}</div> : <div className="learner-empty"><BookOpen size={28} /><h3>Your first course starts here.</h3><p>Enroll in an available course below. It will appear here whenever you return.</p></div>}
     </section>
     <section id="dashboard-courses" className="learner-section"><div className="learner-section-heading"><h2>Explore ASign Learn</h2></div>
-     {!courses ? <p role="status">{errors.courses ? 'Courses are unavailable. Try again above.' : 'Loading available courses…'}</p> : available.length ? <div className="learner-catalog">{available.map(course => <article key={course.id}><BookOpen size={24} /><h3>{course.title}</h3><p>{course.description}</p><button className="btn" type="button" disabled={Boolean(busy) || !enrollments || Boolean(errors.enrollments)} onClick={() => enroll(course)}>{busy === course.id ? 'Enrolling…' : 'Enroll in course'}<ArrowUpRight size={16} /></button></article>)}</div> : <div className="learner-empty"><h3>{courses.length ? 'You’re enrolled in every available course.' : 'New courses are on the way.'}</h3><p>{courses.length ? 'Your courses are listed above.' : 'Published courses will appear here when they are ready.'}</p></div>}
-     <Link className="text-link learner-practice-link" to="/learn">Explore sample practice <ArrowUpRight size={16} /></Link>
+     {!courses ? <p role="status">{errors.courses ? 'Courses are unavailable. Try again above.' : 'Loading available courses…'}</p> : available.length ? <div className="learner-catalog">{available.map(course => <article key={course.id}><CourseCover course={course} /><h3>{course.title}</h3><p>{course.description}</p><button className="btn" type="button" disabled={Boolean(busy) || !enrollments || Boolean(errors.enrollments)} onClick={() => enroll(course)}>{busy === course.id ? 'Enrolling…' : 'Enroll in course'}<ArrowUpRight size={16} /></button></article>)}</div> : <div className="learner-empty"><h3>{courses.length ? 'You’re enrolled in every available course.' : 'New courses are on the way.'}</h3><p>{courses.length ? 'Your courses are listed above.' : 'Published courses will appear here when they are ready.'}</p></div>}
+     <Link className="text-link learner-practice-link" to="/learn">Browse all courses <ArrowUpRight size={16} /></Link>
     </section>
    </div><aside className="learner-details">
     <section className="learner-account"><UserRound size={23} /><h2>Your information</h2>{profile ? <dl><dt>Name</dt><dd>{profile.display_name}</dd><dt>Email</dt><dd>{profile.email}</dd><dt>Time zone</dt><dd>{profile.timezone}</dd></dl> : <p>{errors.profile ? 'Your information is unavailable.' : 'Loading your information…'}</p>}<Link className="text-link" to="/profile">Edit profile <ArrowUpRight size={16} /></Link></section>

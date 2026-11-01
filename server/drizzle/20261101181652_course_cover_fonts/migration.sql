@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ADD COLUMN "cover_font" varchar(12) DEFAULT 'outfit' NOT NULL;

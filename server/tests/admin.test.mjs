@@ -10,9 +10,9 @@ test('admin checks current database roles and permits only validated draft write
  const response = user => ({ locals: { user: { id: user } }, code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; } });
  try {
   await db.exec(`create table profiles(id text, role text); insert into profiles values ('admin','admin'),('learner','learner');
-   create table courses(id uuid primary key default gen_random_uuid(),title text,description text,is_published boolean,created_at timestamptz default now());
+   create table courses(id uuid primary key default gen_random_uuid(),title text,description text,cover_size int default 100,cover_angle int default -18,cover_density int default 5,cover_weight text default '600',cover_font text default 'outfit',cover_text varchar(32) default '',cover_style text default 'plain',cover_tone text default 'sky',is_published boolean,created_at timestamptz default now());
    create table lessons(id uuid primary key default gen_random_uuid(),course_id uuid,title text,content text,sort_order int,xp_reward int,is_published boolean default false,unique(course_id,sort_order));
-   create table exercises(id uuid primary key default gen_random_uuid(),lesson_id uuid,prompt text,sort_order int,sign_id uuid);
+   create table exercises(id uuid primary key default gen_random_uuid(),lesson_id uuid,prompt text,sort_order int,sign_id uuid,answer_type text default 'choice');
    create table exercise_options(id uuid default gen_random_uuid(),exercise_id uuid,option_text text,is_correct boolean,sort_order int);
    create table lesson_progress(lesson_id uuid,completed_at timestamptz);
    create table exercise_attempts(exercise_id uuid);`);
@@ -39,7 +39,26 @@ test('admin checks current database roles and permits only validated draft write
   assert.equal((await call('post','/courses',{title:' '})).code,400);
   assert.equal((await call('post','/courses',{title:'x'.repeat(151)})).code,400);
   assert.equal((await call('post','/courses',{title:'Valid',description:'x'.repeat(5001)})).code,400);
-  const created = await call('post','/courses',{title:' First course ',description:' Introduction ',is_published:true});
+  assert.equal((await call('post','/courses',{title:'Cover',cover_size:181})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_size:59})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_angle:46})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_angle:-46})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_density:6})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_density:2.5})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_weight:'900'})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_font:'invalid'})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_style:'invalid'})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_text:'x'.repeat(33)})).code,400);
+  const created = await call('post','/courses',{title:' First course ',description:' Introduction ',cover_text:'Aa',cover_font:'chalk',cover_weight:'700',cover_density:3,cover_angle:25,cover_size:140,cover_style:'pattern',cover_tone:'yellow',is_published:true});
+  const cover = (await call('get','/courses/:id',{},created.body.id)).body;
+  assert.equal(cover.cover_size,140);assert.equal(cover.cover_angle,25);assert.equal(cover.cover_density,3);assert.equal(cover.cover_weight,'700');assert.equal(cover.cover_font,'chalk');assert.equal(cover.cover_text,'Aa');assert.equal(cover.cover_style,'pattern');assert.equal(cover.cover_tone,'yellow');
+  for (const [style,tone] of [['corner','mint'],['frame','lavender'],['split','peach'],['plain','aqua'],['pattern','sand']]) {
+   const custom = await call('post','/courses',{title:'Graphic option',cover_style:style,cover_tone:tone});
+   assert.equal(custom.code,201);
+   const loaded = (await call('get','/courses/:id',{},custom.body.id)).body;
+   assert.equal(loaded.cover_style,style);assert.equal(loaded.cover_tone,tone);
+   await db.query('delete from courses where id=$1',[custom.body.id]);
+  }
   const sign = {gloss:' a ',meaning:'Letter A',category:'Alphabet',instructions:'Reviewed guidance',is_published:false};
   assert.equal((await call('post','/signs',{...sign,meaning:''})).code,400);
   const newSign=await call('post','/signs',sign);assert.equal(newSign.body.gloss,'A');assert.equal(newSign.code,201);
@@ -76,7 +95,9 @@ test('admin checks current database roles and permits only validated draft write
   assert.equal((await call('post','/courses/:id/lessons',{...lesson,sort_order:2},id)).code,409,'Published course frozen');
   assert.equal((await db.query('select is_published from lessons')).rows[0].is_published,true);
   await db.query('update courses set is_published=true where id=$1',[id]);
-  assert.equal((await call('patch','/courses/:id',{title:'Forbidden'},id)).code,409);
+  const publishedEdit=await call('patch','/courses/:id',{title:'Renamed',cover_text:'Updated',is_published:false},id);
+  assert.equal(publishedEdit.code,200);assert.equal(publishedEdit.body.is_published,true);
+  assert.equal((await call('get','/courses/:id',{},id)).body.cover_text,'Updated');
   const listed = await call('get','/courses'); assert.equal(listed.body[0].title,'Renamed');
   const overview = await call('get','/overview');
   assert.equal(overview.body.courses,1); assert.equal(overview.body.published_courses,1);
@@ -94,7 +115,8 @@ test('admin checks current database roles and permits only validated draft write
   assert.equal((await call('post','/courses/:id/archive',{},id)).code,200);
   const archived=await call('get','/courses/:id',{},id);assert.equal(archived.body.is_archived,true);
   assert.equal((await call('post','/courses/:id/lessons',{...lesson,sort_order:2},id)).code,409);
-  assert.equal((await call('patch','/courses/:id',{title:'Cannot edit archive'},id)).code,409);
+  assert.equal((await call('patch','/courses/:id',{title:'Archive details updated',cover_style:'frame',is_published:true},id)).code,200);
+  const archiveEdit=(await call('get','/courses/:id',{},id)).body;assert.equal(archiveEdit.is_archived,true);assert.equal(archiveEdit.is_published,false);assert.equal(archiveEdit.cover_style,'frame');
   assert.equal((await db.query('select count(*)::int as count from exercise_attempts')).rows[0].count,originalAttempts);
   assert.equal((await call('post','/courses/:id/publish',{},id)).code,200);
   assert.ok(admin.stack.filter(layer => !layer.route).length >= 3, 'Authentication and role middleware precede routes');

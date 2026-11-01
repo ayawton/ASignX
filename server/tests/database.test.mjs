@@ -63,7 +63,62 @@ test('lesson API persists attempts, isolates accounts, and completes idempotentl
   const done=await call('complete');assert.equal(done.code,200);assert.equal(done.body.xp_earned,10);
   const again=await call('complete');assert.deepEqual(again.body.completed_at,done.body.completed_at);
   assert.equal(await scalar('select sum(xp_earned) from lesson_progress'),10);
+  const dashboard=personal.stack.find(layer=>layer.route?.path==='/dashboard').route.stack[0].handle;
+  async function overview(user){const res={locals:{user:{id:user}},json(body){this.body=body}};await dashboard({},res);return res.body;}
+  const first=await overview(u1),other=await overview(u2);
+  assert.equal(first.resources.enrollments[0].started_lessons,1);assert.ok(other.resources.enrollments.every(row=>row.started_lessons===0));
+  assert.equal(first.resources.enrollments[0].total_lessons,1);assert.equal(first.resources.enrollments[0].completed_lessons,1);assert.ok(other.resources.enrollments.every(row=>row.completed_lessons===0));
+  assert.deepEqual(first.errors,{});assert.equal(first.resources.progress.xp,10);assert.equal(other.resources.progress.xp,0);
+  assert.ok(first.resources.enrollments.every(row=>row.course_id===c1));
+  assert.ok(first.resources.courses.every(row=>row.id!==c2));
+  assert.equal(first.resources.profile.id,u1);assert.equal(other.resources.profile.id,u2);
+  const workingSql=globalThis.__lessonSql;
+  globalThis.__lessonSql=(parts,...values)=>parts.join('').includes('from user_achievements')?Promise.reject(new Error('Injected failure')):workingSql(parts,...values);
+  const partial=await overview(u1);assert.deepEqual(Object.keys(partial.errors),['progress']);assert.ok(partial.resources.profile);assert.ok(partial.resources.enrollments);
+  globalThis.__lessonSql=workingSql;
  } finally {delete globalThis.__lessonSql}
+});
+test('mixed answer types grade on server, keep keys private and save only trusted camera results',async()=>{
+ const originalFetch=globalThis.fetch, token=process.env.RECOGNITION_INTERNAL_TOKEN;
+ globalThis.__lessonSql=async(parts,...values)=>(await db.query(parts.reduce((s,p,i)=>s+(i?`${i}`:'')+p,''),values)).rows;
+ globalThis.__lessonSql.begin=callback=>callback(globalThis.__lessonSql);
+ try{
+  const lesson=uid(400),typed=uid(401),boolean=uid(402),camera=uid(403);
+  await db.exec(`insert into lessons(id,course_id,title,content,sort_order) values ('${lesson}','${c1}','Mixed','Study',2);
+   insert into lesson_signs values ('${lesson}','${sign}',1);
+   insert into exercises(id,lesson_id,prompt,sort_order,answer_type,sign_id) values ('${typed}','${lesson}','Type hello',1,'text',null),('${boolean}','${lesson}','True?',2,'boolean',null),('${camera}','${lesson}','Sign A',3,'recognition','${sign}');
+   insert into exercise_options(id,exercise_id,option_text,is_correct,sort_order) values
+   ('${uid(410)}','${typed}','Hello World',true,1),('${uid(411)}','${typed}','Incorrect answer',false,2),
+   ('${uid(412)}','${boolean}','True',true,1),('${uid(413)}','${boolean}','False',false,2),
+   ('${uid(414)}','${camera}','Recognized',true,1),('${uid(415)}','${camera}','Not recognized',false,2);
+   update lessons set is_published=true where id='${lesson}';`);
+  const bundle=await build({entryPoints:['src/personal.ts'],bundle:true,write:false,platform:'node',format:'esm',packages:'external',plugins:[{name:'mixed-db',setup(b){b.onResolve({filter:/^\.\/db\/index\.js$/},()=>({path:'db',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const connection=Object.assign((...args)=>globalThis.__lessonSql(...args),{begin:fn=>globalThis.__lessonSql.begin(fn)})'}));}}]});
+  const source=bundle.outputFiles[0].text.replaceAll('from "express"',`from ${JSON.stringify(import.meta.resolve('express'))}`);
+  const {personal}=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const response=(user=u1)=>({locals:{user:{id:user}},code:200,status(code){this.code=code;return this},json(body){this.body=body},end(){},setHeader(){}});
+  async function action(action,body,user=u1){const res=response(user);await personal.stack.find(l=>l.route?.path==='/lessons/:id/:action').route.stack[0].handle({params:{id:lesson,action},body},res);return res;}
+  await action('start',{});
+  assert.equal((await action('attempt',{attempt_id:uid(420),exercise_id:typed,response_text:'wrong',selected_option_id:uid(410)})).body.correct,false);
+  const answer={attempt_id:uid(421),exercise_id:typed,response_text:'  HELLO   world  '};
+  assert.equal((await action('attempt',answer)).body.correct,true);assert.equal((await action('attempt',answer)).body.correct,true);
+  assert.equal((await action('attempt',{attempt_id:uid(422),exercise_id:boolean,selected_option_id:uid(412)})).body.correct,true);
+  assert.equal((await action('attempt',{attempt_id:uid(423),exercise_id:camera,selected_option_id:uid(414),correct:true})).code,400);
+  assert.equal((await action('complete',{})).code,409);
+  const get=response();await personal.stack.find(l=>l.route?.path==='/lessons/:id').route.stack[0].handle({params:{id:lesson}},get);
+  assert.deepEqual(get.body.exercises[0].options,[]);assert.equal(get.body.exercises[0].response_text,'HELLO   world');assert.ok(!JSON.stringify(get.body).includes('Incorrect answer'));
+  process.env.RECOGNITION_INTERNAL_TOKEN='internal-test';let detected='B';
+  globalThis.fetch=async(url,options)=>{assert.equal(options.headers['X-Recognition-Key'],'internal-test');if(url.endsWith('/capabilities'))return Response.json({labels:['A','B'],model:'model-test',threshold:.8});if(url.endsWith('/sessions'))return Response.json({session_id:'a'.repeat(43)});if(url.endsWith('/frames'))return Response.json({emissions:[{label:detected,confidence:.95}]});return new Response(null,{status:204});};
+  const router=personal.stack.find(l=>l.handle?.stack?.some(r=>r.route?.path==='/lessons/:id/recognition')).handle;
+  const create=router.stack.find(l=>l.route?.path==='/lessons/:id/recognition').route.stack[0].handle;
+  const denied=response(u2);await create({params:{id:lesson},body:{exercise_id:camera}},denied);assert.equal(denied.code,404);
+  const started=response();await create({params:{id:lesson},body:{exercise_id:camera}},started);assert.ok(started.body.session_id);
+  const sessionMiddleware=router.stack.find(l=>!l.route).handle;
+  const stolen=response(u2);await sessionMiddleware({params:{session:started.body.session_id}},stolen,()=>assert.fail('foreign camera session accepted'));assert.equal(stolen.code,404);
+  async function frame(){const res=response();await sessionMiddleware({params:{session:started.body.session_id}},res,()=>{});await router.stack.find(l=>l.route?.path==='/lesson-recognition/:session/frames').route.stack.at(-1).handle({body:Buffer.from('test JPEG forwarded to trusted mock'),is:()=>true,get:()=> '1000'},res);return res;}
+  assert.equal((await frame()).body.correct,false);detected='A';assert.equal((await frame()).body.correct,true);
+  assert.equal(await scalar(`select recognition_model from exercise_attempts where exercise_id='${camera}' and is_correct`),'model-test');
+  assert.equal((await action('complete',{})).code,200);
+ }finally{globalThis.fetch=originalFetch;if(token===undefined)delete process.env.RECOGNITION_INTERNAL_TOKEN;else process.env.RECOGNITION_INTERNAL_TOKEN=token;delete globalThis.__lessonSql;}
 });
 const practice = (score = '.9', prediction = `'${sign}'`, time = 'now()') => `INSERT INTO practice_attempts
     (user_id,target_sign_id,predicted_sign_id,model_version_id,confidence,is_correct,attempted_at)

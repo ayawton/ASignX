@@ -6,6 +6,7 @@ import Lesson from './pages/Lesson'
 import Course from './pages/Course'
 import AccountLesson from './pages/AccountLesson'
 import Admin from './pages/Admin'
+import AdminCourseForm from './pages/AdminCourseForm'
 import AdminCourse from './pages/AdminCourse'
 import AdminOverview from './pages/AdminOverview'
 import AdminSigns from './pages/AdminSigns'
@@ -39,6 +40,8 @@ export default function App() {
    <Route path="admin" element={<AdminOverview />} />
    <Route path="admin/courses" element={<Admin />} />
    <Route path="admin/signs" element={<AdminSigns />} />
+   <Route path="admin/courses/new" element={<AdminCourseForm />} />
+   <Route path="admin/courses/:id/edit" element={<AdminCourseForm />} />
    <Route path="admin/courses/:id" element={<AdminCourse />} />
    <Route path="live" element={<Live />} />
    <Route path="learn" element={<Learn />} />

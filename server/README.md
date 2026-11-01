@@ -370,7 +370,7 @@ Every `/api/admin` request verifies a confirmed Supabase identity and then reads
 the current `profiles.role` from the database. Missing/non-admin profiles return
 403; roles from signup metadata or request bodies are never trusted.
 GET `/api/admin/courses` lists draft and published courses. POST creates a draft;
-PATCH `/api/admin/courses/:id` edits only a currently unpublished course, atomically.
+PATCH `/api/admin/courses/:id` edits presentation in any course status, atomically.
 Only title (trimmed, 1–150 characters) and description (up to 5,000 characters)
 are accepted as editable course values. Deletion and role assignment are not
 exposed. New users remain learners;
@@ -413,7 +413,7 @@ The course editor offers confirmed Archive course and Create draft copy actions.
 POST `/api/admin/courses/:id/archive` hides a published course by clearing its
 publication flag, retaining published lesson flags and every learner record.
 An unpublished course with published lessons is displayed as Archived, including
-in the overview counts. Archived courses/lessons are read only in admin authoring.
+in the overview counts. Archived lesson content is read only; course details and graphics remain editable.
 Existing enrollment listings retain the unavailable course; course and lesson APIs
 deny opening it while hidden. Historical progress and XP remain visible.
 The existing Publish course action validates content and restores learner access.
@@ -501,3 +501,35 @@ The complete hosted admin-to-learner journey still needs browser verification.
 Automated checks cover redirects and guest
 route protection; a real-account dashboard session and enrollment round trip
 have not been verified against the live service.
+
+## Course cover settings
+
+The course_covers migration adds cover_text (up to 32 characters, default empty), cover_style (plain or pattern, default plain), and cover_tone (sky, yellow, pink, ink; default sky) to courses. Admin course create/update validates these fields in every status; lesson-content restrictions remain unchanged. Public course listings include the cover settings. Draft copies retain them. Covers are rendered from text and CSS; no Storage bucket or image upload is required. Run npm run db:migrate before using the new editor.
+
+Course cover font migrations add cover_font (outfit, sans, serif, mono, chalk; default outfit) and cover_weight (400, 600, 700; default 600). Admin course writes validate these allowlists; public listings expose them and draft copies preserve them. These fields affect graphic text only.
+
+The course_cover_density migration adds cover_density, an integer from 1 to 5 validated by the admin API (default 5). Listings and draft copies preserve it.
+
+The course_cover_angle migration adds cover_angle (integer -45 to 45 validated by the admin API, default -18). Admin editing, public listings and draft copies preserve it.
+
+Cover style allowlist also accepts corner, frame and split. Cover tone also accepts mint, lavender, peach, aqua and sand. Existing varchar fields accommodate these values; no migration is required. Existing publication restrictions apply.
+
+Admin PATCH /courses/:id allows title, description and validated cover settings in draft, published and archived states. It never updates publication status, lessons, questions, rewards or learner records. Published presentation edits are visible immediately; archived courses remain hidden. Lesson-content protections and draft-copy workflows remain in force.
+
+The course_cover_size migration adds cover_size (integer 60–180 validated by the admin API, default 100). Course presentation writes, listings and draft copies preserve it.
+
+GET /api/me/enrollments includes course cover settings alongside the caller's enrollment records, enabling overview thumbnails. Ownership filtering remains unchanged and archived courses remain unavailable for learning.
+
+GET /api/me/courses/:id returns saved cover settings for the learner course banner after checking enrollment and course publication. Internal enrollment identifiers are omitted from the response.
+
+## Retrieval performance and measurement
+
+GET /api/me/dashboard verifies the session once and returns {resources, errors} for profile, progress, enrollments and published courses. Independent reads run concurrently within the existing five-connection pool; failures remain scoped to their dashboard section. Existing individual endpoints remain available. Progress, learner lesson detail, admin course detail and admin overview also parallelize independent reads after required authorization/access checks. Writes and transactional locks retain their ordering.
+
+All /api GET JSON responses include Server-Timing with auth, app and total durations in milliseconds. App time includes query execution, connection waits, role checks and response assembly; it is not pure SQL time. Browser network time is additional. Timings contain no tokens or personal data. Personal endpoints remain no-store; identity and role checks are not cached. Existing database indexes and the shared prepare:false pool remain unchanged.
+
+A read-only development benchmark on 2026-11-02 measured an initial connection around 551ms, warm SELECT 1 round trips 86–87ms, and representative progress queries at 520–524ms sequentially versus 175–177ms in parallel. These are local-to-Supabase measurements, not end-to-end browser timings or a production guarantee.
+
+Enrollment retrieval (including the aggregate dashboard) returns total_lessons and completed_lessons, counting published lessons and completed progress only for the caller's enrollment. These counts share the existing enrollment query, without extra dashboard requests.
+
+Enrollment summaries also return started_lessons, counted from published lessons with started progress for the caller's enrollment. This supports overview continuation labels without additional requests.

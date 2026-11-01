@@ -80,3 +80,48 @@ Status comes from existing started/completed records, without invented percentag
 Lesson rows use a thin bottom progress bar based on saved correct-question
 counts. Rows stay white; status text/icons and the bar convey progress.
 No-question lessons remain unfilled until complete; repeated attempts count once.
+
+## Public learning preview
+
+Public /learn and /learn/courses feature one complete sample introduction, followed by published course descriptions. Visitors can finish its knowledge check without registering. Completion invites account creation to continue into full courses; enrollment, saved answers, progress and XP require an account. Sample completion remains browser-local and does not transfer into an account record. The current sample uses written guidance, not instructor video. Signed-in learning pages retain their existing workspace.
+
+Signed-in ASign Learn and its course browser use published courses from the API, not placeholder courses or browser-local sample progress. Saved enrollments determine Open course versus Enroll in course actions. Empty catalogs explain that courses will appear when published. Public sample lessons remain available separately.
+
+## Course graphics and creation
+
+Manage courses opens a dedicated new-course form from its header action. Draft details and graphics share the new/edit form, with a live course-card preview. Graphics support centered text or a repeating text pattern, four fixed accessible palettes, and up to 32 characters; empty text falls back to the course title. The shared CourseCover component renders both admin previews and published catalog covers. Course details and graphics can be edited in every status; published or used lesson content remains protected. Draft copies preserve cover settings.
+
+CourseCard shares cover, title, description and action spacing between published courses, the admin list and the editor preview. Layout thumbnails and labeled palette swatches use native radio groups with visible focus. SVG pattern tiles repeat without per-cell clipping; cover typography scales with its container. The preview stacks below the form on compact screens.
+
+Cover patterns use large, tightly spaced text at one consistent size and angle, with staggered row offsets and seamless edge wrapping. Center text has no background panel or letter outline. All cover layouts use text without outlines. Previews and course cards share the same arrangement.
+
+
+Course graphics offer Outfit, DM Sans, Georgia, system monospace and Cabin Sketch (chalk-like), plus regular (400), semibold (600) and bold (700). Native radio choices preview the selected family/weight; title and pattern share them. Existing courses default to Outfit semibold.
+
+Pattern density uses a native keyboard-accessible range control (1–5) to zoom the whole pattern: fewer words enlarges it, more words zooms out. Word spacing stays tightly packed in proportion to the text, and the selected angle stays fixed. The slider appears for pattern layouts only; its value is saved with the course.
+
+Pattern angle uses a native range control from -45 to 45 degrees (default -18); all words rotate together. The angle and density controls appear only for patterned covers.
+
+Course graphics also offer Corner title (faint oversized text backdrop), Framed text and Split panel. Soft mint, lavender, peach, aqua and sand join the original palettes. Shared coverOptions defines layout names and background/foreground pairs for both visual controls and rendered cards; pattern controls remain specific to the pattern layout.
+
+Randomize graphic selects from supported layouts, palettes, fonts, weights and pattern settings without changing course or graphic text. It updates local form state and the preview; Save draft/Save changes persists the result. It is available for course presentation edits in every status.
+
+
+Graphic font size is saved as a relative 60–180% scale (default 100%). Its keyboard-accessible slider changes the main graphic title, not pattern zoom. Relative sizing follows card width in previews and catalog cards. Randomization includes title size.
+
+Overview My courses uses the shared course graphic as a 56px square thumbnail beside the title. A 360px square cover canvas is uniformly scaled to fill the thumbnail edge to edge, using saved type, layout, color and pattern settings.
+
+Enrolled course pages show a responsive wide banner from the shared CourseCover above the title and lesson list, using saved graphic settings.
+
+Manage courses groups drafts and published courses under Current courses and places archived courses in a separate collection below, with counts and existing editing/lifecycle actions preserved.
+
+
+Admin status indicators use quiet backgrounds and a visible icon legend. The graphic editor orders layout, palette, typography and contextual pattern controls; Randomize graphic supports one-step Undo without overwriting course text. A sticky form footer keeps Cancel and Save available, with Save on the right. Learner preview explicitly identifies inactive controls and uses a disabled sample action.
+
+## Retrieval performance
+
+Learner overview loads resources and per-section errors from one authenticated GET /api/me/dashboard instead of four separate requests. The workspace shell retains its profile/role check. Enrollment writes still update the displayed list after the server confirms success. No private response cache is introduced.
+
+Overview My courses includes a compact progress bar and completed/total published lesson count for each enrollment. Courses without published lessons show an explicit empty state rather than a percentage. Enrollment refreshes the list after successful creation.
+
+Overview course rows prioritize saved progress instead of enrollment dates. Actions read Start, Continue (any started/completed lesson), or Review (all published lessons complete), linking to the course path. Completed courses show Completed text and a muted green bar; zero-lesson courses do not count as complete. Archived entries retain the Unavailable state.

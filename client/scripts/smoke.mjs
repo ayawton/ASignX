@@ -10,7 +10,7 @@ try {
  const { default: App } = await vite.ssrLoadModule('/src/App.jsx')
  const { AuthProvider, internalPath } = await vite.ssrLoadModule('/src/auth.jsx')
  const render = path => renderToString(h(MemoryRouter, { initialEntries: [path] }, h(AuthProvider, null, h(App))))
- for (const [path, text] of [['/', 'Connection'], ['/learn', 'Your learning studio'], ['/learn/courses', 'Published account courses'], ['/live', 'Room for a conversation'], ['/login', 'Hello again'], ['/register', 'Start something good'], ['/auth/callback', 'Confirming your email'], ['/forgot-password', 'Forgot password?'], ['/reset-password', 'A fresh start'], ['/about', 'Understanding'], ['/learn/lesson/1', 'Meet the letter A'], ['/missing', 'Let’s find your way']]) {
+ for (const [path, text] of [['/', 'Connection'], ['/learn', 'Try your first ASL lesson.'], ['/learn/courses', 'Explore full courses'], ['/live', 'Room for a conversation'], ['/login', 'Hello again'], ['/register', 'Start something good'], ['/auth/callback', 'Confirming your email'], ['/forgot-password', 'Forgot password?'], ['/reset-password', 'A fresh start'], ['/about', 'Understanding'], ['/learn/lesson/1', 'Meet the letter A'], ['/missing', 'Let’s find your way']]) {
   const html = render(path)
   assert.ok(html.includes(text), `${path}: expected content`)
   assert.equal((html.match(/<main/g) || []).length, 1)

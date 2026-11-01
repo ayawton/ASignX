@@ -39,6 +39,14 @@ export const signs = pgTable('signs', {
 
 export const courses = pgTable('courses', {
     id: id(), title: varchar('title', { length: 150 }).notNull(), description: text('description'),
+    coverSize: integer('cover_size').notNull().default(100),
+    coverAngle: integer('cover_angle').notNull().default(-18),
+    coverDensity: integer('cover_density').notNull().default(5),
+    coverWeight: varchar('cover_weight', { length: 3 }).notNull().default('600'),
+    coverFont: varchar('cover_font', { length: 12 }).notNull().default('outfit'),
+    coverText: varchar('cover_text', { length: 32 }).notNull().default(''),
+    coverStyle: varchar('cover_style', { length: 12 }).notNull().default('plain'),
+    coverTone: varchar('cover_tone', { length: 12 }).notNull().default('sky'),
     isPublished: boolean('is_published').notNull().default(false), createdAt: instant('created_at'),
 }, t => [
     check('courses_title_nonblank', sql`length(btrim(${t.title})) > 0`),
@@ -70,10 +78,12 @@ export const lessonSigns = pgTable('lesson_signs', {
 
 export const exercises = pgTable('exercises', {
     id: id(), lessonId: uuid('lesson_id').notNull().references(() => lessons.id, { onDelete: 'restrict' }),
+    answerType: varchar('answer_type', { length: 16 }).notNull().default('choice'),
     prompt: text('prompt').notNull(), signId: uuid('sign_id').references(() => signs.id, { onDelete: 'restrict' }),
     sortOrder: integer('sort_order').notNull(),
 }, t => [
     unique('exercises_lesson_order_unique').on(t.lessonId, t.sortOrder), index('exercises_sign_idx').on(t.signId),
+    check('exercises_answer_type_valid', sql`${t.answerType} in ('choice','boolean','text','recognition')`),
     check('exercises_prompt_nonblank', sql`length(btrim(${t.prompt})) > 0`),
     check('exercises_sort_order_positive', sql`${t.sortOrder} > 0`),
     pgPolicy('exercises_read_published', { for: 'select', to: [anonRole, authenticatedRole], using: publishedLesson(t.lessonId) }),
@@ -116,6 +126,7 @@ export const lessonProgress = pgTable('lesson_progress', {
 export const exerciseAttempts = pgTable('exercise_attempts', {
     id: id(), enrollmentId: uuid('enrollment_id').notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
     exerciseId: uuid('exercise_id').notNull().references(() => exercises.id, { onDelete: 'restrict' }),
+    responseText: text('response_text'), recognitionConfidence: numeric('recognition_confidence', { precision: 6, scale: 5 }), recognitionModel: text('recognition_model'),
     selectedOptionId: uuid('selected_option_id').notNull(), isCorrect: boolean('is_correct').notNull(),
     attemptedAt: instant('attempted_at'),
 }, t => [

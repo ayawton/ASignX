@@ -20,6 +20,7 @@ test('course details enforce enrollment/publication and return only ordered pers
    insert into enrollments values ('${id(20)}','${id(1)}','${id(10)}'),('${id(21)}','${id(2)}','${id(10)}'),('${id(22)}','${id(1)}','${id(11)}'),('${id(23)}','${id(1)}','${id(12)}');
    insert into lessons values ('${id(30)}','${id(10)}','Second',2,20,true),('${id(31)}','${id(10)}','First',1,10,true),('${id(32)}','${id(10)}','Hidden',3,10,false);
    insert into lesson_progress values ('${id(21)}','${id(30)}',now(),now()),('${id(20)}','${id(31)}',now(),null);`);
+  await db.exec(`alter table courses add column cover_text text default 'Aa', add column cover_style text default 'pattern', add column cover_tone text default 'mint', add column cover_font text default 'outfit', add column cover_weight text default '700', add column cover_size int default 120, add column cover_density int default 4, add column cover_angle int default -18;`);
   await db.exec(`alter table lessons add column content text;
    update lessons set content='<script>plain text only</script>' where id='${id(31)}';
    insert into lessons values ('${id(33)}','${id(11)}','Draft course lesson',1,10,true,null);
@@ -32,13 +33,13 @@ test('course details enforce enrollment/publication and return only ordered pers
    insert into lesson_signs values ('${id(31)}','${id(40)}',2),('${id(31)}','${id(41)}',1);
    insert into exercises values ('${id(50)}','${id(31)}','Second question',2),('${id(51)}','${id(31)}','First question',1);
    insert into exercise_options values ('${id(60)}','${id(51)}','Later choice',2,true),('${id(61)}','${id(51)}','First choice',1,false);`);
-  await db.exec('alter table signs add column demo_path text');
+  await db.exec(`alter table signs add column demo_path text;alter table exercises add column answer_type text default 'choice', add column sign_id uuid;alter table exercise_attempts add column response_text text, add column recognition_confidence numeric, add column recognition_model text;`);
   const bundle = await build({ entryPoints: ['src/personal.ts'], bundle: true, write: false, platform: 'node', format: 'esm', packages: 'external', plugins: [{ name: 'isolated-db', setup(builder) {
    builder.onResolve({ filter: /^\.\/db\/index\.js$/ }, () => ({ path: 'db', namespace: 'test' }));
    builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const connection = (...args) => globalThis.__courseTestSql(...args)' }));
   } }] });
   // Resolve Express from this project while importing the bundled TypeScript module.
-  const source = bundle.outputFiles[0].text.replace('from "express"', `from ${JSON.stringify(import.meta.resolve('express'))}`);
+  const source = bundle.outputFiles[0].text.replaceAll('from "express"', `from ${JSON.stringify(import.meta.resolve('express'))}`);
   const { personal } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const handler = personal.stack.find(layer => layer.route?.path === '/courses/:id').route.stack[0].handle;
   async function request(course, user = id(1), routeHandler = handler) {
@@ -64,7 +65,7 @@ test('course details enforce enrollment/publication and return only ordered pers
   assert.deepEqual(loaded.exercises.map(exercise => exercise.prompt), ['First question', 'Second question']);
   assert.deepEqual(loaded.exercises[0].options.map(option => option.option_text), ['First choice', 'Later choice']);
   assert.ok(loaded.exercises[0].options.every(option => !('is_correct' in option)), 'No answer keys in response');
-  await db.exec(`insert into exercise_attempts values
+  await db.exec(`insert into exercise_attempts(id,exercise_id,enrollment_id,selected_option_id,is_correct,attempted_at) values
    ('${id(70)}','${id(51)}','${id(20)}','${id(60)}',true,now()-interval '1 minute'),
    ('${id(71)}','${id(51)}','${id(20)}','${id(61)}',false,now()),
    ('${id(72)}','${id(50)}','${id(21)}','${id(60)}',true,now());`);

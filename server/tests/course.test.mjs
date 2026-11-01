@@ -72,6 +72,8 @@ test('course details enforce enrollment/publication and return only ordered pers
   assert.equal(restored[0].selected_option_id,id(60),'Saved correct choice restores even after a later wrong attempt');
   assert.equal(restored[0].solved,true);
   assert.equal(restored[1].selected_option_id,null,'Other learner selections stay private');
+  const row=(await request(id(10))).body.lessons[0];
+  assert.equal(row.question_count,2);assert.equal(row.solved_count,1,'Count solved questions once, excluding other learners');
   await db.exec(`delete from exercise_attempts where id='${id(70)}'`);
   const incorrect = (await lessonRequest(id(31))).body.exercises[0];
   assert.equal(incorrect.selected_option_id,id(61)); assert.equal(incorrect.solved,false);

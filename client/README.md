@@ -61,3 +61,22 @@ copy readable, panel spacing consistent, and text buttons free of browser-defaul
 decoration. Controls retain visible focus and comfortable touch targets; compact
 toolbars wrap, and reduced-motion preferences suppress decorative transitions.
 Public content, forms, and dashboard workspaces intentionally use different widths.
+
+Lesson presentation is scoped in `src/lesson.css`: sample and account lessons
+share a bounded study canvas and Study/Check/Complete stage indicator. Wide
+layouts pair demonstrations with readable instructions; compact screens stack
+them. Sample and account lesson routes use a focused workspace without the
+dashboard sidebar; the header and Back to course navigation remain available.
+Other dashboard screens retain their sidebar. This presentation does not merge
+guest sample progress with account grades, change grading, or change video playback.
+Account knowledge checks use prominent prompts, lettered radio-answer rows,
+selected-state indicators, inline saved-answer feedback, and a separated footer
+with Review guidance and one primary check/next/complete action. Native radio
+keyboard behavior and visible focus remain available. Success feedback reflects
+the server's saved correct result, not selection alone.
+Course lesson lists use full-row links with Start/Continue/Review actions,
+hover/focus feedback, and icon-plus-text Not started/In progress/Completed states.
+Status comes from existing started/completed records, without invented percentages.
+Lesson rows use a thin bottom progress bar based on saved correct-question
+counts. Rows stay white; status text/icons and the bar convey progress.
+No-question lessons remain unfilled until complete; repeated attempts count once.

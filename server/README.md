@@ -480,6 +480,17 @@ completion timestamp. Progress-row locks serialize attempts and completion;
 repeated completion returns the existing record without granting more XP.
 All three actions verify the confirmed identity, publication, and caller enrollment.
 The player restores solved/completed state and checked selections after refresh.
+The learner course overview displays completed/total lesson counts and a Start,
+Continue, or Review action. Continue targets the first unfinished published lesson
+in course order. Knowledge checks display one question at a time with position
+and solved-count progress. Previous remains available; Next requires a saved
+correct answer. After material acknowledgment, unfinished quizzes resume at their
+first unsolved question. Completed lessons open a summary showing stored XP,
+course completion, a next unfinished lesson, and explicit review. Next prefers
+later unfinished lessons, then earlier unfinished lessons if learned out of order.
+Review preserves locked saved answers and never grants extra XP. Empty quizzes
+retain the existing acknowledgment/completion flow. These are client navigation
+changes using the existing API/schema, not new database columns or prerequisites.
 Each question returns only the caller's saved correct choice, or their latest
 checked choice if unsolved; unsent choices are not persisted. Completed questions
 remain locked with their saved selection visible. Course, progress, and

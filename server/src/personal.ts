@@ -86,7 +86,9 @@ personal.get('/courses/:id', async (req, res) => {
         from courses c join enrollments e on e.course_id = c.id
         where c.id = ${req.params.id as string} and c.is_published and e.user_id = ${res.locals.user.id}`;
     if (!course) { res.status(404).json({ error: 'Course unavailable. Open a published course you are enrolled in.' }); return; }
-    const lessons = await sql`select l.id, l.title, l.sort_order, l.xp_reward, lp.started_at, lp.completed_at
+    const lessons = await sql`select l.id, l.title, l.sort_order, l.xp_reward, lp.started_at, lp.completed_at,
+        (select count(*)::int from exercises x where x.lesson_id=l.id) as question_count,
+        (select count(*)::int from exercises x where x.lesson_id=l.id and exists(select 1 from exercise_attempts a where a.exercise_id=x.id and a.enrollment_id=${course.enrollment_id} and a.is_correct)) as solved_count
         from lessons l join courses c on c.id = l.course_id
         left join lesson_progress lp on lp.lesson_id = l.id and lp.enrollment_id = ${course.enrollment_id}
         where l.course_id = ${course.id} and l.is_published and c.is_published order by l.sort_order`;

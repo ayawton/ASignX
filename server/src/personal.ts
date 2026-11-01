@@ -19,6 +19,39 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     } catch { res.status(503).json({ error: 'Account service is temporarily unavailable.' }); }
 }
 personal.use(authenticate);
+personal.get('/lessons/:id', async (req, res) => {
+    const lessonId = req.params.id as string;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId)) {
+        res.status(400).json({ error: 'Choose a valid lesson.' }); return;
+    }
+    const [lesson] = await sql`select l.id, l.course_id, l.title, l.content, l.xp_reward, c.title as course_title
+        from lessons l join courses c on c.id = l.course_id
+        join enrollments e on e.course_id = c.id
+        where l.id = ${lessonId} and l.is_published and c.is_published and e.user_id = ${res.locals.user.id}`;
+    if (!lesson) { res.status(404).json({ error: 'Lesson unavailable. Choose a published lesson from your enrolled courses.' }); return; }
+    const signs = await sql`select s.id, s.gloss, s.meaning, s.instructions
+        from lesson_signs ls join signs s on s.id = ls.sign_id
+        where ls.lesson_id = ${lessonId} and s.is_published order by ls.sort_order`;
+    const exercises = await sql`select id, prompt, sort_order from exercises where lesson_id = ${lessonId} order by sort_order`;
+    const options = await sql`select o.id, o.exercise_id, o.option_text, o.sort_order
+        from exercise_options o join exercises e on e.id = o.exercise_id
+        where e.lesson_id = ${lessonId} order by o.sort_order`;
+    res.json({ ...lesson, signs, exercises: exercises.map(exercise => ({ ...exercise, options: options.filter(option => option.exercise_id === exercise.id) })) });
+});
+personal.get('/courses/:id', async (req, res) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id as string)) {
+        res.status(400).json({ error: 'Choose a valid course.' }); return;
+    }
+    const [course] = await sql`select c.id, c.title, c.description, e.id as enrollment_id
+        from courses c join enrollments e on e.course_id = c.id
+        where c.id = ${req.params.id as string} and c.is_published and e.user_id = ${res.locals.user.id}`;
+    if (!course) { res.status(404).json({ error: 'Course unavailable. Open a published course you are enrolled in.' }); return; }
+    const lessons = await sql`select l.id, l.title, l.sort_order, l.xp_reward, lp.started_at, lp.completed_at
+        from lessons l join courses c on c.id = l.course_id
+        left join lesson_progress lp on lp.lesson_id = l.id and lp.enrollment_id = ${course.enrollment_id}
+        where l.course_id = ${course.id} and l.is_published and c.is_published order by l.sort_order`;
+    res.json({ id: course.id, title: course.title, description: course.description, lessons });
+});
 personal.get('/profile', async (_req, res) => {
     const [profile] = await sql`select id, display_name, role, timezone from profiles where id = ${res.locals.user.id}`;
     if (!profile) { res.status(503).json({ error: 'Your account profile is not ready. Contact the project administrator.' }); return; }

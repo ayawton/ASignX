@@ -1,0 +1,40 @@
+/* Shared usability refinements; page-specific layouts keep their own composition. */
+:root{--space-section:clamp(32px,5vw,64px);--space-panel:clamp(20px,3vw,32px)}
+textarea{font:inherit;color:var(--ink);line-height:1.65;resize:vertical}
+h1,h2,h3{overflow-wrap:break-word;text-wrap:balance}
+.page-heading{gap:24px;align-items:flex-start}
+.page-heading p{max-width:65ch;margin-top:12px}
+.studio-section>.page-heading{margin-bottom:32px}
+.studio-progress-panel,.studio-profile-form{padding:var(--space-panel)}
+.studio-progress-panel+.studio-progress-panel{margin-top:24px}
+.studio-progress-panel>p{max-width:72ch}
+.studio-lesson-card>p,.studio-lesson-card>section p{max-width:72ch}
+.btn{min-height:44px;gap:12px;flex-shrink:0}
+button.text-link{appearance:none;border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--accent);padding:8px 0;min-height:44px;line-height:1.5}
+button.text-link:hover{color:var(--accent-dark)}
+.text-link:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+input,select,textarea{max-width:100%}
+.studio-profile-form label,.studio-auth-form label{line-height:1.5}
+.studio-auth-form textarea{padding:12px 15px;border:1px solid var(--line);border-radius:8px;width:100%;background:var(--paper)}
+.studio-answers>button{min-height:48px;text-align:left;line-height:1.6}
+.course-toolbar{flex-wrap:wrap;align-items:center}
+.search-input{max-width:100%;min-width:min(240px,100%)}
+.studio-tabs{max-width:100%;overflow-x:auto}
+.admin-authoring-grid{grid-template-columns:minmax(220px,300px) minmax(0,1fr)}
+.admin-authoring .admin-form{max-width:900px}
+.admin-course-list .admin-form{max-width:760px}
+.admin-form small{display:block;max-width:65ch;line-height:1.6;color:var(--text)}
+.admin-outline strong{overflow-wrap:anywhere}
+.admin-form .admin-actions{padding-top:4px}
+.admin-overview .page-heading{align-items:center}
+.admin-recent-courses li>.btn{flex-shrink:0}
+@media(max-width:900px){.admin-authoring-grid{grid-template-columns:1fr}}
+@media(max-width:650px){
+ .page-heading{flex-wrap:wrap;gap:16px}
+ .studio-section>.page-heading{margin-bottom:24px}
+ .course-toolbar{gap:16px}.course-toolbar>.search-input{width:100%}
+ .admin-recent-courses li>.btn{margin-left:0}
+ .admin-recent-courses li>div{flex-basis:calc(100% - 64px)}
+ .admin-recent-courses li>.btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

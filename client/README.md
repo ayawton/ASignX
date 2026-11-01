@@ -47,3 +47,17 @@ Recognition is a scripted demonstration, not a machine-learning model. Account f
 The interface uses Outfit headings, DM Sans body text, cobalt (#2962F5), ink (#18294C), pale sky (#EDF3FF), white (#FFFFFF), and yellow (#FFE66D). Google Fonts are optional network resources with sans-serif fallbacks.
 
 For production hosting, configure an SPA fallback to index.html so deep links resolve.
+
+## Shared layout
+
+Public pages retain centered containers capped at 1,180px, with comfortable
+responsive gutters. Dashboard workspaces use the available width with 32px
+desktop gutters, 12px up to 1,200px, and 8px up to 650px. Compact dashboard
+headers follow those smaller gutters. Authentication forms and reading areas
+retain their own maximum widths; narrow gutters are not a site-wide rule.
+
+Shared refinements in `src/design.css` keep headings and actions aligned, body
+copy readable, panel spacing consistent, and text buttons free of browser-default
+decoration. Controls retain visible focus and comfortable touch targets; compact
+toolbars wrap, and reduced-motion preferences suppress decorative transitions.
+Public content, forms, and dashboard workspaces intentionally use different widths.

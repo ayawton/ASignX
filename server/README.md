@@ -127,7 +127,7 @@ identity, never a caller-supplied user ID. Profile updates whitelist name and
 zone; roles and emails are not editable there. Progress/rewards/streaks come
 from database records. Invalid/missing sessions fail closed. Data failures return
 sanitized errors. There are no public content/user management endpoints;
-management remains unavailable rather than permitting learners to mutate it.
+learning-content management requires the admin API described below.
 
 Live remains local preview plus scripted results. Every demo session is transient
 for guests and accounts. No save-history endpoint is enabled; recognition and
@@ -293,6 +293,64 @@ the repository root. Run `npm run test:recognition` for the Python/ONNX checks.
 
 ### Learner dashboard
 
+### Admin course management
+
+`/dashboard/admin` shows the admin system overview. Course management lives at
+`/dashboard/admin/courses` and supports creating and editing drafts. The
+workspace shows Manage courses only for a profile whose database role is admin.
+Admins have a dedicated navigation containing overview, course management, profile, and
+logout. After the profile role loads, `/dashboard` and learner workspace routes
+redirect admins to `/dashboard/admin`. Learners retain their existing navigation.
+Workspace role-loading failures offer retry and logout instead of showing the
+wrong navigation. These UI redirects do not replace server authorization.
+GET `/api/admin/overview` uses the same verified admin boundary and returns
+aggregate learner, course/publication, lesson, enrollment, and completion counts,
+plus the five most recently created courses. It exposes no learner identities
+or private histories. Counts reflect saved database activity, not guest practice,
+live camera usage, or service health.
+The page loads management data through the protected API; learners receive an
+access-denied message rather than the editor.
+
+Every `/api/admin` request verifies a confirmed Supabase identity and then reads
+the current `profiles.role` from the database. Missing/non-admin profiles return
+403; roles from signup metadata or request bodies are never trusted.
+GET `/api/admin/courses` lists draft and published courses. POST creates a draft;
+PATCH `/api/admin/courses/:id` edits only a currently unpublished course, atomically.
+Only title (trimmed, 1–150 characters) and description (up to 5,000 characters)
+are accepted as editable course values. Deletion and role assignment are not
+exposed. New users remain learners;
+initial admin assignment is a trusted Supabase setup action.
+
+Course titles in the admin list open `/dashboard/admin/courses/:id`.
+GET `/api/admin/courses/:id` includes ordered lessons and their answer keys for
+verified admins only. Learner lesson endpoints continue to omit answer keys.
+POST `/api/admin/courses/:id/lessons` creates a draft lesson or updates the
+`lesson_id` supplied in the body within that course. It accepts title, plain-text
+content (up to 6,000 characters), positive lesson order, nonnegative integer XP,
+and up to ten ordered questions. Questions have prompts up to 1,000 characters
+and 2–6 nonblank choices up to 500 characters each, exactly one marked correct.
+Unused draft question sets are replaced atomically when saved; temporary choice
+and question IDs are not stable until publication. Duplicate lesson positions
+return 409. Published courses and published/used lessons cannot be edited here;
+create a new draft version for changes. The API also checks existing attempts
+and completed progress, alongside the database's quiz-definition guards.
+
+POST `/api/admin/courses/:id/publish` validates at least one lesson, nonblank
+written material for every lesson, and valid answer choices for each question.
+Questions are optional, consistent with the schema. It publishes every lesson
+and the parent course together in a transaction. Course and lesson locks serialize
+authoring with publication; failed validation leaves the course unpublished.
+The UI asks for confirmation and explains that published content becomes read only.
+No unpublish or delete action is included. Admin JSON requests allow up to 128 KiB;
+other application JSON requests retain their existing limit.
+
+The editor reuses the dashboard palette, typography, panels, buttons, and layout,
+with a responsive course outline and labeled form controls. Local tests cover
+validation, draft replacement, used/published guards, and atomic publication.
+Live admin authoring and publishing still require a configured-project browser check.
+
+### Dashboard behavior
+
 The signed-in workspace has its own header and sidebar under `/dashboard/*`,
 without the public Home, Our Story, or marketing footer. Its protected child
 routes include Live, learning, courses, sample lessons, arcade, progress, and
@@ -309,7 +367,23 @@ Independent loading/error states allow available sections to remain usable.
 
 The dashboard does not create sample published courses or award practice XP.
 If no courses are published, it displays an empty state and links to guest practice.
-Enrolled courses currently show membership; a published-course lesson player is
-not part of this dashboard change. Automated checks cover redirects and guest
+Published enrolled courses now offer Open course at
+`/dashboard/learn/courses/:id`. `GET /api/me/courses/:id` requires a confirmed
+identity and the caller's enrollment in a published course; invalid UUIDs return
+400, and missing, unpublished, or unenrolled courses return the same 404.
+It lists only published lessons in course order, with the caller's saved
+start/completion status and configured XP reward. This read-only page creates
+no progress or rewards. Empty courses show an explicit empty state.
+Lessons open at `/dashboard/learn/lessons/:id`, separate from numbered guest
+sample routes. `GET /api/me/lessons/:id` requires a confirmed identity, enrollment,
+and both lesson and course publication. Invalid UUIDs return 400; unavailable
+lessons return a generic 404. The response contains plain-text material,
+published linked sign instructions, ordered exercise prompts, and explicitly
+selected safe option fields, never answer keys. Stored media paths are not
+exposed by this endpoint. The player renders text without interpreting HTML.
+Learners can view questions and select answers locally, but selections are
+temporary and ungraded. Loading the lesson creates no progress or rewards.
+Exercise submission and validated completion remain planned work.
+Automated checks cover redirects and guest
 route protection; a real-account dashboard session and enrollment round trip
 have not been verified against the live service.

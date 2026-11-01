@@ -15,7 +15,16 @@
 @media(max-width:1100px){.learner-dashboard{grid-template-columns:170px minmax(0,1fr);gap:24px}.learner-sidebar{padding-right:15px}.learner-columns{grid-template-columns:1fr}.learner-details{display:grid;grid-template-columns:1fr 1fr;gap:24px}.learner-shortcuts{margin-top:0}.learner-welcome{padding:28px}.learner-hand{width:120px}}
 @media(max-width:700px){.learner-dashboard{grid-template-columns:1fr;padding-top:20px;gap:24px}.learner-sidebar{border-right:0;border-bottom:1px solid #dfe7f3;padding:0 0 14px;gap:12px}.learner-workspace,.learner-sidebar-note{display:none}.learner-sidebar nav{display:flex;flex-wrap:wrap;gap:4px}.learner-sidebar nav a{font-size:11px;padding:9px;gap:6px}.learner-sidebar>button{align-self:flex-start;padding:5px 9px;font-size:11px}.learner-heading{align-items:flex-start}.learner-heading>.text-link{font-size:11px}.learner-welcome{padding:25px}.learner-hand{display:none}.learner-metrics{grid-template-columns:repeat(2,1fr);gap:20px}.learner-metrics>div{padding:0 12px!important;border:0}.learner-metrics dd{font-size:29px}.learner-details{grid-template-columns:1fr}.learner-enrolled{display:none}}
 .dashboard-workspace{min-height:100vh;background:#fff}
-.dashboard-header{display:flex;align-items:center;gap:24px;padding:18px max(24px,calc((100% - 1200px)/2));border-bottom:1px solid #dfe7f3}
+.dashboard-header{display:flex;align-items:center;gap:24px;padding:18px 40px;border-bottom:1px solid #dfe7f3}
 .dashboard-header img{display:block;max-width:140px;height:auto}.dashboard-header>span{font-size:13px;color:#60728d}.dashboard-header>a:last-child{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;color:#2962f5}
 .dashboard-page-content{min-width:0}.dashboard-page-content>.container{width:100%;max-width:none;padding-inline:0}.dashboard-page-content>.studio-page{padding-top:0}.dashboard-page-content .page-heading h1{font-size:clamp(30px,4vw,44px)}
 @media(max-width:700px){.dashboard-header{padding:16px 20px;gap:12px}.dashboard-header>span{display:none}.dashboard-header img{max-width:115px}}
+
+
+
+
+
+
+.dashboard-workspace>.container.learner-dashboard{width:calc(100% - 64px)}
+@media(max-width:1200px){.dashboard-header{padding-inline:12px}.dashboard-workspace>.container.learner-dashboard{width:calc(100% - 24px)}}
+@media(max-width:650px){.dashboard-header{padding-inline:8px}.dashboard-workspace>.container.learner-dashboard{width:calc(100% - 16px)}}

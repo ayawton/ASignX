@@ -83,7 +83,7 @@ export const exercises = pgTable('exercises', {
     sortOrder: integer('sort_order').notNull(),
 }, t => [
     unique('exercises_lesson_order_unique').on(t.lessonId, t.sortOrder), index('exercises_sign_idx').on(t.signId),
-    check('exercises_answer_type_valid', sql`${t.answerType} in ('choice','boolean','text','recognition')`),
+    check('exercises_answer_type_valid', sql`${t.answerType} in ('choice','boolean','recognition')`),
     check('exercises_prompt_nonblank', sql`length(btrim(${t.prompt})) > 0`),
     check('exercises_sort_order_positive', sql`${t.sortOrder} > 0`),
     pgPolicy('exercises_read_published', { for: 'select', to: [anonRole, authenticatedRole], using: publishedLesson(t.lessonId) }),
@@ -114,20 +114,19 @@ export const enrollments = pgTable('enrollments', {
 export const lessonProgress = pgTable('lesson_progress', {
     enrollmentId: uuid('enrollment_id').notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
     lessonId: uuid('lesson_id').notNull().references(() => lessons.id, { onDelete: 'restrict' }),
+    perfectedAt: timestamp('perfected_at', { withTimezone: true }),
     startedAt: instant('started_at'), completedAt: timestamp('completed_at', { withTimezone: true }),
-    xpEarned: integer('xp_earned').notNull().default(0),
 }, t => [
     primaryKey({ columns: [t.enrollmentId, t.lessonId] }), index('lesson_progress_lesson_idx').on(t.lessonId),
-    check('lesson_progress_xp_nonnegative', sql`${t.xpEarned} >= 0`),
-    check('lesson_progress_completion_valid', sql`(${t.completedAt} is null and ${t.xpEarned} = 0) or (${t.completedAt} is not null and ${t.completedAt} >= ${t.startedAt})`),
+    check('lesson_progress_completion_valid', sql`${t.completedAt} is null or ${t.completedAt} >= ${t.startedAt}`),
     pgPolicy('lesson_progress_read_own', { for: 'select', to: authenticatedRole, using: ownEnrollment(t.enrollmentId) }),
 ]).enableRLS();
 
 export const exerciseAttempts = pgTable('exercise_attempts', {
     id: id(), enrollmentId: uuid('enrollment_id').notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
     exerciseId: uuid('exercise_id').notNull().references(() => exercises.id, { onDelete: 'restrict' }),
-    responseText: text('response_text'), recognitionConfidence: numeric('recognition_confidence', { precision: 6, scale: 5 }), recognitionModel: text('recognition_model'),
-    selectedOptionId: uuid('selected_option_id').notNull(), isCorrect: boolean('is_correct').notNull(),
+    responseText: text('response_text'), recognitionConfidence: numeric('recognition_confidence', { precision: 6, scale: 5 }), modelVersionId: uuid('model_version_id').references(()=>modelVersions.id,{onDelete:'restrict'}),
+    selectedOptionId: uuid('selected_option_id'), isCorrect: boolean('is_correct').notNull(),
     attemptedAt: instant('attempted_at'),
 }, t => [
     foreignKey({ columns: [t.exerciseId, t.selectedOptionId], foreignColumns: [exerciseOptions.exerciseId, exerciseOptions.id], name: 'exercise_attempts_selected_option_fk' }).onDelete('restrict'),
@@ -138,11 +137,11 @@ export const exerciseAttempts = pgTable('exercise_attempts', {
 
 export const modelVersions = pgTable('model_versions', {
     id: id(), version: varchar('version', { length: 50 }).notNull().unique(),
-    artifactPath: text('artifact_path').notNull(), confidenceThreshold: confidence('confidence_threshold').default('0.80000'),
+    fingerprint: varchar('fingerprint',{length:128}).unique(), artifactPath: text('artifact_path'), confidenceThreshold: confidence('confidence_threshold').default('0.80000'),
     createdAt: instant('created_at'),
 }, t => [
     check('model_versions_version_nonblank', sql`length(btrim(${t.version})) > 0`),
-    check('model_versions_artifact_nonblank', sql`length(btrim(${t.artifactPath})) > 0`),
+    check('model_versions_artifact_nonblank', sql`${t.artifactPath} is null or length(btrim(${t.artifactPath})) > 0`),
     check('model_versions_threshold_range', sql`${t.confidenceThreshold} between 0 and 1`),
 ]).enableRLS();
 
@@ -216,3 +215,28 @@ export type PracticeAttempt = typeof practiceAttempts.$inferSelect;
 export type RecognitionSession = typeof recognitionSessions.$inferSelect;
 export type RecognitionResult = typeof recognitionResults.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
+
+export const learnerHearts = pgTable('learner_hearts', {
+ userId: uuid('user_id').primaryKey().references(()=>profiles.id,{onDelete:'cascade'}),
+ hearts: integer('hearts').notNull().default(3), regeneratedAt: instant('regenerated_at'),
+},t=>[check('learner_hearts_range',sql`${t.hearts} between 0 and 3`),pgPolicy('learner_hearts_read_own',{for:'select',to:authenticatedRole,using:owner(t.userId)})]).enableRLS();
+export const lessonRuns = pgTable('lesson_runs',{
+ id:id(),enrollmentId:uuid('enrollment_id').notNull().references(()=>enrollments.id,{onDelete:'cascade'}),lessonId:uuid('lesson_id').notNull().references(()=>lessons.id,{onDelete:'restrict'}),
+ replay:boolean('replay').notNull().default(false),startedAt:instant('started_at'),completedAt:timestamp('completed_at',{withTimezone:true}),perfect:boolean('perfect').notNull().default(false),
+},t=>[uniqueIndex('lesson_runs_one_active').on(t.enrollmentId,t.lessonId).where(sql`${t.completedAt} is null`),pgPolicy('lesson_runs_read_own',{for:'select',to:authenticatedRole,using:ownEnrollment(t.enrollmentId)})]).enableRLS();
+export const lessonRunQuestions = pgTable('lesson_run_questions',{
+ runId:uuid('run_id').notNull().references(()=>lessonRuns.id,{onDelete:'cascade'}),exerciseId:uuid('exercise_id').notNull().references(()=>exercises.id,{onDelete:'restrict'}),xpValue:integer('xp_value').notNull(),sortOrder:integer('sort_order').notNull(),attemptId:uuid('attempt_id').references(()=>exerciseAttempts.id,{onDelete:'cascade'}),
+},t=>[primaryKey({columns:[t.runId,t.exerciseId]}),unique('lesson_run_question_order').on(t.runId,t.sortOrder),check('lesson_run_question_xp_nonnegative',sql`${t.xpValue}>=0`)]).enableRLS();
+
+export const xpAwards=pgTable('xp_awards',{
+ id:id(),enrollmentId:uuid('enrollment_id').notNull().references(()=>enrollments.id,{onDelete:'cascade'}),lessonId:uuid('lesson_id').notNull().references(()=>lessons.id,{onDelete:'restrict'}),runId:uuid('run_id').references(()=>lessonRuns.id,{onDelete:'cascade'}),exerciseId:uuid('exercise_id').references(()=>exercises.id,{onDelete:'restrict'}),source:varchar('source',{length:20}).notNull(),amount:integer('amount').notNull(),awardedAt:instant('awarded_at'),
+},t=>[check('xp_awards_nonnegative',sql`${t.amount}>=0`),check('xp_awards_source',sql`${t.source} in ('legacy','claim','run_import','first_question','replay','material')`),uniqueIndex('xp_awards_first_claim').on(t.enrollmentId,t.exerciseId).where(sql`${t.source} in ('claim','first_question')`),uniqueIndex('xp_awards_run_total').on(t.runId).where(sql`${t.source} in ('run_import','replay','material')`),index('xp_awards_enrollment_idx').on(t.enrollmentId),index('xp_awards_run_idx').on(t.runId)]).enableRLS();
+export const heartPracticeRounds=pgTable('heart_practice_rounds',{
+ id:id(),userId:uuid('user_id').notNull().references(()=>profiles.id,{onDelete:'cascade'}),completedAt:timestamp('completed_at',{withTimezone:true}),createdAt:instant('created_at'),
+},t=>[uniqueIndex('heart_practice_one_active').on(t.userId).where(sql`${t.completedAt} is null`)]).enableRLS();
+export const heartPracticeQuestions=pgTable('heart_practice_questions',{
+ roundId:uuid('round_id').notNull().references(()=>heartPracticeRounds.id,{onDelete:'cascade'}),questionIndex:integer('question_index').notNull(),exerciseId:uuid('exercise_id').notNull().references(()=>exercises.id,{onDelete:'restrict'}),
+},t=>[primaryKey({columns:[t.roundId,t.questionIndex]}),check('heart_practice_question_index',sql`${t.questionIndex} between 0 and 2`)]).enableRLS();
+export const heartPracticeSubmissions=pgTable('heart_practice_submissions',{
+ id:uuid('id').primaryKey(),roundId:uuid('round_id').notNull(),questionIndex:integer('question_index').notNull(),selectedOptionId:uuid('selected_option_id').notNull().references(()=>exerciseOptions.id,{onDelete:'restrict'}),isCorrect:boolean('is_correct').notNull(),submittedAt:instant('submitted_at'),
+},t=>[foreignKey({columns:[t.roundId,t.questionIndex],foreignColumns:[heartPracticeQuestions.roundId,heartPracticeQuestions.questionIndex]}).onDelete('cascade'),uniqueIndex('heart_practice_one_correct').on(t.roundId,t.questionIndex).where(sql`${t.isCorrect}`)]).enableRLS();

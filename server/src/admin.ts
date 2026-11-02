@@ -79,10 +79,10 @@ function lessonValues(body: Record<string, unknown>) {
  const { title, content, sort_order, xp_reward, exercises } = body;
  if (typeof title!=='string' || !title.trim() || title.trim().length>150 || typeof content!=='string' || content.length>6000 || !Number.isInteger(sort_order) || Number(sort_order)<1 || Number(sort_order)>2147483647 || !Number.isInteger(xp_reward) || Number(xp_reward)<0 || Number(xp_reward)>2147483647 || !Array.isArray(exercises) || exercises.length>10) return null;
  for (const q of exercises) {
-  if(!['choice','boolean','text','recognition'].includes(q?.answer_type ?? 'choice')) return null;
+  if(!q || !['choice','boolean','recognition'].includes(q.answer_type ?? 'choice')) return null;
   if(q.answer_type==='recognition' && !validId(q.sign_id)) return null;
   if(q.answer_type==='boolean' && (!Array.isArray(q.options) || q.options.length!==2 || q.options[0]?.option_text!=='True' || q.options[1]?.option_text!=='False')) return null;
-  if (!q || typeof q.prompt!=='string' || !q.prompt.trim() || q.prompt.length>1000 || !Array.isArray(q.options) || q.options.length<2 || q.options.length>6 || q.options.some((o: Question['options'][number]) => !o || typeof o.option_text!=='string' || !o.option_text.trim() || o.option_text.length>500 || typeof o.is_correct!=='boolean') || q.options.filter((o: Question['options'][number]) => o.is_correct).length!==1) return null;
+  if (!q || typeof q.prompt!=='string' || !q.prompt.trim() || q.prompt.length>1000 || !Array.isArray(q.options) || (q.answer_type==='recognition' ? q.options.length!==0 : q.options.length<2 || q.options.length>6) || q.options.some((o: Question['options'][number]) => !o || typeof o.option_text!=='string' || !o.option_text.trim() || o.option_text.length>500 || typeof o.is_correct!=='boolean') || (q.answer_type!=='recognition' && q.options.filter((o: Question['options'][number]) => o.is_correct).length!==1)) return null;
  }
  return { title: title.trim(), content, sort_order: Number(sort_order), xp_reward: Number(xp_reward), exercises: exercises as Question[] };
 }
@@ -91,10 +91,6 @@ admin.post('/courses/:id/lessons', async (req, res) => {
  const values = lessonValues(req.body ?? {});
  const signIds = req.body?.sign_ids;
  if (signIds!==undefined && (!Array.isArray(signIds) || signIds.length>50 || !signIds.every(validId) || new Set(signIds).size!==signIds.length)) {res.status(400).json({error:'Choose up to 50 distinct published signs.'}); return;}
- if(values) for(const q of values.exercises){
-  if(q.answer_type==='text' && (q.options.length!==2 || !q.options[0]?.is_correct || q.options[1]?.is_correct)) {res.status(400).json({error:'Typed answers need one accepted answer.'});return;}
-  if(q.answer_type==='recognition' && (q.options.length!==2 || q.options[0]?.option_text!=='Recognized' || !q.options[0]?.is_correct || q.options[1]?.option_text!=='Not recognized' || q.options[1]?.is_correct)){res.status(400).json({error:'Invalid recognition outcome configuration.'});return;}
- }
  if(values?.exercises.some(q=>q.answer_type==='recognition')){try{const capabilities=await recognitionCapabilities();const ids=values.exercises.filter(q=>q.answer_type==='recognition').map(q=>q.sign_id!);const targets=await sql`select id,gloss from signs where id=any(${ids}::uuid[]) and is_published`;if(ids.some(id=>!targets.some(s=>s.id===id && capabilities.labels.includes(s.gloss) && signIds?.includes(id)))){res.status(400).json({error:'Choose a supported published sign linked to this lesson.'});return;}}catch{res.status(503).json({error:'Start the recognition service before saving sign questions.'});return;}}
  if (!values || (req.body.lesson_id && !validId(req.body.lesson_id))) { res.status(400).json({ error: 'Check the lesson fields. Each question needs 2–6 choices and exactly one correct answer.' }); return; }
  try {
@@ -143,7 +139,7 @@ admin.post('/courses/:id/publish', async (req,res) => {
   if (course.is_published) return null;
   const lessons = await tx`select id,content from lessons where course_id=${course.id} order by sort_order for update`;
   if (!lessons.length || lessons.some(l => !l.content?.trim())) return 'Add at least one lesson and written material for every lesson before publishing.';
-  const invalid = await tx`select x.id from exercises x join lessons l on l.id=x.lesson_id left join exercise_options o on o.exercise_id=x.id where l.course_id=${course.id} group by x.id having count(o.id)<2 or count(o.id) filter(where o.is_correct)<>1`;
+  const invalid = await tx`select x.id from exercises x join lessons l on l.id=x.lesson_id left join exercise_options o on o.exercise_id=x.id where l.course_id=${course.id} group by x.id having (x.answer_type<>'recognition' and (count(o.id)<2 or count(o.id) filter(where o.is_correct)<>1)) or (x.answer_type='recognition' and count(o.id)<>0)`;
   if (invalid.length) return 'Every question needs at least two choices and exactly one correct answer.';
   await tx`update lessons set is_published=true where course_id=${course.id}`;
   await tx`update courses set is_published=true where id=${course.id}`;

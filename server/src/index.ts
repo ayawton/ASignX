@@ -7,9 +7,8 @@ import { createRecognitionRouter } from './recognition.js';
 const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
 app.disable('x-powered-by');
-// Server-side request timing covers every API retrieval without recording user data.
+// Include writes so grading latency can be separated from session verification.
 app.use('/api', (req,res,next)=>{
- if(req.method!=='GET'){next();return;}
  const started=performance.now(), json=res.json.bind(res);
  res.json=(body)=>{
   const total=performance.now()-started, auth=Number(res.locals.authDuration ?? 0);

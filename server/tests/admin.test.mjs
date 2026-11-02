@@ -82,6 +82,9 @@ test('admin checks current database roles and permits only validated draft write
   assert.equal((await call('post','/courses/:id/lessons',{...lesson,sign_ids:[newSign.body.id,newSign.body.id]},id)).code,400);
   assert.equal((await call('post','/courses/:id/lessons',{...lesson,sign_ids:['00000000-0000-4000-8000-000000000999']},id)).code,409);
   assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[{prompt:'Invalid',options:[]}]},id)).code,400);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[null]},id)).code,400);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[{...lesson.exercises[0],answer_type:'unknown'}]},id)).code,400);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[{...lesson.exercises[0],answer_type:'text'}]},id)).code,400);
   const saved = await call('post','/courses/:id/lessons',lesson,id); assert.equal(saved.code,200);
   assert.equal((await call('post','/courses/:id/lessons',lesson,id)).code,409,'Duplicate order rejected');
   assert.equal((await call('post','/courses/:id/lessons',{...lesson,lesson_id:saved.body.id,title:'Revised'},id)).code,200);
@@ -111,6 +114,20 @@ test('admin checks current database roles and permits only validated draft write
   assert.notEqual(copied.body.lessons[0].id,saved.body.id);
   assert.equal(copied.body.lessons[0].exercises[0].options[0].is_correct,true);
   assert.deepEqual(copied.body.lessons[0].sign_ids,[newSign.body.id]);
+  const testFetch=globalThis.fetch,testToken=process.env.RECOGNITION_INTERNAL_TOKEN;
+  try{
+   process.env.RECOGNITION_INTERNAL_TOKEN='test';globalThis.fetch=async()=>Response.json({labels:['A'],model:'test-model',threshold:.8});
+   const temp=await call('post','/courses',{title:'Mixed authoring'});
+   const mixed={...lesson,exercises:[{prompt:'True?',answer_type:'boolean',options:[{option_text:'True',is_correct:true},{option_text:'False',is_correct:false}]},{prompt:'Sign A',answer_type:'recognition',sign_id:newSign.body.id,options:[]}]};
+   assert.equal((await call('post','/courses/:id/lessons',mixed,temp.body.id)).code,200);
+   const authored=(await call('get','/courses/:id',{},temp.body.id)).body;
+   assert.deepEqual(authored.lessons[0].exercises.map(q=>q.answer_type),['boolean','recognition']);
+   assert.equal((await call('post','/courses/:id/lessons',{...mixed,sort_order:2,sign_ids:[]},temp.body.id)).code,400);
+   await db.query('delete from exercise_options where exercise_id in (select x.id from exercises x join lessons l on l.id=x.lesson_id where l.course_id=$1)',[temp.body.id]);
+   await db.query('delete from exercises where lesson_id in (select id from lessons where course_id=$1)',[temp.body.id]);
+   await db.query('delete from lesson_signs where lesson_id in (select id from lessons where course_id=$1)',[temp.body.id]);
+   await db.query('delete from lessons where course_id=$1',[temp.body.id]);await db.query('delete from courses where id=$1',[temp.body.id]);
+  }finally{globalThis.fetch=testFetch;if(testToken===undefined)delete process.env.RECOGNITION_INTERNAL_TOKEN;else process.env.RECOGNITION_INTERNAL_TOKEN=testToken;}
   const originalAttempts=(await db.query('select count(*)::int as count from exercise_attempts')).rows[0].count;
   assert.equal((await call('post','/courses/:id/archive',{},id)).code,200);
   const archived=await call('get','/courses/:id',{},id);assert.equal(archived.body.is_archived,true);

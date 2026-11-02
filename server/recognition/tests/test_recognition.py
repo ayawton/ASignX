@@ -74,6 +74,15 @@ class RecognitionTests(unittest.TestCase):
             self.assertEqual(client.post('/sessions').status_code, 401)
             for path in ['/models/sign_classifier_canonical.onnx', '/private/models/asignx/sign_classifier_canonical.onnx', '/docs', '/openapi.json']:
                 self.assertEqual(client.get(path, headers=HEADERS).status_code, 404)
+    def test_lesson_capabilities_expose_only_supported_labels_and_model_fingerprint(self):
+        with TestClient(create_app(token=KEY)) as client:
+            self.assertEqual(client.get('/capabilities').status_code, 401)
+            data = client.get('/capabilities', headers=HEADERS).json()
+            expected = sorted({label for item in self.models.metadata.values() for label in item['labels']})
+            self.assertEqual(data['labels'], expected)
+            self.assertEqual(data['threshold'], .8)
+            self.assertEqual(len(data['model']), 64)
+            self.assertEqual(set(data), {'labels', 'threshold', 'model'})
     def test_isolated_sessions_reset_delete_and_expiry(self):
         app = create_app(FakeEngine, KEY)
         with TestClient(app) as client:

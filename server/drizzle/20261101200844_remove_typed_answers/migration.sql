@@ -1,0 +1,1 @@
+ALTER TABLE "exercises" DROP CONSTRAINT "exercises_answer_type_valid", ADD CONSTRAINT "exercises_answer_type_valid" CHECK ("answer_type" in ('choice','boolean','recognition'));

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, Camera, Gamepad2, Hand, LayoutDashboard, LogOut, Trophy, UserRound } from 'lucide-react'
+import Hearts from './Hearts'
 import { api, useAuth } from '../auth'
+import { workspaceDestination } from '../auth-path'
 import '../pages/Dashboard.css'
 
 export default function DashboardLayout() {
@@ -12,7 +14,7 @@ export default function DashboardLayout() {
  const [retry, setRetry] = useState(0)
  useEffect(() => {
   let active = true
-  if (user) api('/me/profile').then(profile => { if (active) { setAdminId(profile.role === 'admin' ? user.id : null); setResolvedId(user.id); setProfileError('') } }).catch(error => { if (active) setProfileError(error.message) })
+  if (user) api('/me/profile').then(profile => { if (active) { if(profile.id !== user.id) throw new Error('Your account changed. Please try again.'); setAdminId(profile.role === 'admin' ? user.id : null); setResolvedId(user.id); setProfileError('') } }).catch(error => { if (active) setProfileError(error.message) })
   return () => { active = false }
  }, [user, retry])
  const navigate = useNavigate()
@@ -28,9 +30,10 @@ export default function DashboardLayout() {
  }
  const isAdmin = Boolean(user && adminId === user.id)
  if (user && resolvedId !== user.id) return <section className="container studio-section">{profileError ? <><p role="alert">{profileError}</p><button className="btn" onClick={() => { setProfileError(''); setRetry(value => value+1) }}>Try again</button><button className="text-link" disabled={busy} onClick={leave}>Log out</button>{error && <p role="alert">{error}</p>}</> : <p role="status">Loading your workspace…</p>}</section>
- if (isAdmin && pathname !== '/dashboard/profile' && pathname !== '/dashboard/admin' && !pathname.startsWith('/dashboard/admin/')) return <Navigate to="/dashboard/admin" replace />
+ const destination = workspaceDestination(pathname, isAdmin)
+ if (destination) return <Navigate to={destination} replace />
  return <div className={`dashboard-workspace${focusedLesson ? ' is-lesson-focused' : ''}`}>
-  <header className="dashboard-header"><Link to={isAdmin ? '/dashboard/admin' : '/dashboard'} aria-label="ASignX dashboard"><img src="/branding/asignx-horizontal-color.svg" alt="ASignX" width="160" height="47" /></Link><span>{isAdmin ? 'Administration' : 'Your learning space'}</span><Link to="/dashboard/profile"><UserRound size={18} /> Your account</Link></header>
+  <header className="dashboard-header"><Link to={isAdmin ? '/dashboard/admin' : '/dashboard'} aria-label="ASignX dashboard"><img src="/branding/asignx-horizontal-color.svg" alt="ASignX" width="160" height="47" /></Link><span>{isAdmin ? 'Administration' : 'Your learning space'}</span>{!isAdmin&&<Hearts/>}<Link to="/dashboard/profile"><UserRound size={18} /> Your account</Link></header>
   <div className="container learner-dashboard">
    {!focusedLesson && <aside className="learner-sidebar" aria-label="Your workspace">
     <span className="learner-workspace"><Hand size={20} /> {isAdmin ? 'Admin workspace' : 'Your workspace'}</span>

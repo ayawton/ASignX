@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { gamification, lessonAction, validUuid, activeRun } from './gamification.js';
 import { lessonRecognition } from './lessonRecognition.js';
 import { connection as sql } from './db/index.js';
 
@@ -23,48 +24,11 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 }
 personal.use(authenticate);
 personal.use(lessonRecognition);
+personal.use(gamification);
 const uuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-personal.post('/lessons/:id/:action', async (req,res) => {
- const { id,action } = req.params;
- if (!uuid(id) || !['start','attempt','complete'].includes(action as string)) { res.status(400).json({error:'Choose a valid lesson action.'}); return; }
- const body = req.body ?? {};
- if (action==='attempt' && (![body.attempt_id,body.exercise_id].every(uuid) || (body.response_text===undefined ? !uuid(body.selected_option_id) : typeof body.response_text!=='string' || !body.response_text.trim() || body.response_text.length>500))) { res.status(400).json({error:'Choose an answer and valid submission ID.'}); return; }
- const result = await sql.begin(async tx => {
-  const [access] = await tx`select l.id,e.id as enrollment_id from lessons l join courses c on c.id=l.course_id join enrollments e on e.course_id=c.id where l.id=${id as string} and l.is_published and c.is_published and e.user_id=${res.locals.user.id} for share of l,c,e`;
-  if (!access) return {status:404,body:{error:'Lesson unavailable.'}};
-  if (action==='start') {
-   await tx`insert into lesson_progress(enrollment_id,lesson_id) values(${access.enrollment_id},${access.id}) on conflict do nothing`;
-  }
-  const [progress] = await tx`select * from lesson_progress where enrollment_id=${access.enrollment_id} and lesson_id=${access.id} for update`;
-  if (!progress) return {status:409,body:{error:'Review the lesson material before continuing.'}};
-  if (action==='attempt') {
-   const [exercise] = await tx`select id,answer_type from exercises where id=${body.exercise_id} and lesson_id=${access.id}`;
-   if(!exercise || exercise.answer_type==='recognition') return {status:400,body:{error:'Use the required answer control for this question.'}};
-   let option, responseText: string | null = null;
-   if(exercise.answer_type==='text'){
-    if(typeof body.response_text!=='string' || !body.response_text.trim() || body.response_text.length>500) return {status:400,body:{error:'Type an answer of up to 500 characters.'}};
-    const choices=await tx`select id,option_text,is_correct from exercise_options where exercise_id=${exercise.id} order by sort_order`;
-    const normalize=(text:string)=>text.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
-    const correct=choices.some(o=>o.is_correct && normalize(o.option_text)===normalize(body.response_text));
-    option=choices.find(o=>o.is_correct===correct);responseText=body.response_text.trim();
-   }else{
-    [option]=await tx`select o.id from exercise_options o where o.id=${body.selected_option_id} and o.exercise_id=${exercise.id}`;
-   }
-   if(!option) return {status:400,body:{error:'This answer does not belong to the question.'}};
-   if(progress.completed_at) return {status:409,body:{error:'This lesson is already complete.'}};
-   await tx`insert into exercise_attempts(id,enrollment_id,exercise_id,selected_option_id,response_text,is_correct) values(${body.attempt_id},${access.enrollment_id},${body.exercise_id},${option.id},${responseText},false) on conflict(id) do nothing`;
-   const [saved] = await tx`select is_correct from exercise_attempts where id=${body.attempt_id} and enrollment_id=${access.enrollment_id} and exercise_id=${body.exercise_id} and selected_option_id=${option.id} and response_text is not distinct from ${responseText}`;
-   if (!saved) return {status:409,body:{error:'Submission ID already used. Choose an answer again.'}};
-   return {status:200,body:{correct:saved.is_correct}};
-  }
-  if (action==='complete' && !progress.completed_at) {
-   const missing = await tx`select x.id from exercises x where x.lesson_id=${access.id} and not exists(select 1 from exercise_attempts a where a.enrollment_id=${access.enrollment_id} and a.exercise_id=x.id and a.is_correct)`;
-   if (missing.length) return {status:409,body:{error:'Answer every question correctly before completing the lesson.'}};
-   const [saved] = await tx`update lesson_progress set completed_at=now() where enrollment_id=${access.enrollment_id} and lesson_id=${access.id} returning *`;
-   return {status:200,body:saved};
-  }
-  return {status:200,body:progress};
- });
+personal.post('/lessons/:id/:action',async(req,res)=>{
+ if(!validUuid(req.params.id)){res.status(400).json({error:'Choose a lesson.'});return;}
+ const result=await lessonAction(res.locals.user.id,req.params.id,String(req.params.action),req.body??{});
  res.status(result.status).json(result.body);
 });
 personal.get('/lessons/:id', async (req, res) => {
@@ -86,14 +50,15 @@ personal.get('/lessons/:id', async (req, res) => {
         from exercise_options o join exercises e on e.id = o.exercise_id
         where e.lesson_id = ${lessonId} order by o.sort_order`,
         sql`select lp.* from lesson_progress lp join enrollments e on e.id=lp.enrollment_id where lp.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}`,
-        sql`select distinct on (a.exercise_id) a.exercise_id,a.selected_option_id,a.is_correct
+        sql`select distinct on (a.exercise_id) a.exercise_id,a.selected_option_id,a.response_text,a.recognition_confidence,a.model_version_id,a.is_correct
         from exercise_attempts a join enrollments e on e.id=a.enrollment_id join exercises x on x.id=a.exercise_id
         where x.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}
         order by a.exercise_id,a.is_correct desc,a.attempted_at desc,a.id desc`
     ]);
-    res.json({ ...lesson, signs, progress: progress ?? null, exercises: exercises.map(exercise => {
+    const run=await sql.begin(tx=>activeRun(tx,lessonId,res.locals.user.id));
+    res.json({ ...lesson, run, signs, progress: progress ?? null, exercises: exercises.map(exercise => {
         const saved = savedAnswers.find(row => row.exercise_id===exercise.id);
-        return { ...exercise, solved: saved?.is_correct ?? false, response_text: saved?.response_text ?? null, recognition_confidence: saved?.recognition_confidence ?? null, selected_option_id: ['text','recognition'].includes(exercise.answer_type) ? null : saved?.selected_option_id ?? null, options: ['text','recognition'].includes(exercise.answer_type) ? [] : options.filter(option => option.exercise_id === exercise.id) };
+        return { ...exercise, solved: saved?.is_correct ?? false, response_text: saved?.response_text ?? null, recognition_confidence: saved?.recognition_confidence ?? null, selected_option_id: exercise.answer_type==='recognition' ? null : saved?.selected_option_id ?? null, options: exercise.answer_type==='recognition' ? [] : options.filter(option => option.exercise_id === exercise.id) };
     }) });
 });
 personal.get('/courses/:id', async (req, res) => {
@@ -121,7 +86,7 @@ async function readProfile(user: { id: string; email?: string }) {
 }
 async function readProgress(userId: string) {
     const [lessons, achievements, [streak]] = await Promise.all([
-        sql`select lp.lesson_id, l.title, lp.completed_at, lp.xp_earned from lesson_progress lp join enrollments e on e.id = lp.enrollment_id join lessons l on l.id = lp.lesson_id where e.user_id = ${userId}`,
+        sql`select lp.lesson_id, l.title, lp.completed_at, lp.perfected_at, (select coalesce(sum(a.amount),0) from xp_awards a where a.enrollment_id=lp.enrollment_id and a.lesson_id=lp.lesson_id)::int as xp_earned from lesson_progress lp join enrollments e on e.id = lp.enrollment_id join lessons l on l.id = lp.lesson_id where e.user_id = ${userId}`,
         sql`select a.id, a.name, a.description, ua.unlocked_at from user_achievements ua join achievements a on a.id = ua.achievement_id where ua.user_id = ${userId}`,
         sql`select asignx_private.current_streak(${userId}::uuid) as days`
     ]);

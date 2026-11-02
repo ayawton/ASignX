@@ -1,13 +1,15 @@
 # ASignX database
 
-The active Drizzle schema implements the finalized **16-table** design in
+The active Drizzle schema implements the finalized **23-table** design in
 [`Data-Dictionary.md`](../docs/final/Data-Dictionary.md) and
 [`ER-Schema.md`](../docs/final/ER-Schema.md).
 
 Application tables: `profiles`, `signs`, `courses`, `lessons`, `lesson_signs`,
 `exercises`, `exercise_options`, `enrollments`, `lesson_progress`,
 `exercise_attempts`, `model_versions`, `practice_attempts`,
-`recognition_sessions`, `recognition_results`, `achievements`, `user_achievements`.
+`recognition_sessions`, `recognition_results`, `achievements`, `user_achievements`,
+`learner_hearts`, `lesson_runs`, `lesson_run_questions`, `xp_awards`,
+`heart_practice_rounds`, `heart_practice_questions`, `heart_practice_submissions`.
 Supabase owns `auth.users`; authentication credentials are never duplicated.
 
 ## Setup and migration
@@ -80,7 +82,7 @@ browser practice storage. No production lesson content or trained ML model is cl
 
 `npm test` runs migrations and behavioral checks against disposable local
 PostgreSQL (PGlite), with minimal Supabase Auth/role prerequisites. It never reads
-`.env` or connects to Supabase. Checks cover all 16 tables, RLS/column grants,
+`.env` or connects to Supabase. Checks cover all 23 tables, RLS/column grants,
 answer-key protection, signup roles, grading, one-time XP, publication,
 recognition ordering, achievement eligibility, and account-deletion cascades.
 
@@ -463,44 +465,13 @@ included for signed video playback. The player renders text without interpreting
 Loading the lesson returns the caller's saved progress and which questions they
 have already answered correctly, while leaving answer keys private. GET creates
 no activity. After reviewing the displayed material, the learner selects Continue:
-POST `/api/me/lessons/:id/start` creates the enrollment/lesson progress row once.
+POST `/api/me/lessons/:id/start` requires start_id, creates the enrollment/lesson progress row once, and creates or resumes a separate lesson run.
 This is an explicit learner acknowledgment, not proof of attention or comprehension.
 It is also the prerequisite for completing a lesson without questions.
 
-POST `/api/me/lessons/:id/attempt` accepts a UUID `attempt_id`, `exercise_id`,
-and `selected_option_id`. It validates the published lesson, enrollment, question,
-and option membership. The database grades the choice; caller correctness is ignored.
-Retries reuse the submission UUID and return its original result. Reusing an ID
-with a different account/question/choice returns 409 without revealing its result.
-Incorrect answers can be retried with a new submission ID.
+POST /api/me/lessons/:id/attempt requires run_id, attempt_id, exercise_id and selected_option_id. It validates ownership, order, publication, hearts and option membership. The database grades the choice; caller correctness is ignored. A finalized run question cannot be reanswered. Incorrect choice answers advance and consume one heart; new runs can recover unearned question XP. The last answer finalizes the run. /complete checks a finalized result without granting again.
 
-POST `/api/me/lessons/:id/complete` requires existing progress and a correct
-saved attempt for every question. The database supplies XP and freezes the first
-completion timestamp. Progress-row locks serialize attempts and completion;
-repeated completion returns the existing record without granting more XP.
-All three actions verify the confirmed identity, publication, and caller enrollment.
-The player restores solved/completed state and checked selections after refresh.
-The learner course overview displays completed/total lesson counts and a Start,
-Continue, or Review action. Continue targets the first unfinished published lesson
-in course order. Knowledge checks display one question at a time with position
-and solved-count progress. Previous remains available; Next requires a saved
-correct answer. After material acknowledgment, unfinished quizzes resume at their
-first unsolved question. Completed lessons open a summary showing stored XP,
-course completion, a next unfinished lesson, and explicit review. Next prefers
-later unfinished lessons, then earlier unfinished lessons if learned out of order.
-Review preserves locked saved answers and never grants extra XP. Empty quizzes
-retain the existing acknowledgment/completion flow. These are client navigation
-changes using the existing API/schema, not new database columns or prerequisites.
-Each question returns only the caller's saved correct choice, or their latest
-checked choice if unsolved; unsent choices are not persisted. Completed questions
-remain locked with their saved selection visible. Course, progress, and
-dashboard pages read the saved records when opened. No guest activity is promoted.
-New regressions exercise the real API handler and SQL against disposable migrated
-PostgreSQL, including account isolation, retry IDs, grading, and repeated completion.
-The complete hosted admin-to-learner journey still needs browser verification.
-Automated checks cover redirects and guest
-route protection; a real-account dashboard session and enrollment round trip
-have not been verified against the live service.
+The player resumes the active run's first unanswered question. Completed runs show their score and awarded XP, with material review, saved-answer review and a separate retry/replay action. Choice selection checks automatically and shows feedback briefly before advancing. Review never awards XP. The saved lesson completion remains separate from single-run perfection and repeat XP. See Shared hearts and repeatable lesson scoring for the authoritative reward rules.
 
 ## Course cover settings
 
@@ -533,3 +504,50 @@ A read-only development benchmark on 2026-11-02 measured an initial connection a
 Enrollment retrieval (including the aggregate dashboard) returns total_lessons and completed_lessons, counting published lessons and completed progress only for the caller's enrollment. These counts share the existing enrollment query, without extra dashboard requests.
 
 Enrollment summaries also return started_lessons, counted from published lessons with started progress for the caller's enrollment. This supports overview continuation labels without additional requests.
+
+## Mixed lesson answer types
+
+Exercises support choice, boolean and recognition answers. Immutable attempts store detected labels and confidence with a model_version_id foreign key. Choice/boolean attempts select a real option; recognition attempts use no options and a NULL selected_option_id. The database checks the detected label against the target sign and the referenced model threshold. Browser inserts remain forbidden.
+
+GET /api/me/lessons/:id returns answer_type, safe target sign labels and the caller's saved evidence. Options and selected-option IDs are omitted for recognition questions because recognition uses trusted evidence instead of options. POST /attempt accepts option IDs for choice/boolean and rejects all client-submitted recognition grades. Typed answers are rejected by authoring and learner endpoints. Existing single-choice submissions remain compatible and retry IDs remain idempotent. A completed run rejects new answers; completed lessons may start separate runs under the heart/XP rules below.
+
+GET /api/admin/recognition-signs obtains supported static/dynamic labels, model metadata fingerprint and threshold from the private service /capabilities endpoint. It is admin-only; neither endpoint exposes model paths, landmarks or weights. Camera targets must be published, linked lesson signs whose gloss exactly matches a supported label. Run/restart npm run recognition after updating the service.
+
+POST /api/me/lessons/:id/recognition binds an opaque camera session to the authenticated learner, lesson, exercise and expected sign. POST /api/me/lesson-recognition/:session/frames accepts JPEG only (256KB limit); DELETE closes it. Each request verifies identity and session ownership. Session creation and persistence check enrollment, publication, lesson-start state and completion. Inference is serialized per session; sessions expire after 60 seconds idle or five minutes total, with at most two per learner and 64 gateway sessions. Only stabilized service emissions at confidence >=0.8 may create immutable attempts; no client label/confidence is accepted. The saved model value fingerprints loaded metadata; it is not a full artifact hash. Frames are processed without storing images. A run completes when every question has a finalized answer. Camera questions finalize only on a correct trusted prediction; choice mistakes advance and consume one heart. Run XP follows the rules below.
+
+Verification: mixed-type integration tests use disposable PostgreSQL with real routes/triggers and a mocked inference transport to check grading, typed-answer rejection, answer privacy, session ownership and saved evidence. Separate Python tests run real static/sequence model fixtures and service authorization/capabilities. Neither establishes live-camera accuracy across signers.
+
+Migration remove_typed_answers restricts the exercise type constraint to choice, boolean and recognition. It refuses to apply if a database still contains typed exercises; no exercise rows or saved recognition evidence are deleted. The response_text column remains for detected sign labels.
+
+## Shared hearts and repeatable lesson scoring
+
+Heart/run tables record attempts, question XP allocations and perfection. Progress stores start, first completion and perfection timestamps. XP lives exclusively in xp_awards; account totals and total-XP achievement eligibility sum that ledger. Completion requires a finalized run and may include wrong choice answers.
+
+learner_hearts stores a balance from 0–3 and a regeneration anchor. Every graded mutation regenerates and locks that learner row before run writes; idle whole five-minute intervals restore one heart, capped at three. Wrong choice/boolean submissions decrement once. Duplicate answer IDs return the saved result without a second deduction or reward. An answered run question cannot be changed. Missing camera detections, camera mismatches and service errors never deduct hearts. A zero balance returns 423 before graded progression; practice and material reads remain available.
+
+POST /api/me/lessons/:id/start requires start_id (UUID), resumes the existing active run or creates one. Retrying a start ID returns that same run, even if its response was lost. POST /attempt requires run_id, attempt_id, exercise_id and selected_option_id. The server enforces question order, option membership, ownership, publication and heart availability. Each finalized answer updates the run; the last answer finalizes it atomically. POST /complete is an idempotent result check, not a bypass. GET lesson includes the latest/active run with safe saved answers. Recognition session creation also requires run_id and binds it to the current unanswered question.
+
+Run question weights snapshot choice=30, boolean=20 and recognition=50, renormalized for present types. Largest-remainder rounding allocates whole XP deterministically while preserving the configured lesson reward. xp_awards uniquely claims (enrollment, exercise) on a non-replay run's completion, so repeated correct answers cannot duplicate first-time XP. A lesson is perfected only by a single fully correct run. Replays started after perfection earn floor(correct weighted XP * .25), including zero for an incorrect-only replay. No-question lessons award their initial configured XP once but never unlock replay XP.
+
+GET /api/me/hearts returns the regenerated balance, server_time and next_heart_at. POST /heart-practice/start resumes/creates a private practice round containing three previously encountered published choice/boolean questions (repeating familiar questions if necessary). POST /heart-practice/answer requires round_id, attempt_id, question_index and selected_option_id. Wrong answers stay on the question without penalties. Three correct answers grant one heart once, without XP, exercise_attempts or lesson progress. Owners are checked on every round operation; round content and submission history are not browser-readable.
+
+All heart/run/reward writes are backend-only. New tables enable RLS; only own heart/run read policies exist. A unique partial index allows one active run per enrollment/lesson. Shared row locking serializes hearts, answer deductions, rewards and heart practice across tabs. Account deletion cascades the new activity. Regression tests cover offline regeneration, pause/resume, first-time recovery, single-run perfection, score-based replays, duplicate requests, camera isolation and account deletion.
+
+Live PostgreSQL-driver verification: from server, run node scripts/check-gamification.mjs after npm run build, with DATABASE_URL configured. It uses the application's Drizzle-configured PostgreSQL client and creates temporary lesson/run/practice fixtures for an existing learner inside a transaction that always rolls back, and verifies heart timestamps, grading and relational practice data. Timestamp parameters use ISO strings to match the configured driver.
+
+
+## Normalized learning records
+
+Migration normalize_learning_records preserves per-enrollment XP totals while importing legacy progress XP and completed-run XP into xp_awards. Historical first-question claims become zero-value claim entries so they prevent duplicate rewards without counting imported XP twice. New first_question, replay and material awards share this ledger; run API xp_earned remains a derived field. No cached XP balance is stored.
+
+Heart practice rounds own three indexed heart_practice_questions; heart_practice_submissions records each immutable answer and derives correctness from its option. Correct count is calculated, with one successful submission per question. Round completion and the one-heart reward remain transactional. Old JSON (including double-encoded arrays) is backfilled and removed; inconsistent histories abort migration. Old submission timestamps were unavailable, so imported submissions use round.created_at.
+
+Model fingerprints are unique optional metadata on model_versions, referenced by recognition attempts; artifact_path is optional for externally loaded models. Synthetic recognition options are removed. Run/question/attempt and XP parent relationships are checked by triggers. The migration aborts on relationship inconsistencies or changed XP totals. Dormant Live/practice/achievement tables remain for their distinct feature contracts.
+
+Verification on 2026-11-02: normalization applied to the connected Supabase project; readiness found no missing or unprotected application tables. Live aggregate XP stayed 95, with 47 exercise attempts and five practice rounds preserved. Backfill produced 15 practice questions and 18 submissions. The configured-driver rollback check passed lesson start/grading and heart restoration. Server regression tests: 31 passed; client lint/build/tests passed. Browser interaction and live-camera accuracy were not reverified for this schema change.
+
+## Answer feedback performance
+
+Grading keeps server verification and the shared heart lock. Heart regeneration uses one atomic upsert; answer requests avoid duplicate heart/access reads and use INSERT RETURNING for the saved grade. Question order and pending count are fetched together. Only the final answer triggers run finalization; first-question XP claims are inserted in one batch. Run metadata, XP and safe answers are returned in one query. All changes commit before successful feedback. No answer keys or private grades are cached in the browser. Server-Timing covers writes as well as reads, separating auth and application duration.
+
+Measured on 2026-11-02 using the same configured-driver rollback fixture: a correct answer that completes a one-question lesson used 25 application SQL calls / 4586 ms before consolidation and 11 calls / 1938 ms afterward (about 58% lower elapsed time). This measures the grading transaction body over the live database connection, excluding HTTP/session verification and transaction commit; network timing varies. Regression budgets cover final and intermediate choice answers, duplicate submissions, unauthorized requests, invalid options, heart deductions and fractional regeneration time. Existing client checks and all 31 server checks passed; the expanded database tests also passed. Browser and live-camera latency were not measured. No database migration is needed for this optimization.

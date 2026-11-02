@@ -33,10 +33,11 @@ test('course details enforce enrollment/publication and return only ordered pers
    insert into lesson_signs values ('${id(31)}','${id(40)}',2),('${id(31)}','${id(41)}',1);
    insert into exercises values ('${id(50)}','${id(31)}','Second question',2),('${id(51)}','${id(31)}','First question',1);
    insert into exercise_options values ('${id(60)}','${id(51)}','Later choice',2,true),('${id(61)}','${id(51)}','First choice',1,false);`);
-  await db.exec(`alter table signs add column demo_path text;alter table exercises add column answer_type text default 'choice', add column sign_id uuid;alter table exercise_attempts add column response_text text, add column recognition_confidence numeric, add column recognition_model text;`);
+  await db.exec(`alter table signs add column demo_path text;alter table exercises add column answer_type text default 'choice', add column sign_id uuid;alter table exercise_attempts add column response_text text, add column recognition_confidence numeric, add column model_version_id uuid;`);
+  await db.exec('create table lesson_runs(id uuid,enrollment_id uuid,lesson_id uuid,completed_at timestamptz,started_at timestamptz);');
   const bundle = await build({ entryPoints: ['src/personal.ts'], bundle: true, write: false, platform: 'node', format: 'esm', packages: 'external', plugins: [{ name: 'isolated-db', setup(builder) {
    builder.onResolve({ filter: /^\.\/db\/index\.js$/ }, () => ({ path: 'db', namespace: 'test' }));
-   builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const connection = (...args) => globalThis.__courseTestSql(...args)' }));
+   builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const connection = Object.assign((...args) => globalThis.__courseTestSql(...args),{begin:fn=>fn(globalThis.__courseTestSql)})' }));
   } }] });
   // Resolve Express from this project while importing the bundled TypeScript module.
   const source = bundle.outputFiles[0].text.replaceAll('from "express"', `from ${JSON.stringify(import.meta.resolve('express'))}`);

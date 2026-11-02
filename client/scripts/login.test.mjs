@@ -106,3 +106,18 @@ await assert.rejects(loginAccount({ auth: {
 assert.equal(cleared, true)
 console.log('PASS partial login is cleared when email verification is missing')
 await client.auth.signOut({ scope: 'local' })
+
+
+// A retained login destination must not mount admin pages for the next learner.
+const { workspaceDestination } = await import('../src/auth-path.js')
+for (const path of ['/dashboard/admin','/dashboard/admin/courses','/dashboard/admin/courses/new','/dashboard/admin/courses/course-id','/dashboard/admin/courses/course-id/edit','/dashboard/admin/signs']) {
+ assert.equal(workspaceDestination(path,true),null)
+ assert.equal(workspaceDestination(path,false),'/dashboard')
+}
+for (const path of ['/dashboard','/dashboard/learn','/dashboard/learn/lessons/lesson-id']) {
+ assert.equal(workspaceDestination(path,false),null)
+ assert.equal(workspaceDestination(path,true),'/dashboard/admin')
+}
+assert.equal(workspaceDestination('/dashboard/profile',true),null)
+assert.equal(workspaceDestination('/dashboard/profile',false),null)
+console.log('PASS admin-to-learner destination isolation, nested admin routes and role-specific navigation')

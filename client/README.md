@@ -125,3 +125,26 @@ Learner overview loads resources and per-section errors from one authenticated G
 Overview My courses includes a compact progress bar and completed/total published lesson count for each enrollment. Courses without published lessons show an explicit empty state rather than a percentage. Enrollment refreshes the list after successful creation.
 
 Overview course rows prioritize saved progress instead of enrollment dates. Actions read Start, Continue (any started/completed lesson), or Review (all published lessons complete), linking to the course path. Completed courses show Completed text and a muted green bar; zero-lesson courses do not count as complete. Archived entries retain the Unavailable state.
+
+## Lesson answer types
+
+Admin lesson questions support Single choice, True / false, and Sign with camera. The type selector configures the relevant controls; Answers are locked within a run; completed lessons can start a separate run. Typed answers are no longer supported. Existing questions default to Single choice.
+
+Camera targets must be published signs linked to the lesson and supported by the running recognition service. Start that service before authoring camera questions; refresh the editor after starting it. Learners explicitly start camera practice. The shared frame stream bounds inference to one active request plus the latest pending frame, and camera tracks stop on navigation, stop, or success. Only a server-saved correct model result finishes a camera question. Camera access needs HTTPS or localhost. Service/permission failures do not pass the question. Saved detected labels and confidence appear in review. This is practice feedback for supported isolated signs, not a general proficiency assessment.
+
+Signed-in ASign Learn and the course browser separate published courses into My courses and Available courses using saved enrollment IDs. Search filters both collections; successful enrollment moves the course into My courses. Guest visitors retain a single published-course catalog.
+Camera answers reserve a 4:3 preview panel in camera-off, connecting, active and saved states. A target heading, icon-and-text status, inline detection/error feedback, primary Start and secondary Stop controls guide practice. Saved success appears only after the backend result. Frame privacy stays visible; longer model limitations live in expandable help. Camera tracks stop on navigation, success and explicit stop, including when a device ends access.
+
+## Hearts and lesson runs
+
+Learners share three hearts across graded lessons. The workspace header displays the server balance and a regeneration countdown; one heart regenerates every five minutes, including offline, up to three. Choice/true-false selection is checked immediately, then advances after 1.4 seconds of feedback. One wrong graded choice costs one heart. Zero hearts pauses before the next question and blocks new/replay runs; material, saved review and heart practice remain accessible. Camera mismatches and technical failures are heart-free; camera progression still needs a heart available.
+
+Each run answers every question once (camera practice retries until recognized). Reaching the end completes the lesson even with wrong choices; one fully correct run perfects it. XP weights are choice 30%, true/false 20%, recognition 50%, redistributed across present types and divided evenly within a type. Whole-XP rounding preserves the lesson total. Before perfection only previously unearned correct-question XP is awarded, on run completion. A perfect run unlocks later replays at floor(25% of that replay's correctly answered weighted XP). Existing completed lessons retain their XP and are treated as perfected. Material-only lessons award their initial XP once without repeat XP.
+
+Heart practice uses previously encountered published choice questions. Three correct answers restore one heart, capped at three; wrong answers have no penalty and the round grants no XP or lesson progress. Completed rounds cannot award twice. The paused lesson can be resumed after practice or timed regeneration.
+
+XP and heart-practice API shapes remain stable after normalization: run XP and practice correct counts are derived from related rows. Admin camera questions save an empty options array; the target sign defines the expected answer.
+
+Lesson choice submissions immediately show Checking your answer while awaiting the saved server result. Correct/incorrect feedback appears when that response arrives; the existing 1.4-second reading pause applies afterward. Database work for verification is consolidated without optimistic correctness or XP updates.
+
+Workspace access: verified learners are redirected from every /dashboard/admin route to their overview before the admin outlet renders, including retained login destinations. Role resolution is scoped to the authenticated profile ID, and protected page state remounts when the account ID changes. Sidebar visibility alone does not grant access; backend admin endpoints independently verify the current database role.

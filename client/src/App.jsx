@@ -4,6 +4,7 @@ import { ArrowUpRight, Menu, X } from 'lucide-react'
 import { AuthCallback, ForgotPassword, ResetPassword, Login, Register } from './pages/Auth'
 import Lesson from './pages/Lesson'
 import Course from './pages/Course'
+import HeartPractice from './pages/HeartPractice'
 import AccountLesson from './pages/AccountLesson'
 import Admin from './pages/Admin'
 import AdminCourseForm from './pages/AdminCourseForm'
@@ -50,6 +51,7 @@ export default function App() {
    <Route path="learn/lessons/:id" element={<AccountLesson />} />
    <Route path="learn/arcade" element={<Arcade />} />
    <Route path="learn/lesson/:id" element={<Lesson />} />
+   <Route path="heart-practice" element={<HeartPractice/>}/>
    <Route path="progress" element={<Progress />} />
    <Route path="profile" element={<Profile />} />
    <Route path="*" element={<section className="studio-section"><h1>Page not found</h1><Link className="text-link" to="/dashboard">Back to dashboard</Link></section>} />

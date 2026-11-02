@@ -1,10 +1,10 @@
 # ASignX Normalized Data Dictionary
 
-Updated 23 October 2026
+Updated 2 November 2026
 
-This dictionary defines the 16 normalized application tables used by ASignX for ASign Learn and ASignLive. It lists all 89 application columns, their PostgreSQL types, required values, defaults, keys, relationships, and validation rules.
+This dictionary defines the 23 normalized application tables used by ASignX for ASign Learn and ASignLive. It lists application columns, their PostgreSQL types, required values, defaults, keys, relationships, and validation rules.
 
-Supabase Auth owns auth.users. A separate reference section documents the user attributes relevant to ASignX. It is not a seventeenth application table, and the application migrations do not recreate it.
+Supabase Auth owns auth.users. A separate reference section documents the user attributes relevant to ASignX. It is not an application table, and the application migrations do not recreate it.
 
 The tables separate account profiles, reusable learning content, enrollment activity, recognition outcomes, and achievement definitions. Junction tables represent many-to-many relationships. Total XP and streaks are derived from activity instead of being duplicated as profile balances.
 
@@ -160,12 +160,13 @@ Connects signs to lessons so the same sign can appear in several lessons.
 
 ## exercises
 
-Each exercise is one multiple-choice question in a lesson. Several exercises together form a quiz; camera practice is recorded separately.
+Each exercise is a single-choice, true/false or model-recognition question. Several exercises form a lesson quiz. Optional standalone practice remains separate.
 
 | Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
 |---|---|---|---|---|---|---|---|
 | id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique question/exercise identifier. |
 | lesson_id | UUID | 128 bits | - | lessons.id | No | None | References lessons.id. |
+| answer_type | VARCHAR | 16 characters | - | - | No | choice | choice, boolean or recognition; enforced by a check constraint. |
 | prompt | TEXT | Variable | - | - | No | None | Question displayed to the learner. |
 | sign_id | UUID | 128 bits | - | signs.id | Yes | NULL | Optional reference to signs.id for a sign-based question. |
 | sort_order | INTEGER | 32 bits | - | - | No | None | Positive exercise position within its lesson. |
@@ -181,7 +182,7 @@ Each exercise is one multiple-choice question in a lesson. Several exercises tog
 
 **Validation and access rules**
 
-- Each row is one multiple-choice question; the collection of questions in a lesson forms its quiz.
+- Each row has one answer type. Recognition exercises have no options; their supported published target sign must be linked to the lesson.
 - The parent lesson cannot be reassigned. Definition edits are rejected while the lesson is published, after the exercise has attempts, or after its lesson has completed progress. Create a new content version for substantive changes.
 
 ## exercise_options
@@ -236,7 +237,7 @@ Connects a learner to a course and provides the parent for learning activity in 
 
 ## lesson_progress
 
-Tracks each lesson in an enrollment and stores its one-time completion reward; a separate XP ledger is unnecessary for this reward policy.
+Tracks lesson milestones within an enrollment. XP is recorded separately in xp_awards.
 
 | Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
 |---|---|---|---|---|---|---|---|
@@ -244,34 +245,36 @@ Tracks each lesson in an enrollment and stores its one-time completion reward; a
 | lesson_id | UUID | 128 bits | Yes | lessons.id | No | None | References lessons.id; part of the composite primary key. |
 | started_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Time the learner started the lesson. |
 | completed_at | TIMESTAMPTZ | Microseconds | - | - | Yes | NULL | Validated completion time; NULL means in progress. |
-| xp_earned | INTEGER | 32 bits | - | - | No | 0 | Nonnegative first-completion XP actually granted; remains zero until completion. |
+| perfected_at | TIMESTAMPTZ | Microseconds | - | - | Yes | NULL | First fully correct run; historical completions are backfilled. |
 
 **Keys and constraints**
 
 - Primary key: (enrollment_id, lesson_id).
-- Check: xp_earned >= 0.
-- Check: (completed_at is null and xp_earned = 0) or (completed_at is not null and completed_at >= started_at).
+- Check: completed_at is null or completed_at >= started_at.
 - Foreign key: (enrollment_id) -> public.enrollments(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
 - Foreign key: (lesson_id) -> public.lessons(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
 **Validation and access rules**
 
 - A trigger verifies that the lesson belongs to the enrollment course. Progress identity and started_at are immutable.
-- Before completion, xp_earned is forced to zero. Completion requires at least one correct attempt for every exercise and replaces supplied XP with lessons.xp_reward.
-- Completed timestamps and XP are immutable. Completed progress cannot be independently deleted while its enrollment remains. Account/enrollment deletion may cascade.
+- Completion requires a finalized lesson run; a run may contain wrong choice answers.
+- Completed timestamps are immutable. Completed progress cannot be independently deleted while its enrollment remains. Account/enrollment deletion may cascade.
 - For a lesson without exercises, the backend must confirm that its material was viewed before requesting completion; the database does not observe viewing.
 
 ## exercise_attempts
 
-A learner submission for one multiple-choice exercise. Multiple attempts are permitted.
+A learner submission for one exercise, including server-verified recognition outcomes. Multiple attempts are permitted.
 
 | Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
 |---|---|---|---|---|---|---|---|
 | id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique attempt identifier; reuse this ID for a retried submission. |
 | enrollment_id | UUID | 128 bits | - | enrollments.id | No | None | References enrollments.id; identifies the learner through enrollment. |
 | exercise_id | UUID | 128 bits | - | exercises.id; exercise_options.exercise_id (composite) | No | None | References exercises.id. |
-| selected_option_id | UUID | 128 bits | - | exercise_options.id (composite) | No | None | References exercise_options.id; must belong to exercise_id using the composite foreign key below. |
-| is_correct | BOOLEAN | 1 byte | - | - | No | None | Database-trigger grading result, derived from the selected option on insert. |
+| selected_option_id | UUID | 128 bits | - | exercise_options.id (composite) | Yes | NULL | Required for choice/boolean, NULL for recognition; option must belong to exercise. |
+| response_text | TEXT | Variable | - | - | Yes | NULL | Trusted detected sign label for recognition exercises. |
+| recognition_confidence | NUMERIC | 6,5 | - | - | Yes | NULL | Confidence from trusted inference; validated in the server recognition path. |
+| model_version_id | UUID | 128 bits | - | model_versions.id | Yes | NULL | Required for recognition; references immutable model metadata. |
+| is_correct | BOOLEAN | 1 byte | - | - | No | None | Database-trigger grading result, derived from the stored option or trusted model evidence on insert. |
 | attempted_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Submission time. |
 
 **Keys and constraints**
@@ -284,7 +287,7 @@ A learner submission for one multiple-choice exercise. Multiple attempts are per
 **Validation and access rules**
 
 - The composite foreign key (exercise_id, selected_option_id) references exercise_options(exercise_id, id), ensuring the selected option belongs to this exercise.
-- A trigger verifies course membership and derives is_correct from the stored answer option. Caller-supplied correctness is overwritten.
+- A trigger verifies course membership and derives is_correct from the stored answer option, or from the detected label and referenced model threshold for recognition. Caller-supplied correctness is overwritten.
 - Attempt rows cannot be updated. Reuse the submission UUID with conflict handling for a retried request.
 
 ## model_versions
@@ -295,16 +298,17 @@ Minimal record of the actual ML model used for a prediction; deployment and eval
 |---|---|---|---|---|---|---|---|
 | id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique model version identifier. |
 | version | VARCHAR | 50 characters | - | - | No | None | Unique immutable release name. |
-| artifact_path | TEXT | Variable | - | - | No | None | Private object path in the model-artifacts Storage bucket. |
+| fingerprint | VARCHAR | 128 chars | - | - | Yes | NULL | Unique loaded-model metadata fingerprint. |
+| artifact_path | TEXT | Variable | - | - | Yes | NULL | Optional private model artifact path. |
 | confidence_threshold | NUMERIC | 6 digits total, 5 decimal | - | - | No | 0.80000 | Acceptance threshold from 0 to 1 for this model version. |
 | created_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Model registration time. |
 
 **Keys and constraints**
 
 - Primary key: (id).
-- Unique: (version).
+- Unique: (version) and non-NULL (fingerprint).
 - Check: length(btrim(version)) > 0.
-- Check: length(btrim(artifact_path)) > 0.
+- Check: artifact_path is NULL or nonblank.
 - Check: confidence_threshold between 0 and 1.
 
 **Validation and access rules**
@@ -487,7 +491,7 @@ Each row describes a child-to-parent foreign key. A parent may have zero or many
 - Authenticated browser users can read their own profile, enrollments, progress, attempts, practices, saved sessions and results, and earned achievements. The only browser profile writes are display_name and timezone. The backend validates caller identity, ownership, and administrator authorization for privileged operations.
 - exercise_options and model_versions have no direct browser access. Safe answer fields are delivered through the backend; correctness and private model paths remain server-only.
 - Guests may browse learning content and use transient practice and Live features without an application profile. Saving personal activity requires a registered account. Guest browser activity is not a trusted source of account XP, grading results, or awards.
-- Total XP is SUM(lesson_progress.xp_earned) through the learner enrollments. Current streak uses distinct local dates with a completed lesson or successful practice; the consecutive run must end today or yesterday in profiles.timezone. A timezone change can change the derived date boundaries.
+- Total XP is SUM(xp_awards.amount) through learner enrollments. Streak uses distinct local dates of completed lessons or successful practice ending today/yesterday in profiles.timezone.
 - Deleting an Auth user cascades to the profile and its dependent personal activity. Shared vocabulary, courses, lessons, models, and achievement definitions remain; referenced shared content should be unpublished or archived rather than removed.
 - Saving Live history requires explicit user opt-in in the application. The schema stores stabilized events and finalized text, with no camera-frame or raw-video columns. Curated media and model files belong in Storage; database fields contain object paths.
 - Backend services must verify viewing for no-quiz completion, validate recognition service output, enforce opt-in, and expose only authorized fields. Database constraints and triggers do not replace these application responsibilities.
@@ -499,7 +503,7 @@ Each row describes a child-to-parent foreign key. A parent may have zero or many
 - Learner activity: enrollments resolves learners and courses; lesson_progress depends on an enrollment and lesson; exercise_attempts records individual submissions rather than repeating course or profile details.
 - Prediction provenance: model_versions stores model artifact and threshold definitions once. Practice and recognition rows reference the actual model version used.
 - Achievement definitions and awards: achievements defines criteria once; user_achievements resolves the many-to-many association and prevents duplicate awards.
-- Historical snapshots: xp_earned and is_correct are intentional recorded outcomes. They preserve the result of an event rather than copying mutable profile totals. Unique order constraints and the option-pair foreign key enforce additional candidate keys and consistency.
+- Historical snapshots: XP award amounts and is_correct are intentional recorded outcomes. They preserve the result of an event rather than copying mutable profile totals. Unique order constraints and the option-pair foreign key enforce additional candidate keys and consistency.
 
 ## References
 
@@ -509,3 +513,21 @@ Each row describes a child-to-parent foreign key. A parent may have zero or many
 - [Supabase account profile guidance](https://supabase.com/docs/guides/auth/managing-user-data)
 - [Supabase password storage guidance](https://supabase.com/docs/guides/auth/password-security)
 - [Supabase Auth user field definitions](https://github.com/supabase/auth/blob/master/migrations/00_init_auth_schema.up.sql)
+
+## Gamification activity tables
+
+These seven tables extend the original 16-table learning/recognition schema. Each enables RLS and accepts backend writes only. New runs separate completion from perfection; legacy completion timestamps and XP remain intact.
+
+| Table | Columns and defaults | Keys and relationships |
+|---|---|---|
+| learner_hearts | user_id UUID; hearts INTEGER NOT NULL DEFAULT 3, check 0–3; regenerated_at TIMESTAMPTZ DEFAULT now() | PK user_id; FK profiles.id ON DELETE CASCADE |
+| lesson_runs | id UUID DEFAULT gen_random_uuid(); enrollment_id UUID; lesson_id UUID; replay BOOLEAN DEFAULT false; started_at TIMESTAMPTZ DEFAULT now(); completed_at nullable TIMESTAMPTZ; perfect BOOLEAN DEFAULT false | PK id; enrollment FK CASCADE; lesson FK RESTRICT; unique enrollment_id/lesson_id while incomplete |
+| lesson_run_questions | run_id UUID; exercise_id UUID; xp_value INTEGER nonnegative; sort_order INTEGER; attempt_id nullable UUID | PK run_id/exercise_id; unique run_id/sort_order; run FK CASCADE; exercise FK RESTRICT; saved attempt FK CASCADE for account deletion |
+| xp_awards | id UUID DEFAULT gen_random_uuid(); enrollment_id UUID; lesson_id UUID; run_id nullable UUID; exercise_id nullable UUID; source VARCHAR(20); amount INTEGER nonnegative; awarded_at TIMESTAMPTZ DEFAULT now() | PK id; enrollment/run FK CASCADE; lesson/exercise FK RESTRICT; unique enrollment/exercise for claim or first_question; unique run for run_import, replay or material |
+| heart_practice_rounds | id UUID DEFAULT gen_random_uuid(); user_id UUID; completed_at nullable TIMESTAMPTZ; created_at TIMESTAMPTZ DEFAULT now() | PK id; user FK CASCADE; one incomplete round per user |
+| heart_practice_questions | round_id UUID; question_index INTEGER 0–2; exercise_id UUID | PK round_id/question_index; round FK CASCADE; exercise FK RESTRICT |
+| heart_practice_submissions | id UUID; round_id UUID; question_index INTEGER; selected_option_id UUID; is_correct BOOLEAN; submitted_at TIMESTAMPTZ DEFAULT now() | PK id; composite question FK CASCADE; option FK RESTRICT; one correct submission per question |
+
+All unspecified nullability above is NOT NULL. New runs use private snapshots and finalized attempt pointers. Heart regeneration, account isolation, scoring and practice rewards are enforced by transactional backend handlers; there are no browser write policies. Total XP is SUM(xp_awards.amount). Run XP and practice correct counts are derived. First-time question XP is claimed only once; post-perfect replays award 25% of correct weighted XP, rounded down. Choice/boolean mistakes consume one of three shared hearts; one heart regenerates every five minutes. Camera feedback and heart practice do not consume hearts.
+
+Normalization: model_versions.fingerprint is nullable VARCHAR(128), unique; artifact_path is nullable for externally loaded models. Recognition attempts require a model FK, label and valid confidence and never an option. XP source is one of legacy, claim, run_import, first_question, replay or material. Imported claim rows carry zero amount to avoid double-counting imported run XP. Awards are immutable; triggers verify enrollment, lesson, run and exercise relationships. Practice questions/submissions replace JSON arrays; imported answers use the round creation time because exact historical submission times were not stored. Dormant feature tables are retained.

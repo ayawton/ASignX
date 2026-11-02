@@ -1,0 +1,206 @@
+# Original ASignX beginner course. These comments are ignored by the importer.
+# References checked 2026-11-02:
+# https://www.lifeprint.com/asl101/pages-layout/fingerspelling.htm
+# https://www.lifeprint.com/asl101/fingerspelling/fingerspelling-lesson-01.htm
+# https://www.lifeprint.com/asl101/fingerspelling/abc.htm
+# https://www.lifeprint.com/asl101/pages-layout/handshapes.htm
+# Required published sign labels and recognition targets: A, B, C, O, L, Y.
+
+Course: Fingerspelling Foundations: Your First Six Letters
+Description: |
+  Learn to form and distinguish A, B, C, O, L and Y through guided observation, handshape comparisons and camera practice. Build clear habits first, then recall the letters in mixed order and practise short letter sequences. This introductory course focuses on individual fingerspelled letters. Use the linked demonstrations and seek feedback from a qualified ASL instructor as you continue learning.
+
+Lesson: Start with a clear, comfortable hand
+XP: 10
+Content: |
+  Your goal: prepare to practise six ASL fingerspelled letters with clear, comfortable movements.
+
+  Fingerspelling represents written letters using handshapes. It is often used for names and other words in ASL. In this course you will learn A, B, C, O, L and Y.
+
+  Choose your dominant hand: usually the hand you naturally prefer for tasks such as writing. Right-handed and left-handed learners can both fingerspell. Keep using the same hand throughout these introductory drills.
+
+  Keep your shoulder relaxed and your wrist comfortable. Position your hand where a person in front of you can see it. The palm generally faces outward at a comfortable angle; avoid twisting your wrist to force it perfectly straight ahead.
+
+  Use this routine in each lesson:
+  1. Watch each linked sign demonstration and notice the finger positions.
+  2. Copy the handshape slowly.
+  3. Lower your hand, look away from the guide and make the letter from memory.
+  4. Compare your attempt with the demonstration before starting the exercises.
+
+  For camera exercises, keep your whole signing hand visible with light falling on it. If detection struggles, pause, check the demonstration and adjust your framing. An accepted detection is feedback for the supported letter; human feedback remains valuable for the rest of your signing.
+
+  Start with clarity. Increase speed only as forming the letters becomes comfortable.
+
+Question: choice | Which hand should you normally choose for these fingerspelling exercises?
+- The right hand, even if you are left-handed
+* Your dominant hand
+- A different hand for every letter
+
+Question: boolean | Twisting your wrist until it is uncomfortable is necessary for clear fingerspelling.
+Answer: false
+
+Question: choice | After copying a demonstration, which activity checks whether you remember the handshape?
+- Replay the video without making the letter
+- Read the letter name several times
+* Look away and form the letter, then compare it with the demonstration
+
+Lesson: A and B: closed fingers or upright fingers?
+XP: 30
+Signs: A, B
+Content: |
+  Your goal: form A and B and explain their most visible difference.
+
+  Watch both linked demonstrations before practising.
+
+  Letter A represents the alphabet character A. Curl your fingers into a fist and rest your thumb beside the fingers. Notice the thumb's position along the side of the hand.
+
+  Letter B represents the alphabet character B. Extend your four fingers upward together. Follow the linked demonstration for a comfortable thumb position; a bent thumb toward the palm is common, and thumb position can vary in fluent signing.
+
+  Compare the main feature: A has curled fingers; B has four upright fingers together.
+
+  Practise A, relax your hand, then practise B. Next, look away and try B followed by A. Check each against the demonstration. Make three careful attempts at each letter before beginning the exercises.
+
+  Self-check: are you changing the finger positions deliberately, or just moving your entire hand? Keep the hand comfortably placed while forming each shape.
+
+Question: choice | In the introductory A handshape, where does the thumb rest?
+- Between the middle and ring fingers
+- Straight upward with an open palm
+* Beside the curled fingers
+
+Question: recognition | Form the letter B with your signing hand.
+Target: B
+
+Question: boolean | In the introductory B handshape, the four fingers are upright and held together.
+Answer: true
+
+Question: recognition | Form the letter A with your signing hand.
+Target: A
+
+Question: choice | You are checking an A against a B. Which feature best distinguishes these two handshapes?
+* Curled fingers versus four upright fingers
+- Whether you used your left or right hand
+- How quickly you raised your hand
+
+Lesson: C and O: an open curve or a closed curve?
+XP: 30
+Signs: C, O, A
+Content: |
+  Your goal: distinguish the opening in C from the contact in O, while remembering A.
+
+  First, try A from memory. Compare it with its linked demonstration, then move on to the two new letters.
+
+  Letter C represents the alphabet character C. Curve your fingers and thumb to make an open, rounded shape. Leave a visible gap between the fingertips and thumb.
+
+  Letter O represents the alphabet character O. Bring your curved fingertips toward the thumb so they meet, forming a rounded shape.
+
+  Watch the demonstrations to check the hand's orientation. For this comparison, concentrate on one feature: C stays open; O closes the gap.
+
+  Practise C followed by O slowly. Next, relax and form O followed by C. Make the difference visible without squeezing your hand tightly.
+
+  Recall drill: look away and make A, O and C in that order. Return to the demonstrations to check your finger positions. Repeat the letter that required the most thought, then try the sequence again.
+
+Question: choice | What should remain between the fingertips and thumb when forming C?
+- A tightly closed fist
+* A visible gap
+- Two crossed fingers
+
+Question: recognition | Form the letter O with your signing hand.
+Target: O
+
+Question: boolean | In the introductory O handshape, a visible gap remains between all the fingertips and the thumb.
+Answer: false
+
+Question: choice | Recall the previous lesson: curled fingers with the thumb resting beside them identify which letter?
+* A
+- B
+- C
+
+Question: recognition | Form the letter C with your signing hand.
+Target: C
+
+Lesson: L and Y: choose the finger that stays extended
+XP: 30
+Signs: L, Y, C
+Content: |
+  Your goal: form L and Y without mixing up the extended finger.
+
+  Begin by forming C from memory, then compare it with the linked demonstration.
+
+  Letter L represents the alphabet character L. Extend your index finger and thumb. Keep the other three fingers curled. Notice the L-like shape made by the index finger and thumb.
+
+  Letter Y represents the alphabet character Y. Extend your thumb and little finger while keeping the index, middle and ring fingers curled.
+
+  Both letters extend the thumb. The key difference is the other extended finger: the index finger for L, and the little finger for Y.
+
+  Watch both demonstrations. Practise L and Y slowly, then lower your hand and recreate each from memory. Check that the three fingers meant to be curled are actually curled.
+
+  Mixed recall: try Y, C and L. Compare each attempt with its demonstration. Give your weakest letter another careful attempt before starting the exercises.
+
+Question: choice | Which pair is extended to form L?
+- The thumb and little finger
+- The index and middle fingers
+* The thumb and index finger
+
+Question: recognition | Form the letter Y with your signing hand.
+Target: Y
+
+Question: boolean | Y uses an extended thumb and little finger, with the other three fingers curled.
+Answer: true
+
+Question: choice | Which previously learned letter has curved fingers and a visible opening between the fingertips and thumb?
+- A
+* C
+- O
+
+Question: recognition | Form the letter L with your signing hand.
+Target: L
+
+Lesson: Mix, recall and connect your six letters
+XP: 50
+Signs: A, B, C, O, L, Y
+Content: |
+  Your goal: recall all six letters in an unfamiliar order and begin connecting them smoothly.
+
+  Before looking at the demonstrations, try this order: Y, A, O, L, B, C. Notice which letters you can form confidently and which make you pause. Check the uncertain letters against their demonstrations.
+
+  Ask a practice partner to point to the written letters in a different order, or write them on small cards and shuffle them. Form one letter for each prompt. Check your work after each attempt.
+
+  Next, practise these short sequences using the letters you have learned:
+  CAB
+  BAY
+  LAY
+  COAL
+
+  Begin slowly and keep your hand in a consistent, comfortable area as the fingers change position. Aim for distinct letters and smooth transitions. Practise the sequences separately from the exercises below, which check individual letters.
+
+  Choose one sequence, look away from the guide and fingerspell it from memory. Then compare its individual letters with the demonstrations. Ask a partner to identify what you produced when possible.
+
+  After the exercises, choose the two letters that felt least reliable. Practise each, then mix them with two easier letters. Return on another day and try the mixed order before replaying the demonstrations.
+
+  Use your camera result as one piece of feedback. Continue practising with demonstrations and people who can give informed feedback on your fingerspelling.
+
+Question: recognition | Form the letter L.
+Target: L
+
+Question: recognition | Form the letter A.
+Target: A
+
+Question: choice | Two rounded handshapes are easy to confuse. Which comparison correctly distinguishes C and O?
+- Both require a tightly closed fist
+- C closes the gap; O leaves it open
+* C leaves a gap between fingertips and thumb; O brings them together
+
+Question: recognition | Form the letter Y.
+Target: Y
+
+Question: recognition | Form the letter C.
+Target: C
+
+Question: boolean | Accurate fingerspelling practice requires you to move faster than you can form clear letters.
+Answer: false
+
+Question: recognition | Form the letter B.
+Target: B
+
+Question: recognition | Form the letter O.
+Target: O

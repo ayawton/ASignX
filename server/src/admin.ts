@@ -3,6 +3,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { connection as sql } from './db/index.js';
 import { authenticate } from './personal.js';
 
+import { lessonValues, writeLessonContent } from './courseAuthoring.js';
+import { courseImportRoutes } from './courseImportRoutes.js';
 import { recognitionCapabilities } from './recognitionTransport.js';
 
 export const admin = Router();
@@ -13,6 +15,7 @@ export async function requireAdmin(_req: Request, res: Response, next: NextFunct
  next();
 }
 admin.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, authenticate, requireAdmin);
+admin.use(courseImportRoutes);
 admin.get('/overview', async (_req, res) => {
  const [[counts],recent_courses] = await Promise.all([
   sql`select
@@ -74,18 +77,6 @@ admin.get('/courses/:id', async (req, res) => {
  ]);
  res.json({ ...course, lessons: lessons.map(l => ({ ...l,sign_ids:links.filter(link => link.lesson_id===l.id).map(link => link.sign_id), exercises: exercises.filter(x => x.lesson_id===l.id).map(x => ({ ...x, options: options.filter(o => o.exercise_id===x.id) })) })) });
 });
-type Question = { answer_type?: string; sign_id?: string; prompt: string; options: { option_text: string; is_correct: boolean }[] };
-function lessonValues(body: Record<string, unknown>) {
- const { title, content, sort_order, xp_reward, exercises } = body;
- if (typeof title!=='string' || !title.trim() || title.trim().length>150 || typeof content!=='string' || content.length>6000 || !Number.isInteger(sort_order) || Number(sort_order)<1 || Number(sort_order)>2147483647 || !Number.isInteger(xp_reward) || Number(xp_reward)<0 || Number(xp_reward)>2147483647 || !Array.isArray(exercises) || exercises.length>10) return null;
- for (const q of exercises) {
-  if(!q || !['choice','boolean','recognition'].includes(q.answer_type ?? 'choice')) return null;
-  if(q.answer_type==='recognition' && !validId(q.sign_id)) return null;
-  if(q.answer_type==='boolean' && (!Array.isArray(q.options) || q.options.length!==2 || q.options[0]?.option_text!=='True' || q.options[1]?.option_text!=='False')) return null;
-  if (!q || typeof q.prompt!=='string' || !q.prompt.trim() || q.prompt.length>1000 || !Array.isArray(q.options) || (q.answer_type==='recognition' ? q.options.length!==0 : q.options.length<2 || q.options.length>6) || q.options.some((o: Question['options'][number]) => !o || typeof o.option_text!=='string' || !o.option_text.trim() || o.option_text.length>500 || typeof o.is_correct!=='boolean') || (q.answer_type!=='recognition' && q.options.filter((o: Question['options'][number]) => o.is_correct).length!==1)) return null;
- }
- return { title: title.trim(), content, sort_order: Number(sort_order), xp_reward: Number(xp_reward), exercises: exercises as Question[] };
-}
 // Course and lesson locks serialize authoring and publication; all quiz writes are atomic.
 admin.post('/courses/:id/lessons', async (req, res) => {
  const values = lessonValues(req.body ?? {});
@@ -116,13 +107,8 @@ admin.post('/courses/:id/lessons', async (req, res) => {
    if (!lesson) throw new Error('Lesson could not be created');
    if (signIds!==undefined) {
     await tx`delete from lesson_signs where lesson_id=${lesson.id}`;
-    for (const [i,signId] of signIds.entries()) await tx`insert into lesson_signs(lesson_id,sign_id,sort_order) values(${lesson.id},${signId},${i+1})`;
    }
-   for (const [i,q] of values.exercises.entries()) {
-    const [exercise] = await tx`insert into exercises(lesson_id,prompt,sort_order,answer_type,sign_id) values(${lesson.id},${q.prompt.trim()},${i+1},${q.answer_type ?? 'choice'},${q.answer_type==='recognition'?q.sign_id!:null}) returning id`;
-    if (!exercise) throw new Error('Question could not be created');
-    for (const [j,o] of q.options.entries()) await tx`insert into exercise_options(exercise_id,option_text,is_correct,sort_order) values(${exercise.id},${o.option_text.trim()},${o.is_correct},${j+1})`;
-   }
+   await writeLessonContent(tx,lesson.id,values.exercises,signIds??[]);
    return { id: lesson.id };
   });
   if (!saved) { res.status(409).json({ error: 'This course or lesson is published or already used. Create a new draft lesson.' }); return; }

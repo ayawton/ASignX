@@ -148,3 +148,7 @@ XP and heart-practice API shapes remain stable after normalization: run XP and p
 Lesson choice submissions immediately show Checking your answer while awaiting the saved server result. Correct/incorrect feedback appears when that response arrives; the existing 1.4-second reading pause applies afterward. Database work for verification is consolidated without optimistic correctness or XP updates.
 
 Workspace access: verified learners are redirected from every /dashboard/admin route to their overview before the admin outlet renders, including retained login destinations. Role resolution is scoped to the authenticated profile ID, and protected page state remounts when the account ID changes. Sidebar visibility alone does not grant access; backend admin endpoints independently verify the current database role.
+
+## Text imports
+
+Manage courses → Import from text creates a new draft with lessons, questions and options. Draft course editors also offer Import lessons from text to append content. The screen accepts paste or a .txt file, supplies downloadable examples, and requires a successful preview before saving. Any text edit clears the preview. It follows existing admin typography, actions, focus states and responsive layouts. See [Course text import format](../docs/Course-Text-Import.md) for the authoritative template, limits, sign matching and retry behavior.

@@ -22,7 +22,7 @@ try {
  assert.ok(!live.includes('Finish word') && !live.includes('Select a word'), 'Word selection is not required')
  assert.ok(!render('/dashboard').includes('Your hands have'), 'Guest dashboard is protected')
  assert.equal(internalPath(null), '/dashboard')
- for (const path of ['/dashboard/admin/courses/00000000-0000-4000-8000-000000000010', '/dashboard/admin', '/dashboard', '/dashboard/live', '/dashboard/learn', '/dashboard/learn/lessons/00000000-0000-4000-8000-000000000031', '/dashboard/learn/courses/00000000-0000-4000-8000-000000000010', '/dashboard/profile', '/dashboard/progress', '/dashboard/heart-practice']) {
+ for (const path of ['/dashboard/admin/courses/00000000-0000-4000-8000-000000000010', '/dashboard/admin', '/dashboard/admin/courses/import', '/dashboard/admin/courses/00000000-0000-4000-8000-000000000010/import', '/dashboard', '/dashboard/live', '/dashboard/learn', '/dashboard/learn/lessons/00000000-0000-4000-8000-000000000031', '/dashboard/learn/courses/00000000-0000-4000-8000-000000000010', '/dashboard/profile', '/dashboard/progress', '/dashboard/heart-practice']) {
   const html = render(path)
   assert.ok(!html.includes('site-header') && !html.includes('site-footer'), 'Workspace excludes public navigation and footer')
   assert.ok(!html.includes('Room for a conversation'), 'Guest workspace is protected')
@@ -31,6 +31,11 @@ try {
  const shell = renderToString(h(MemoryRouter, { initialEntries: ['/dashboard'] }, h(AuthProvider, null, h(DashboardLayout))))
  assert.ok(shell.includes('href="/dashboard/live"') && shell.includes('href="/dashboard/learn"'))
  assert.ok(!shell.includes('href="/"') && !shell.includes('href="/about"'), 'Workspace has no Home or Our Story links')
+ const { default: CourseTextImport } = await vite.ssrLoadModule('/src/pages/CourseTextImport.jsx')
+ const importer = renderToString(h(MemoryRouter, null, h(CourseTextImport)))
+ assert.ok(importer.includes('Create a course from text') && importer.includes('Preview structure'))
+ assert.ok(importer.includes('asignx-course-template.txt') && importer.includes('text/plain') && importer.includes('accept=".txt,text/plain"'))
+ assert.ok(!importer.includes('Create draft course</button>'), 'Saving is unavailable before a successful preview')
  const { default: WorkspaceLink } = await vite.ssrLoadModule('/src/components/WorkspaceLink.jsx')
  for (const path of ['/learn', '/live', '/learn/courses', '/learn/courses/00000000-0000-4000-8000-000000000010', '/learn/lesson/1', '/learn/arcade', '/profile', '/progress', '/heart-practice']) {
   const link = location => renderToString(h(MemoryRouter, { initialEntries: [location] }, h(WorkspaceLink, { to: path }, 'Open')))

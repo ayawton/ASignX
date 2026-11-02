@@ -17,7 +17,7 @@ app.use('/api', (req,res,next)=>{
  };
  next();
 });
-app.use('/api/admin', express.json({ limit: '128kb' }));
+app.use('/api/admin', express.json({ limit: '256kb' }));
 app.use(express.json({ limit: '16kb' }));
 app.use('/api/recognition', createRecognitionRouter());
 app.use('/api/admin', admin);

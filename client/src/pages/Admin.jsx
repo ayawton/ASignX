@@ -21,7 +21,7 @@ export default function Admin() {
  const current = courses?.filter(course=>!course.is_archived) || []
  const archived = courses?.filter(course=>course.is_archived) || []
  return <section className="admin-course-list studio-section studio-page">
-  <header className="admin-courses-heading"><div><span className="text-label">Administration</span><h1>Manage courses</h1><p>Organize lessons and publish courses for your learners.</p></div><Link className="btn" to="/dashboard/admin/courses/new">Create a draft course</Link></header>
+  <header className="admin-courses-heading"><div><span className="text-label">Administration</span><h1>Manage courses</h1><p>Organize lessons and publish courses for your learners.</p></div><div className="admin-actions import-entry-actions"><Link className="btn btn-secondary" to="/dashboard/admin/courses/import">Import from text</Link><Link className="btn" to="/dashboard/admin/courses/new">Create a draft course</Link></div></header>
   {error?<div role="alert"><p>{error}</p><button className="btn" onClick={()=>setRetry(v=>v+1)}>Try again</button></div>:!courses?<p role="status">Loading courses…</p>:courses.length?<>
    <CourseCollection title="Current courses" courses={current}/>
    {archived.length>0 && <CourseCollection title="Archived courses" courses={archived} archived/>}

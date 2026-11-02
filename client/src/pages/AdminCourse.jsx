@@ -44,6 +44,7 @@ function CourseEditor({ id }) {
   {error ? <div role="alert"><h1>Course unavailable</h1><p>{error}</p><button className="btn" onClick={() => setRevision(v => v+1)}>Try again</button></div> : !course ? <><h1>Course editor</h1><p role="status">Loading course…</p></> : <>
    <header className="page-heading"><div><span className="admin-status">{course.is_published ? 'Published' : course.is_archived ? 'Archived' : 'Draft course'}</span><h1>{course.title}</h1><p>{course.description}</p></div></header>
    <Link className="text-link" to={`/dashboard/admin/courses/${id}/edit`}>Edit details and graphic</Link>
+   {!frozen && !draft && <Link className="text-link" to={`/dashboard/admin/courses/${id}/import`}>Import lessons from text</Link>}
    <CourseLifecycle course={course} disabled={busy || Boolean(draft)} onChanged={()=>{setCourse(null);setRevision(v=>v+1)}} />
    {course.is_archived&&<p className="admin-notice">Archived: hidden from learners, with existing learning records preserved. Create a draft copy to revise the content, or publish again to restore access.</p>}
    {message && <p className="admin-notice" role="status">{message}</p>}

@@ -1,533 +1,641 @@
-# ASignX Normalized Data Dictionary
+# ASignX Current Data Dictionary
 
-Updated 2 November 2026
+This dictionary documents the current ASignX application schema: 23 tables, 138 fields and 41 foreign keys. It covers account profiles, learning content, enrollment, lesson activity, hearts, XP, recognition and achievements. Supabase manages auth.users separately.
 
-This dictionary defines the 23 normalized application tables used by ASignX for ASign Learn and ASignLive. It lists application columns, their PostgreSQL types, required values, defaults, keys, relationships, and validation rules.
+- Prepared 8 November 2026 from server/src/db/schema/app.ts and the checked-in migration and service rules. This is a source-based snapshot; the live Supabase deployment was not inspected.
+- PK means primary key, FK means foreign key and UK means single-column unique. Multiple PK fields form one composite key. Composite foreign keys apply to the combination of fields.
+- Nullable means the database permits NULL. A dash in Default means no explicit column default. Required values without defaults must be supplied by the caller or a documented trigger. String defaults appear in quotes.
+- PostgreSQL varchar lengths are character limits. numeric(6,5) means six total digits and five fractional digits. timestamp with time zone represents an instant, displayed using a chosen timezone.
+- All 23 application tables enable row-level security. Public content reads require publication. Owner-scoped reads apply where defined. Tables without a client policy are accessed through the trusted backend; authorization remains necessary there.
+- Supabase auth.users is external. Only id (uuid, primary key) is shown in the ERD because it is the application FK target. Auth owns email, verification and credentials; those are not copied into profiles.
+- PK, FK, unique indexes and checks below come from Drizzle metadata. Trigger and service rules are described separately. FK updates use NO ACTION. CASCADE deletes dependent rows; RESTRICT prevents deleting a referenced parent.
+- Current persisted lesson recognition uses exercise_attempts and model_versions. Standalone practice storage, saved Live history and automatic achievement awarding are schema capabilities, not verified end-to-end UI workflows. Current Live text history stays in browser memory.
 
-Supabase Auth owns auth.users. A separate reference section documents the user attributes relevant to ASignX. It is not an application table, and the application migrations do not recreate it.
+## Table index
 
-The tables separate account profiles, reusable learning content, enrollment activity, recognition outcomes, and achievement definitions. Junction tables represent many-to-many relationships. Total XP and streaks are derived from activity instead of being duplicated as profile balances.
-
-## Reading the dictionary
-
-- PK means primary key; FK means foreign key. Multiple PK fields in one table form one composite primary key. A composite FK must be satisfied by the field combination, not by each field independently.
-- None means there is no database column default. The caller must provide a required value unless a documented trigger derives it. NULL means the field is optional and has no explicit default. Managed means Supabase controls the external field default.
-- VARCHAR sizes are character limits. NUMERIC(6,5) has six total digits and five fractional digits; score checks limit values to 0 through 1. TIMESTAMPTZ represents an instant; profile timezone is used separately for local learning dates.
-- CASCADE removes dependent records with their parent. RESTRICT prevents deleting a referenced shared record. All application FK updates use NO ACTION. RLS means row-level security.
-
-## Supabase Auth users reference
-
-Selected Supabase-managed account attributes. These physical fields are reference information, not application-owned DDL. Supabase controls additional columns, indexes, and defaults; application relationships reference only its stable id primary key.
-
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | Managed | Authentication identity referenced by profiles.id. |
-| email | VARCHAR | 255 characters | - | - | Yes | Managed | Email used for email-based sign-in. Not duplicated in profiles. |
-| encrypted_password | VARCHAR | 255 characters | - | - | Yes | Managed | Secure password hash for password-based accounts; not a readable password. |
-| email_confirmed_at | TIMESTAMPTZ | Microseconds | - | - | Yes | Managed | Email verification time. ASignX creates a profile only when this is set. |
-| last_sign_in_at | TIMESTAMPTZ | Microseconds | - | - | Yes | Managed | Most recent sign-in time, maintained by Supabase Auth. |
-| raw_user_meta_data | JSONB | Variable | - | - | Yes | Managed | User metadata; initial display name can seed profiles. Never trusted for assigning application roles. |
-| created_at | TIMESTAMPTZ | Microseconds | - | - | Yes | Managed | Authentication record creation time. |
-| updated_at | TIMESTAMPTZ | Microseconds | - | - | Yes | Managed | Authentication record modification time. |
-
-- One Auth identity has at most one application profile by key structure. Confirmation and backfill triggers create profiles with the same UUID only after email_confirmed_at is set. Pending Auth identities have no application profile.
-- The encrypted_password field contains a password hash, despite its historical column name. Applications use Supabase Auth for password operations and do not copy it into profiles.
-- Nullable email and password fields accommodate account types beyond email/password. ASignX email/password registration still requires those inputs through Auth.
+- profiles — Application profile and authorization role linked to a Supabase identity.
+- signs — Reusable sign vocabulary and demonstration media references.
+- courses — Course metadata, publication state and configurable cover graphics.
+- lessons — Ordered learning material and configured maximum first-time XP.
+- lesson_signs — Ordered association between lessons and reusable signs.
+- exercises — Ordered choice, true or false, and camera recognition questions.
+- exercise_options — Options and server-only correctness for choice and true or false questions.
+- enrollments — A learner membership in a course.
+- lesson_progress — Lesson milestones within an enrollment, without a duplicated XP balance.
+- exercise_attempts — Immutable graded exercise responses, including optional recognition evidence.
+- learner_hearts — One shared heart balance per learner and regeneration baseline.
+- lesson_runs — Individual lesson attempts, including reduced-XP replays.
+- lesson_run_questions — Question order, allocated XP and submitted attempt for a particular run.
+- xp_awards — Append-only XP ledger used to derive learner and course totals.
+- heart_practice_rounds — Practice rounds for restoring a heart without awarding XP.
+- heart_practice_questions — Three ordered questions assigned to a heart restoration round.
+- heart_practice_submissions — Graded answer submissions for the questions in a heart restoration round.
+- model_versions — Model identity, fingerprint and confidence threshold for traceability.
+- practice_attempts — Schema support for standalone sign practice results.
+- recognition_sessions — Schema support for saved recognition sessions.
+- recognition_results — Schema support for ordered predictions within a recognition session.
+- achievements — Achievement definitions and threshold metrics.
+- user_achievements — Association recording an achievement unlocked by a learner.
 
 ## profiles
 
-Application information for a registered learner or administrator. Authentication stays in Supabase Auth.
+Application profile and authorization role linked to a Supabase identity.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | auth.users.id | No | None | Same UUID as auth.users.id; supplied by the Auth profile-creation trigger, with no column default. |
-| display_name | VARCHAR | 100 characters | - | - | No | None | Name displayed in the application. |
-| role | VARCHAR | 10 characters | - | - | No | 'learner' | ASignX authorization role: learner or admin. Separate from Supabase Auth database roles. |
-| timezone | VARCHAR | 64 characters | - | - | No | 'UTC' | Valid IANA time zone used when deriving learning streaks. |
-| created_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Profile creation time. |
-| updated_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Profile modification time; refreshed by the validation trigger on UPDATE. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK, FK | No | — | Same UUID as auth.users.id; supplied by the Auth profile-creation trigger, with no column default. |
+| display_name | varchar(100) | — | No | — | Name displayed in the application. |
+| role | varchar(10) | — | No | 'learner' | ASignX authorization role: learner or admin. Separate from Supabase Auth database roles. |
+| timezone | varchar(64) | — | No | 'UTC' | Valid IANA time zone used when deriving learning streaks. |
+| created_at | timestamp with time zone | — | No | now() | Profile creation time. |
+| updated_at | timestamp with time zone | — | No | now() | Profile modification time; refreshed by the validation trigger on UPDATE. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
+- FK (id) → auth.users (id); delete CASCADE.
 - Check: length(btrim(display_name)) > 0.
 - Check: role in ('learner', 'admin').
-- Foreign key: (id) -> auth.users(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- Database trigger validates timezone and refreshes updated_at on profile updates.
-- An Auth trigger creates a learner profile only after Supabase sets email_confirmed_at. Already-confirmed identities are supported on insert, and backfill includes only confirmed users. A pending signup has no profile. The browser redirect does not control activation. The display name is taken from display_name or name metadata, falling back to ASL explorer; the application role is never copied from signup metadata.
-- A signed-in learner may read their own profile and update only display_name and timezone. Role changes require the trusted backend.
+Confirmed Auth identities receive learner profiles through database triggers. Profile updates validate timezone and refresh updated_at. Users cannot assign their own admin role.
 
 ## signs
 
-Shared ASL vocabulary for demonstrations, camera practice, and Live recognition.
+Reusable sign vocabulary and demonstration media references.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique sign identifier. |
-| gloss | VARCHAR | 100 characters | - | - | No | None | Unique vocabulary label, such as HELLO or THANK-YOU. |
-| meaning | TEXT | Variable | - | - | No | None | Meaning of the sign. |
-| category | VARCHAR | 60 characters | - | - | Yes | NULL | Simple browsing label, such as Greetings or Numbers; no separate taxonomy is needed. |
-| instructions | TEXT | Variable | - | - | Yes | NULL | Optional guidance for performing the sign. |
-| demo_path | TEXT | Variable | - | - | Yes | NULL | Object path for one curated demonstration video in the learning-media Storage bucket. |
-| is_published | BOOLEAN | 1 byte | - | - | No | false | Whether learners may access this sign. |
-| created_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Sign creation time. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique sign identifier. |
+| gloss | varchar(100) | UK | No | — | Unique vocabulary label, such as HELLO or THANK-YOU. |
+| meaning | text | — | No | — | Meaning of the sign. |
+| category | varchar(60) | — | Yes | — | Simple browsing label, such as Greetings or Numbers; no separate taxonomy is needed. |
+| instructions | text | — | Yes | — | Optional guidance for performing the sign. |
+| demo_path | text | — | Yes | — | Object path for one curated demonstration video in the learning-media Storage bucket. |
+| is_published | boolean | — | No | false | Whether learners may access this sign. |
+| created_at | timestamp with time zone | — | No | now() | Sign creation time. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
-- Unique: (gloss).
+- Unique: (gloss). NULL remains allowed where the field is nullable.
 - Check: length(btrim(gloss)) > 0.
 - Check: length(btrim(meaning)) > 0.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- Public readers see only published signs. demo_path is a Storage object path for curated learning media.
+Publication and ownership are checked through application services and database rules.
 
 ## courses
 
-Learning courses available for enrollment.
+Course metadata, publication state and configurable cover graphics.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique course identifier. |
-| title | VARCHAR | 150 characters | - | - | No | None | Course title. |
-| description | TEXT | Variable | - | - | Yes | NULL | Course overview. |
-| is_published | BOOLEAN | 1 byte | - | - | No | false | Whether the course is available to learners. |
-| created_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Course creation time. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique course identifier. |
+| title | varchar(150) | — | No | — | Course title. |
+| description | text | — | Yes | — | Course overview. |
+| cover_size | integer | — | No | 100 | Main cover text size setting. |
+| cover_angle | integer | — | No | -18 | Pattern angle in degrees. |
+| cover_density | integer | — | No | 5 | Pattern scale and density setting. |
+| cover_weight | varchar(3) | — | No | '600' | Cover text font weight. |
+| cover_font | varchar(12) | — | No | 'outfit' | Cover font identifier. |
+| cover_text | varchar(32) | — | No | '' | Custom text displayed on the cover. |
+| cover_style | varchar(12) | — | No | 'plain' | Cover layout identifier. |
+| cover_tone | varchar(12) | — | No | 'sky' | Cover palette identifier. |
+| is_published | boolean | — | No | false | Whether the course is available to learners. |
+| created_at | timestamp with time zone | — | No | now() | Course creation time. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
 - Check: length(btrim(title)) > 0.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- Public readers see only published courses. A course can have no lessons or enrollments when first created.
+Cover options are validated by the admin API. Draft and archived collections are application workflows; there is no separate archived status column.
 
 ## lessons
 
-Ordered learning units in a course. Learning text and linked sign demonstrations supply the lesson material.
+Ordered learning material and configured maximum first-time XP.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique lesson identifier. |
-| course_id | UUID | 128 bits | - | courses.id | No | None | References courses.id. |
-| title | VARCHAR | 150 characters | - | - | No | None | Lesson title. |
-| content | TEXT | Variable | - | - | Yes | NULL | Instructional text; demonstrations are reached through lesson_signs. |
-| sort_order | INTEGER | 32 bits | - | - | No | None | Positive lesson position within its course. |
-| xp_reward | INTEGER | 32 bits | - | - | No | 10 | Nonnegative XP awarded once on validated lesson completion. |
-| is_published | BOOLEAN | 1 byte | - | - | No | false | Whether this lesson is visible within its published course. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique lesson identifier. |
+| course_id | uuid | FK | No | — | References courses.id. |
+| title | varchar(150) | — | No | — | Lesson title. |
+| content | text | — | Yes | — | Instructional text; demonstrations are reached through lesson_signs. |
+| sort_order | integer | — | No | — | Positive lesson position within its course. |
+| xp_reward | integer | — | No | 10 | Configured maximum first-time lesson XP; allocated among questions by the service. |
+| is_published | boolean | — | No | false | Whether this lesson is visible within its published course. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
 - Unique: (course_id, sort_order).
+- FK (course_id) → courses (id); delete RESTRICT.
 - Check: length(btrim(title)) > 0.
 - Check: sort_order > 0.
 - Check: xp_reward >= 0.
-- Foreign key: (course_id) -> public.courses(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- Public readers see a lesson only when both the lesson and its parent course are published.
-- A deferred publication trigger requires at least two choices and exactly one correct choice for each exercise. A lesson may have no exercises.
-- The lesson identity and parent course cannot be changed by UPDATE. The configured XP is captured when the lesson is first completed.
+Publication and ownership are checked through application services and database rules.
 
 ## lesson_signs
 
-Connects signs to lessons so the same sign can appear in several lessons.
+Ordered association between lessons and reusable signs.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| lesson_id | UUID | 128 bits | Yes | lessons.id | No | None | References lessons.id; part of the composite primary key. |
-| sign_id | UUID | 128 bits | Yes | signs.id | No | None | References signs.id; part of the composite primary key. |
-| sort_order | INTEGER | 32 bits | - | - | No | None | Positive demonstration order within the lesson. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| lesson_id | uuid | PK, FK | No | — | References lessons.id; part of the composite primary key. |
+| sign_id | uuid | PK, FK | No | — | References signs.id; part of the composite primary key. |
+| sort_order | integer | — | No | — | Positive demonstration order within the lesson. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (lesson_id, sign_id).
 - Unique: (lesson_id, sort_order).
+- FK (lesson_id) → lessons (id); delete CASCADE.
+- FK (sign_id) → signs (id); delete RESTRICT.
 - Check: sort_order > 0.
-- Foreign key: (lesson_id) -> public.lessons(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
-- Foreign key: (sign_id) -> public.signs(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- The pair (lesson_id, sign_id) represents a many-to-many link. Public readers require a published lesson, parent course, and linked sign.
+Publication and ownership are checked through application services and database rules.
+
+Supporting indexes: (sign_id).
 
 ## exercises
 
-Each exercise is a single-choice, true/false or model-recognition question. Several exercises form a lesson quiz. Optional standalone practice remains separate.
+Ordered choice, true or false, and camera recognition questions.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique question/exercise identifier. |
-| lesson_id | UUID | 128 bits | - | lessons.id | No | None | References lessons.id. |
-| answer_type | VARCHAR | 16 characters | - | - | No | choice | choice, boolean or recognition; enforced by a check constraint. |
-| prompt | TEXT | Variable | - | - | No | None | Question displayed to the learner. |
-| sign_id | UUID | 128 bits | - | signs.id | Yes | NULL | Optional reference to signs.id for a sign-based question. |
-| sort_order | INTEGER | 32 bits | - | - | No | None | Positive exercise position within its lesson. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique question/exercise identifier. |
+| lesson_id | uuid | FK | No | — | References lessons.id. |
+| answer_type | varchar(16) | — | No | 'choice' | choice, boolean or recognition; enforced by a check constraint. |
+| prompt | text | — | No | — | Question displayed to the learner. |
+| sign_id | uuid | FK | Yes | — | Optional reference to signs.id for a sign-based question. |
+| sort_order | integer | — | No | — | Positive exercise position within its lesson. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
 - Unique: (lesson_id, sort_order).
+- FK (lesson_id) → lessons (id); delete RESTRICT.
+- FK (sign_id) → signs (id); delete RESTRICT.
+- Check: answer_type in ('choice','boolean','recognition').
 - Check: length(btrim(prompt)) > 0.
 - Check: sort_order > 0.
-- Foreign key: (lesson_id) -> public.lessons(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
-- Foreign key: (sign_id) -> public.signs(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- Each row has one answer type. Recognition exercises have no options; their supported published target sign must be linked to the lesson.
-- The parent lesson cannot be reassigned. Definition edits are rejected while the lesson is published, after the exercise has attempts, or after its lesson has completed progress. Create a new content version for substantive changes.
+Answer types are choice, boolean and recognition. Recognition requires a target sign; published choice questions require valid options. Correctness is withheld from learner question responses.
+
+Supporting indexes: (sign_id).
 
 ## exercise_options
 
-Answer choices for an exercise. Correctness is server-only and must not be included in learner responses.
+Options and server-only correctness for choice and true or false questions.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique option identifier. |
-| exercise_id | UUID | 128 bits | - | exercises.id | No | None | References exercises.id. |
-| option_text | TEXT | Variable | - | - | No | None | Answer choice text displayed to learners. |
-| is_correct | BOOLEAN | 1 byte | - | - | No | false | Marks the correct option; read only by the trusted grading/authoring backend. |
-| sort_order | INTEGER | 32 bits | - | - | No | None | Positive option order within the exercise. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique option identifier. |
+| exercise_id | uuid | FK | No | — | References exercises.id. |
+| option_text | text | — | No | — | Answer choice text displayed to learners. |
+| is_correct | boolean | — | No | false | Marks the correct option; read only by the trusted grading/authoring backend. |
+| sort_order | integer | — | No | — | Positive option order within the exercise. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
 - Unique: (exercise_id, sort_order).
 - Unique: (exercise_id, id).
+- Unique index: (exercise_id) WHERE is_correct.
+- FK (exercise_id) → exercises (id); delete RESTRICT.
 - Check: length(btrim(option_text)) > 0.
 - Check: sort_order > 0.
-- Foreign key: (exercise_id) -> public.exercises(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- The partial unique index on exercise_id WHERE is_correct allows at most one correct option per exercise; lesson publication requires exactly one.
-- Direct browser reads are denied. The backend exposes only id, exercise_id, option_text, and sort_order, excluding is_correct.
-- Options follow the same published/used definition freeze as their exercise, and cannot be moved to another exercise.
+The partial unique index permits at most one correct option per exercise. Publication validation supplies the additional completeness rules.
 
 ## enrollments
 
-Connects a learner to a course and provides the parent for learning activity in that course.
+A learner membership in a course.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique enrollment identifier. |
-| user_id | UUID | 128 bits | - | profiles.id | No | None | References profiles.id. |
-| course_id | UUID | 128 bits | - | courses.id | No | None | References courses.id. |
-| enrolled_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Enrollment time. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique enrollment identifier. |
+| user_id | uuid | FK | No | — | References profiles.id. |
+| course_id | uuid | FK | No | — | References courses.id. |
+| enrolled_at | timestamp with time zone | — | No | now() | Enrollment time. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
 - Unique: (user_id, course_id).
-- Foreign key: (user_id) -> public.profiles(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
-- Foreign key: (course_id) -> public.courses(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
+- FK (user_id) → profiles (id); delete CASCADE.
+- FK (course_id) → courses (id); delete RESTRICT.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- One enrollment per learner and course. Learning activity reaches its owner through this row.
-- Enrollment identity, learner, course, and enrollment time are immutable. Browser clients may read their own enrollments; creation is a backend operation.
+The database prevents changing an existing enrollment owner or course.
+
+Supporting indexes: (course_id).
 
 ## lesson_progress
 
-Tracks lesson milestones within an enrollment. XP is recorded separately in xp_awards.
+Lesson milestones within an enrollment, without a duplicated XP balance.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| enrollment_id | UUID | 128 bits | Yes | enrollments.id | No | None | References enrollments.id; part of the composite primary key. |
-| lesson_id | UUID | 128 bits | Yes | lessons.id | No | None | References lessons.id; part of the composite primary key. |
-| started_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Time the learner started the lesson. |
-| completed_at | TIMESTAMPTZ | Microseconds | - | - | Yes | NULL | Validated completion time; NULL means in progress. |
-| perfected_at | TIMESTAMPTZ | Microseconds | - | - | Yes | NULL | First fully correct run; historical completions are backfilled. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| enrollment_id | uuid | PK, FK | No | — | Enrollment identifying the learner and course. |
+| lesson_id | uuid | PK, FK | No | — | References lessons.id; part of the composite primary key. |
+| perfected_at | timestamp with time zone | — | Yes | — | First time all lesson questions have been answered correctly. |
+| started_at | timestamp with time zone | — | No | now() | Time the learner started the lesson. |
+| completed_at | timestamp with time zone | — | Yes | — | Validated completion time; NULL means in progress. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (enrollment_id, lesson_id).
+- FK (enrollment_id) → enrollments (id); delete CASCADE.
+- FK (lesson_id) → lessons (id); delete RESTRICT.
 - Check: completed_at is null or completed_at >= started_at.
-- Foreign key: (enrollment_id) -> public.enrollments(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
-- Foreign key: (lesson_id) -> public.lessons(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- A trigger verifies that the lesson belongs to the enrollment course. Progress identity and started_at are immutable.
-- Completion requires a finalized lesson run; a run may contain wrong choice answers.
-- Completed timestamps are immutable. Completed progress cannot be independently deleted while its enrollment remains. Account/enrollment deletion may cascade.
-- For a lesson without exercises, the backend must confirm that its material was viewed before requesting completion; the database does not observe viewing.
+Progress validation keeps lessons within the enrolled course. started_at and completion milestones are persisted; XP is summed from xp_awards.
+
+Supporting indexes: (lesson_id).
 
 ## exercise_attempts
 
-A learner submission for one exercise, including server-verified recognition outcomes. Multiple attempts are permitted.
+Immutable graded exercise responses, including optional recognition evidence.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique attempt identifier; reuse this ID for a retried submission. |
-| enrollment_id | UUID | 128 bits | - | enrollments.id | No | None | References enrollments.id; identifies the learner through enrollment. |
-| exercise_id | UUID | 128 bits | - | exercises.id; exercise_options.exercise_id (composite) | No | None | References exercises.id. |
-| selected_option_id | UUID | 128 bits | - | exercise_options.id (composite) | Yes | NULL | Required for choice/boolean, NULL for recognition; option must belong to exercise. |
-| response_text | TEXT | Variable | - | - | Yes | NULL | Trusted detected sign label for recognition exercises. |
-| recognition_confidence | NUMERIC | 6,5 | - | - | Yes | NULL | Confidence from trusted inference; validated in the server recognition path. |
-| model_version_id | UUID | 128 bits | - | model_versions.id | Yes | NULL | Required for recognition; references immutable model metadata. |
-| is_correct | BOOLEAN | 1 byte | - | - | No | None | Database-trigger grading result, derived from the stored option or trusted model evidence on insert. |
-| attempted_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Submission time. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique attempt identifier; reuse this ID for a retried submission. |
+| enrollment_id | uuid | FK | No | — | Enrollment identifying the learner and course. |
+| exercise_id | uuid | FK | No | — | References exercises.id. |
+| response_text | text | — | Yes | — | Recognized response label or other stored response evidence. |
+| recognition_confidence | numeric(6, 5) | — | Yes | — | Optional camera recognition score. |
+| model_version_id | uuid | FK | Yes | — | Model version that produced this prediction or response. |
+| selected_option_id | uuid | FK | Yes | — | Required for choice/boolean, NULL for recognition; option must belong to exercise. |
+| is_correct | boolean | — | No | — | Database-trigger grading result, derived from the stored option or trusted model evidence on insert. |
+| attempted_at | timestamp with time zone | — | No | now() | Submission time. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
-- Foreign key: (enrollment_id) -> public.enrollments(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
-- Foreign key: (exercise_id) -> public.exercises(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
-- Foreign key: (exercise_id, selected_option_id) -> public.exercise_options(exercise_id, id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
+- FK (enrollment_id) → enrollments (id); delete CASCADE.
+- FK (exercise_id) → exercises (id); delete RESTRICT.
+- FK (model_version_id) → model_versions (id); delete RESTRICT.
+- FK (exercise_id, selected_option_id) → exercise_options (exercise_id, id); delete RESTRICT.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- The composite foreign key (exercise_id, selected_option_id) references exercise_options(exercise_id, id), ensuring the selected option belongs to this exercise.
-- A trigger verifies course membership and derives is_correct from the stored answer option, or from the detected label and referenced model threshold for recognition. Caller-supplied correctness is overwritten.
-- Attempt rows cannot be updated. Reuse the submission UUID with conflict handling for a retried request.
+The composite option FK ensures an option belongs to its exercise. Database grading and trusted recognition submission validate responses. Attempts cannot be updated.
+
+Supporting indexes: (enrollment_id); (exercise_id, selected_option_id).
+
+## learner_hearts
+
+One shared heart balance per learner and regeneration baseline.
+
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| user_id | uuid | PK, FK | No | — | Profile owning this record. |
+| hearts | integer | — | No | 3 | Shared available hearts from zero through three. |
+| regenerated_at | timestamp with time zone | — | No | now() | Baseline used to calculate timed heart regeneration. |
+
+### Keys and database constraints
+
+- Primary key: (user_id).
+- FK (user_id) → profiles (id); delete CASCADE.
+- Check: hearts between 0 and 3.
+
+### Trigger and application rules
+
+The service restores one heart every five minutes, capped at three. Camera mismatches do not spend hearts. These timing and grading policies are service rules.
+
+## lesson_runs
+
+Individual lesson attempts, including reduced-XP replays.
+
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique record identifier. |
+| enrollment_id | uuid | FK | No | — | Enrollment identifying the learner and course. |
+| lesson_id | uuid | FK | No | — | Lesson associated with this record. |
+| replay | boolean | — | No | false | Whether this run began as a replay of a perfected lesson. |
+| started_at | timestamp with time zone | — | No | now() | Time this activity started. |
+| completed_at | timestamp with time zone | — | Yes | — | Completion time; NULL while incomplete. |
+| perfect | boolean | — | No | false | Whether all questions in this run were correct. |
+
+### Keys and database constraints
+
+- Primary key: (id).
+- Unique index: (enrollment_id, lesson_id) WHERE completed_at is null.
+- FK (enrollment_id) → enrollments (id); delete CASCADE.
+- FK (lesson_id) → lessons (id); delete RESTRICT.
+
+### Trigger and application rules
+
+A partial unique index permits one incomplete run per enrollment and lesson. Database validation checks course membership.
+
+## lesson_run_questions
+
+Question order, allocated XP and submitted attempt for a particular run.
+
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| run_id | uuid | PK, FK | No | — | Lesson run associated with this record. |
+| exercise_id | uuid | PK, FK | No | — | Exercise associated with this record. |
+| xp_value | integer | — | No | — | Question XP allocation snapshotted for this run. |
+| sort_order | integer | — | No | — | Snapshotted question position within this run. |
+| attempt_id | uuid | FK | Yes | — | Graded attempt attached after this run question is answered. |
+
+### Keys and database constraints
+
+- Primary key: (run_id, exercise_id).
+- Unique: (run_id, sort_order).
+- FK (run_id) → lesson_runs (id); delete CASCADE.
+- FK (exercise_id) → exercises (id); delete RESTRICT.
+- FK (attempt_id) → exercise_attempts (id); delete CASCADE.
+- Check: xp_value>=0.
+
+### Trigger and application rules
+
+The composite key identifies a question within a run. Database validation checks that the exercise and attached attempt match the run enrollment and lesson.
+
+## xp_awards
+
+Append-only XP ledger used to derive learner and course totals.
+
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique record identifier. |
+| enrollment_id | uuid | FK | No | — | Enrollment identifying the learner and course. |
+| lesson_id | uuid | FK | No | — | Lesson associated with this record. |
+| run_id | uuid | FK | Yes | — | Lesson run associated with this record. |
+| exercise_id | uuid | FK | Yes | — | Exercise associated with this record. |
+| source | varchar(20) | — | No | — | XP origin such as first_question, replay, material or migrated history. |
+| amount | integer | — | No | — | Nonnegative XP amount granted by this ledger entry. |
+| awarded_at | timestamp with time zone | — | No | now() | Time the XP ledger entry was recorded. |
+
+### Keys and database constraints
+
+- Primary key: (id).
+- Unique index: (enrollment_id, exercise_id) WHERE source in ('claim','first_question').
+- Unique index: (run_id) WHERE source in ('run_import','replay','material').
+- FK (enrollment_id) → enrollments (id); delete CASCADE.
+- FK (lesson_id) → lessons (id); delete RESTRICT.
+- FK (run_id) → lesson_runs (id); delete CASCADE.
+- FK (exercise_id) → exercises (id); delete RESTRICT.
+- Check: amount>=0.
+- Check: source in ('legacy','claim','run_import','first_question','replay','material').
+
+### Trigger and application rules
+
+Database validation checks enrollment, lesson, run and exercise consistency. Updates are rejected. First-time question claims are unique; replay and material totals are unique per run.
+
+Supporting indexes: (enrollment_id); (run_id).
+
+## heart_practice_rounds
+
+Practice rounds for restoring a heart without awarding XP.
+
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique record identifier. |
+| user_id | uuid | FK | No | — | Profile owning this record. |
+| completed_at | timestamp with time zone | — | Yes | — | Completion time; NULL while incomplete. |
+| created_at | timestamp with time zone | — | No | now() | Record creation time. |
+
+### Keys and database constraints
+
+- Primary key: (id).
+- Unique index: (user_id) WHERE completed_at is null.
+- FK (user_id) → profiles (id); delete CASCADE.
+
+### Trigger and application rules
+
+Only one incomplete round is allowed per learner. Three correct answers restore one heart and award no XP.
+
+## heart_practice_questions
+
+Three ordered questions assigned to a heart restoration round.
+
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| round_id | uuid | PK, FK | No | — | Heart restoration round containing this record. |
+| question_index | integer | PK | No | — | Zero-based position in a three-question heart round. |
+| exercise_id | uuid | FK | No | — | Exercise associated with this record. |
+
+### Keys and database constraints
+
+- Primary key: (round_id, question_index).
+- FK (round_id) → heart_practice_rounds (id); delete CASCADE.
+- FK (exercise_id) → exercises (id); delete RESTRICT.
+- Check: question_index between 0 and 2.
+
+### Trigger and application rules
+
+Positions are 0, 1 and 2. The application chooses previously encountered choice or boolean questions.
+
+## heart_practice_submissions
+
+Graded answer submissions for the questions in a heart restoration round.
+
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | — | Unique record identifier. |
+| round_id | uuid | FK | No | — | Heart restoration round containing this record. |
+| question_index | integer | FK | No | — | Zero-based position in a three-question heart round. |
+| selected_option_id | uuid | FK | No | — | Selected answer option. |
+| is_correct | boolean | — | No | — | Graded correctness of the submitted response. |
+| submitted_at | timestamp with time zone | — | No | now() | Time this practice answer was recorded. |
+
+### Keys and database constraints
+
+- Primary key: (id).
+- Unique index: (round_id, question_index) WHERE is_correct.
+- FK (selected_option_id) → exercise_options (id); delete RESTRICT.
+- FK (round_id, question_index) → heart_practice_questions (round_id, question_index); delete CASCADE.
+
+### Trigger and application rules
+
+Database grading verifies the selected option against the assigned question. The composite FK identifies that question. At most one correct submission is stored per round question; updates are rejected.
 
 ## model_versions
 
-Minimal record of the actual ML model used for a prediction; deployment and evaluation tooling remain outside this application schema.
+Model identity, fingerprint and confidence threshold for traceability.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique model version identifier. |
-| version | VARCHAR | 50 characters | - | - | No | None | Unique immutable release name. |
-| fingerprint | VARCHAR | 128 chars | - | - | Yes | NULL | Unique loaded-model metadata fingerprint. |
-| artifact_path | TEXT | Variable | - | - | Yes | NULL | Optional private model artifact path. |
-| confidence_threshold | NUMERIC | 6 digits total, 5 decimal | - | - | No | 0.80000 | Acceptance threshold from 0 to 1 for this model version. |
-| created_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Model registration time. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique model version identifier. |
+| version | varchar(50) | UK | No | — | Unique immutable release name. |
+| fingerprint | varchar(128) | UK | Yes | — | Optional unique model artifact fingerprint. |
+| artifact_path | text | — | Yes | — | Optional model artifact location; not required to be a Supabase Storage path. |
+| confidence_threshold | numeric(6, 5) | — | No | 0.80000 | Acceptance threshold from 0 to 1 for this model version. |
+| created_at | timestamp with time zone | — | No | now() | Model registration time. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
-- Unique: (version) and non-NULL (fingerprint).
+- Unique: (version). NULL remains allowed where the field is nullable.
+- Unique: (fingerprint). NULL remains allowed where the field is nullable.
 - Check: length(btrim(version)) > 0.
-- Check: artifact_path is NULL or nonblank.
+- Check: artifact_path is null or length(btrim(artifact_path)) > 0.
 - Check: confidence_threshold between 0 and 1.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- All model-version updates are rejected. Register a new row when the version, artifact, or confidence threshold changes.
-- artifact_path refers to a private model-artifacts Storage object. This table has no direct browser access.
+Versions and non-null fingerprints are unique. Model records are immutable. Artifact paths are optional; model binaries belong to the recognition deployment, not necessarily Supabase Storage.
 
 ## practice_attempts
 
-Authenticated camera practice results, including standalone practice and optional lesson practice.
+Schema support for standalone sign practice results.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique practice attempt identifier; reuse on retry. |
-| user_id | UUID | 128 bits | - | profiles.id | No | None | References profiles.id. |
-| lesson_id | UUID | 128 bits | - | lessons.id | Yes | NULL | Optional references lessons.id; NULL means standalone practice or review. |
-| target_sign_id | UUID | 128 bits | - | signs.id | No | None | References signs.id; the sign the learner was asked to perform. |
-| predicted_sign_id | UUID | 128 bits | - | signs.id | Yes | NULL | References signs.id; NULL means no supported sign was recognized. |
-| model_version_id | UUID | 128 bits | - | model_versions.id | No | None | References model_versions.id; actual model used by the recognition service. |
-| confidence | NUMERIC | 6 digits total, 5 decimal | - | - | No | None | Recognition score between 0 and 1. |
-| is_correct | BOOLEAN | 1 byte | - | - | No | None | Database-trigger result based on target match and the recorded model confidence threshold. |
-| attempted_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Practice time. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique practice attempt identifier; reuse on retry. |
+| user_id | uuid | FK | No | — | References profiles.id. |
+| lesson_id | uuid | FK | Yes | — | Optional references lessons.id; NULL means standalone practice or review. |
+| target_sign_id | uuid | FK | No | — | References signs.id; the sign the learner was asked to perform. |
+| predicted_sign_id | uuid | FK | Yes | — | References signs.id; NULL means no supported sign was recognized. |
+| model_version_id | uuid | FK | No | — | Model version that produced this prediction or response. |
+| confidence | numeric(6, 5) | — | No | — | Recognition score between 0 and 1. |
+| is_correct | boolean | — | No | — | Database-trigger result based on target match and the recorded model confidence threshold. |
+| attempted_at | timestamp with time zone | — | No | now() | Practice time. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
+- FK (user_id) → profiles (id); delete CASCADE.
+- FK (lesson_id) → lessons (id); delete RESTRICT.
+- FK (target_sign_id) → signs (id); delete RESTRICT.
+- FK (predicted_sign_id) → signs (id); delete RESTRICT.
+- FK (model_version_id) → model_versions (id); delete RESTRICT.
 - Check: confidence between 0 and 1.
-- Foreign key: (user_id) -> public.profiles(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
-- Foreign key: (lesson_id) -> public.lessons(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
-- Foreign key: (target_sign_id) -> public.signs(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
-- Foreign key: (predicted_sign_id) -> public.signs(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
-- Foreign key: (model_version_id) -> public.model_versions(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- For lesson practice, a trigger requires enrollment in the lesson course and target membership in lesson_signs. Standalone practice has no lesson_id.
-- The database derives is_correct as prediction equals target and confidence meets the referenced model threshold; a missing prediction yields false.
-- Updates are rejected. The backend supplies a trusted recognition result; storing it does not itself implement model inference.
+Database grading validates model confidence and target prediction. Records are immutable. Standalone practice persistence is schema support rather than a verified end-to-end UI workflow.
+
+Supporting indexes: (user_id, attempted_at); (lesson_id); (target_sign_id); (predicted_sign_id); (model_version_id).
 
 ## recognition_sessions
 
-Optional saved ASignLive history for authenticated users. Guest and unsaved sessions are transient.
+Schema support for saved recognition sessions.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique saved session identifier. |
-| user_id | UUID | 128 bits | - | profiles.id | No | None | References profiles.id; session owner. |
-| started_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Session start time. |
-| ended_at | TIMESTAMPTZ | Microseconds | - | - | Yes | NULL | Session end time; NULL while open. |
-| final_text | TEXT | Variable | - | - | Yes | NULL | Text assembled by the finalization trigger from accepted sign meanings; NULL while open. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique saved session identifier. |
+| user_id | uuid | FK | No | — | References profiles.id; session owner. |
+| started_at | timestamp with time zone | — | No | now() | Session start time. |
+| ended_at | timestamp with time zone | — | Yes | — | Session end time; NULL while open. |
+| final_text | text | — | Yes | — | Text assembled by the finalization trigger from accepted sign meanings; NULL while open. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
+- FK (user_id) → profiles (id); delete CASCADE.
 - Check: ended_at is null or ended_at >= started_at.
 - Check: final_text is null or ended_at is not null.
-- Foreign key: (user_id) -> public.profiles(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- The backend creates a saved session only after explicit opt-in. Consent and authentication are application responsibilities; there is no consent column in this schema.
-- Guest and unsaved sessions are transient. Only the owner may read saved history.
-- When ended, a trigger composes final_text from sign meanings in sequence_no order, accepting only known signs meeting each result model threshold. With no accepted result, final_text is an empty string.
-- The session identity, owner, and started_at are immutable; an ended session cannot be updated.
+Database finalization checks session times and text. Current Live history remains in browser memory; the saved-session workflow is not implemented end to end.
+
+Supporting indexes: (user_id, started_at).
 
 ## recognition_results
 
-Ordered stabilized sign predictions within a saved Live session; rows themselves represent the recognized sign sequence.
+Schema support for ordered predictions within a recognition session.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique prediction-event identifier. |
-| session_id | UUID | 128 bits | - | recognition_sessions.id | No | None | References recognition_sessions.id. |
-| sign_id | UUID | 128 bits | - | signs.id | Yes | NULL | References signs.id; NULL means no supported label was recognized. |
-| model_version_id | UUID | 128 bits | - | model_versions.id | No | None | References model_versions.id; actual model used for this event. |
-| sequence_no | INTEGER | 32 bits | - | - | No | None | Positive event position within the session. |
-| confidence | NUMERIC | 6 digits total, 5 decimal | - | - | No | None | Recognition score between 0 and 1; only accepted labeled results contribute to final_text. |
-| recognized_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Prediction time. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique prediction-event identifier. |
+| session_id | uuid | FK | No | — | References recognition_sessions.id. |
+| sign_id | uuid | FK | Yes | — | References signs.id; NULL means no supported label was recognized. |
+| model_version_id | uuid | FK | No | — | Model version that produced this prediction or response. |
+| sequence_no | integer | — | No | — | Positive event position within the session. |
+| confidence | numeric(6, 5) | — | No | — | Recognition score between 0 and 1; only accepted labeled results contribute to final_text. |
+| recognized_at | timestamp with time zone | — | No | now() | Prediction time. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
 - Unique: (session_id, sequence_no).
+- FK (session_id) → recognition_sessions (id); delete CASCADE.
+- FK (sign_id) → signs (id); delete RESTRICT.
+- FK (model_version_id) → model_versions (id); delete RESTRICT.
 - Check: sequence_no > 0.
 - Check: confidence between 0 and 1.
-- Foreign key: (session_id) -> public.recognition_sessions(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
-- Foreign key: (sign_id) -> public.signs(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
-- Foreign key: (model_version_id) -> public.model_versions(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- The database rejects inserts into ended sessions and prevents UPDATE of stored results.
-- sequence_no determines ordering. Unknown or low-confidence results remain recorded but do not contribute to final_text.
-- The backend persists stabilized sign events, not camera frames. Only the owner of the parent session may read these rows.
+Database validation checks session ordering and model confidence. Results are immutable. This storage model does not prove a current saved-history UI exists.
+
+Supporting indexes: (sign_id); (model_version_id).
 
 ## achievements
 
-Simple badge definitions based on a supported learning metric and threshold.
+Achievement definitions and threshold metrics.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| id | UUID | 128 bits | Yes | - | No | gen_random_uuid() | Unique achievement identifier. |
-| code | VARCHAR | 50 characters | - | - | No | None | Unique stable badge code, such as FIRST_LESSON. |
-| name | VARCHAR | 100 characters | - | - | No | None | Badge name displayed to learners. |
-| description | TEXT | Variable | - | - | No | None | Description of how to earn the badge. |
-| metric | VARCHAR | 25 characters | - | - | No | None | One of completed_lessons, successful_practices, total_xp, or streak_days. |
-| threshold | INTEGER | 32 bits | - | - | No | None | Positive target value for the selected metric. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| id | uuid | PK | No | gen_random_uuid() | Unique achievement identifier. |
+| code | varchar(50) | UK | No | — | Unique stable badge code, such as FIRST_LESSON. |
+| name | varchar(100) | — | No | — | Badge name displayed to learners. |
+| description | text | — | No | — | Description of how to earn the badge. |
+| metric | varchar(25) | — | No | — | One of completed_lessons, successful_practices, total_xp, or streak_days. |
+| threshold | integer | — | No | — | Positive target value for the selected metric. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (id).
-- Unique: (code).
+- Unique: (code). NULL remains allowed where the field is nullable.
 - Check: length(btrim(code)) > 0.
 - Check: length(btrim(name)) > 0.
 - Check: length(btrim(description)) > 0.
 - Check: metric in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days').
 - Check: threshold > 0.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- Supported metrics are completed_lessons, successful_practices, total_xp, and streak_days.
-- Once any user has received the achievement, its definition cannot be updated. Use a new achievement for revised criteria.
+Metrics are limited to completed_lessons, successful_practices, total_xp and streak_days. Automatic awarding is not implemented end to end.
 
 ## user_achievements
 
-Badges unlocked by learners; prevents duplicate awards.
+Association recording an achievement unlocked by a learner.
 
-| Column name | Data type | Size or precision | PK | FK reference | Null allowed | Default value | Description |
-|---|---|---|---|---|---|---|---|
-| user_id | UUID | 128 bits | Yes | profiles.id | No | None | References profiles.id; part of the composite primary key. |
-| achievement_id | UUID | 128 bits | Yes | achievements.id | No | None | References achievements.id; part of the composite primary key. |
-| unlocked_at | TIMESTAMPTZ | Microseconds | - | - | No | now() | Time the backend confirmed eligibility and awarded the badge. |
+| Field | PostgreSQL type | Key | Nullable | Default | Description |
+|---|---|---|---|---|---|
+| user_id | uuid | PK, FK | No | — | References profiles.id; part of the composite primary key. |
+| achievement_id | uuid | PK, FK | No | — | References achievements.id; part of the composite primary key. |
+| unlocked_at | timestamp with time zone | — | No | now() | Time the backend confirmed eligibility and awarded the badge. |
 
-**Keys and constraints**
+### Keys and database constraints
 
 - Primary key: (user_id, achievement_id).
-- Foreign key: (user_id) -> public.profiles(id); ON DELETE CASCADE; ON UPDATE NO ACTION.
-- Foreign key: (achievement_id) -> public.achievements(id); ON DELETE RESTRICT; ON UPDATE NO ACTION.
+- FK (user_id) → profiles (id); delete CASCADE.
+- FK (achievement_id) → achievements (id); delete RESTRICT.
 
-**Validation and access rules**
+### Trigger and application rules
 
-- A trigger validates the referenced achievement metric and threshold before an award is inserted. The composite primary key prevents duplicate awards.
-- Award records cannot be updated. Learners may read only their own awards.
+Database eligibility validation checks achievement thresholds. Awards are immutable; automatic awarding is not implemented end to end.
 
-## Relationship reference
+Supporting indexes: (achievement_id).
 
-Each row describes a child-to-parent foreign key. A parent may have zero or many children unless marked one-to-zero-or-one. Optional means that the child FK may be NULL.
+## Normalization and XP notes
 
-| Parent table | Child table and FK fields | Parent to child | Child reference | On delete |
-|---|---|---|---|---|
-| auth.users | profiles(id) | One to zero or one | Required | CASCADE |
-| public.courses | lessons(course_id) | One to many | Required | RESTRICT |
-| public.lessons | lesson_signs(lesson_id) | One to many | Required | CASCADE |
-| public.signs | lesson_signs(sign_id) | One to many | Required | RESTRICT |
-| public.lessons | exercises(lesson_id) | One to many | Required | RESTRICT |
-| public.signs | exercises(sign_id) | One to many | Optional | RESTRICT |
-| public.exercises | exercise_options(exercise_id) | One to many | Required | RESTRICT |
-| public.profiles | enrollments(user_id) | One to many | Required | CASCADE |
-| public.courses | enrollments(course_id) | One to many | Required | RESTRICT |
-| public.enrollments | lesson_progress(enrollment_id) | One to many | Required | CASCADE |
-| public.lessons | lesson_progress(lesson_id) | One to many | Required | RESTRICT |
-| public.enrollments | exercise_attempts(enrollment_id) | One to many | Required | CASCADE |
-| public.exercises | exercise_attempts(exercise_id) | One to many | Required | RESTRICT |
-| public.exercise_options | exercise_attempts(exercise_id, selected_option_id) | One to many | Required | RESTRICT |
-| public.profiles | practice_attempts(user_id) | One to many | Required | CASCADE |
-| public.lessons | practice_attempts(lesson_id) | One to many | Optional | RESTRICT |
-| public.signs | practice_attempts(target_sign_id) | One to many | Required | RESTRICT |
-| public.signs | practice_attempts(predicted_sign_id) | One to many | Optional | RESTRICT |
-| public.model_versions | practice_attempts(model_version_id) | One to many | Required | RESTRICT |
-| public.profiles | recognition_sessions(user_id) | One to many | Required | CASCADE |
-| public.recognition_sessions | recognition_results(session_id) | One to many | Required | CASCADE |
-| public.signs | recognition_results(sign_id) | One to many | Optional | RESTRICT |
-| public.model_versions | recognition_results(model_version_id) | One to many | Required | RESTRICT |
-| public.profiles | user_achievements(user_id) | One to many | Required | CASCADE |
-| public.achievements | user_achievements(achievement_id) | One to many | Required | RESTRICT |
+XP is derived from xp_awards, not stored as a profile balance or duplicated in lesson_progress and lesson_runs. lesson_question_rewards was merged into the ledger. Heart round questions and submissions are relational children; the successful-answer count is calculated. Recognition attempts reference model_versions rather than storing duplicate model names.
 
-## Shared rules
+The service currently allocates lesson XP by answer type with weights of choice 30%, boolean 20% and recognition 50%, renormalized when a type is absent. Unclaimed first-time question XP can be recovered on a retry. Replays after perfection award reduced XP based on correct answers. Hearts are shared across lessons and regenerate one every five minutes, up to three. These are service policies, not column defaults.
 
-- All 16 application tables enable RLS. Public roles can read published learning content and achievement definitions. A lesson also requires a published parent course, and a lesson-sign link additionally requires a published sign.
-- Authenticated browser users can read their own profile, enrollments, progress, attempts, practices, saved sessions and results, and earned achievements. The only browser profile writes are display_name and timezone. The backend validates caller identity, ownership, and administrator authorization for privileged operations.
-- exercise_options and model_versions have no direct browser access. Safe answer fields are delivered through the backend; correctness and private model paths remain server-only.
-- Guests may browse learning content and use transient practice and Live features without an application profile. Saving personal activity requires a registered account. Guest browser activity is not a trusted source of account XP, grading results, or awards.
-- Total XP is SUM(xp_awards.amount) through learner enrollments. Streak uses distinct local dates of completed lessons or successful practice ending today/yesterday in profiles.timezone.
-- Deleting an Auth user cascades to the profile and its dependent personal activity. Shared vocabulary, courses, lessons, models, and achievement definitions remain; referenced shared content should be unpublished or archived rather than removed.
-- Saving Live history requires explicit user opt-in in the application. The schema stores stabilized events and finalized text, with no camera-frame or raw-video columns. Curated media and model files belong in Storage; database fields contain object paths.
-- Backend services must verify viewing for no-quiz completion, validate recognition service output, enforce opt-in, and expose only authorized fields. Database constraints and triggers do not replace these application responsibilities.
-
-## Normalization notes
-
-- Identity and profile: authentication credentials remain in the managed Auth schema; application attributes depend on the profile UUID. Repeating email and password columns in application activity tables are avoided.
-- Reusable content: signs, courses, lessons, exercises, and answer options have separate identities. lesson_signs resolves the many-to-many association between lessons and signs.
-- Learner activity: enrollments resolves learners and courses; lesson_progress depends on an enrollment and lesson; exercise_attempts records individual submissions rather than repeating course or profile details.
-- Prediction provenance: model_versions stores model artifact and threshold definitions once. Practice and recognition rows reference the actual model version used.
-- Achievement definitions and awards: achievements defines criteria once; user_achievements resolves the many-to-many association and prevents duplicate awards.
-- Historical snapshots: XP award amounts and is_correct are intentional recorded outcomes. They preserve the result of an event rather than copying mutable profile totals. Unique order constraints and the option-pair foreign key enforce additional candidate keys and consistency.
-
-## References
-
-- [Application schema](../../server/src/db/schema/app.ts)
-- [Generated table and constraint migration](../../server/drizzle/20261021161839_asignx_application/migration.sql)
-- [Custom validation triggers and access grants](../../server/drizzle/20261021161905_asignx_rules/migration.sql)
-- [Supabase account profile guidance](https://supabase.com/docs/guides/auth/managing-user-data)
-- [Supabase password storage guidance](https://supabase.com/docs/guides/auth/password-security)
-- [Supabase Auth user field definitions](https://github.com/supabase/auth/blob/master/migrations/00_init_auth_schema.up.sql)
-
-## Gamification activity tables
-
-These seven tables extend the original 16-table learning/recognition schema. Each enables RLS and accepts backend writes only. New runs separate completion from perfection; legacy completion timestamps and XP remain intact.
-
-| Table | Columns and defaults | Keys and relationships |
-|---|---|---|
-| learner_hearts | user_id UUID; hearts INTEGER NOT NULL DEFAULT 3, check 0–3; regenerated_at TIMESTAMPTZ DEFAULT now() | PK user_id; FK profiles.id ON DELETE CASCADE |
-| lesson_runs | id UUID DEFAULT gen_random_uuid(); enrollment_id UUID; lesson_id UUID; replay BOOLEAN DEFAULT false; started_at TIMESTAMPTZ DEFAULT now(); completed_at nullable TIMESTAMPTZ; perfect BOOLEAN DEFAULT false | PK id; enrollment FK CASCADE; lesson FK RESTRICT; unique enrollment_id/lesson_id while incomplete |
-| lesson_run_questions | run_id UUID; exercise_id UUID; xp_value INTEGER nonnegative; sort_order INTEGER; attempt_id nullable UUID | PK run_id/exercise_id; unique run_id/sort_order; run FK CASCADE; exercise FK RESTRICT; saved attempt FK CASCADE for account deletion |
-| xp_awards | id UUID DEFAULT gen_random_uuid(); enrollment_id UUID; lesson_id UUID; run_id nullable UUID; exercise_id nullable UUID; source VARCHAR(20); amount INTEGER nonnegative; awarded_at TIMESTAMPTZ DEFAULT now() | PK id; enrollment/run FK CASCADE; lesson/exercise FK RESTRICT; unique enrollment/exercise for claim or first_question; unique run for run_import, replay or material |
-| heart_practice_rounds | id UUID DEFAULT gen_random_uuid(); user_id UUID; completed_at nullable TIMESTAMPTZ; created_at TIMESTAMPTZ DEFAULT now() | PK id; user FK CASCADE; one incomplete round per user |
-| heart_practice_questions | round_id UUID; question_index INTEGER 0–2; exercise_id UUID | PK round_id/question_index; round FK CASCADE; exercise FK RESTRICT |
-| heart_practice_submissions | id UUID; round_id UUID; question_index INTEGER; selected_option_id UUID; is_correct BOOLEAN; submitted_at TIMESTAMPTZ DEFAULT now() | PK id; composite question FK CASCADE; option FK RESTRICT; one correct submission per question |
-
-All unspecified nullability above is NOT NULL. New runs use private snapshots and finalized attempt pointers. Heart regeneration, account isolation, scoring and practice rewards are enforced by transactional backend handlers; there are no browser write policies. Total XP is SUM(xp_awards.amount). Run XP and practice correct counts are derived. First-time question XP is claimed only once; post-perfect replays award 25% of correct weighted XP, rounded down. Choice/boolean mistakes consume one of three shared hearts; one heart regenerates every five minutes. Camera feedback and heart practice do not consume hearts.
-
-Normalization: model_versions.fingerprint is nullable VARCHAR(128), unique; artifact_path is nullable for externally loaded models. Recognition attempts require a model FK, label and valid confidence and never an option. XP source is one of legacy, claim, run_import, first_question, replay or material. Imported claim rows carry zero amount to avoid double-counting imported run XP. Awards are immutable; triggers verify enrollment, lesson, run and exercise relationships. Practice questions/submissions replace JSON arrays; imported answers use the round creation time because exact historical submission times were not stored. Dormant feature tables are retained.
+Related artifacts: [ERD PNG](ER-Schema.png), [ERD SVG](ER-Schema.svg), [editable ERD](Normalized-ERD.uml.txt).

@@ -1,0 +1,198 @@
+@startuml ASignX_Class_Diagram
+title ASignX - Domain class diagram
+top to bottom direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam linetype polyline
+hide methods
+
+class AuthUser <<external identity>> {
+  id: UUID
+}
+class Achievement <<schema support>> #F1F3F6 {
+  id: UUID
+  code: String
+  metric: String
+  threshold: Integer
+}
+class Course <<domain record>> {
+  id: UUID
+  title: String
+  description: String?
+  isPublished: Boolean
+  coverStyle: String
+}
+class Enrollment <<domain record>> {
+  id: UUID
+  enrolledAt: DateTime
+}
+class ExerciseAttempt <<domain record>> {
+  id: UUID
+  isCorrect: Boolean
+  responseText: String?
+  recognitionConfidence: Decimal?
+  attemptedAt: DateTime
+}
+class ExerciseOption <<domain record>> {
+  id: UUID
+  optionText: String
+  isCorrect: Boolean
+  sortOrder: Integer
+}
+class Exercise <<domain record>> {
+  id: UUID
+  prompt: String
+  answerType: choice | boolean | recognition
+  sortOrder: Integer
+}
+class HeartPracticeQuestion <<domain record>> {
+  roundId: UUID
+  questionIndex: Integer [0..2]
+  exerciseId: UUID
+}
+class HeartPracticeRound <<domain record>> {
+  id: UUID
+  completedAt: DateTime?
+  /correctCount: Integer
+}
+class HeartPracticeSubmission <<domain record>> {
+  id: UUID
+  questionIndex: Integer
+  isCorrect: Boolean
+  submittedAt: DateTime
+}
+class LearnerHearts <<domain record>> {
+  userId: UUID
+  hearts: Integer [0..3]
+  regeneratedAt: DateTime
+}
+class LessonProgress <<domain record>> {
+  enrollmentId: UUID
+  lessonId: UUID
+  startedAt: DateTime
+  completedAt: DateTime?
+  perfectedAt: DateTime?
+}
+class LessonRunQuestion <<domain record>> {
+  runId: UUID
+  exerciseId: UUID
+  xpValue: Integer
+  sortOrder: Integer
+}
+class LessonRun <<domain record>> {
+  id: UUID
+  replay: Boolean
+  perfect: Boolean
+  completedAt: DateTime?
+  /xpEarned: Integer
+}
+class LessonSign <<domain record>> {
+  lessonId: UUID
+  signId: UUID
+  sortOrder: Integer
+}
+class Lesson <<domain record>> {
+  id: UUID
+  title: String
+  content: String?
+  sortOrder: Integer
+  xpReward: Integer
+  isPublished: Boolean
+}
+class ModelVersion <<domain record>> {
+  id: UUID
+  version: String
+  fingerprint: String?
+  confidenceThreshold: Decimal
+}
+class PracticeAttempt <<schema support>> #F1F3F6 {
+  id: UUID
+  confidence: Decimal
+  isCorrect: Boolean
+  attemptedAt: DateTime
+}
+class Profile <<domain record>> {
+  id: UUID
+  displayName: String
+  role: learner | admin
+  timezone: String
+}
+class RecognitionResult <<schema support>> #F1F3F6 {
+  id: UUID
+  sequenceNo: Integer
+  confidence: Decimal
+}
+class RecognitionSession <<schema support>> #F1F3F6 {
+  id: UUID
+  startedAt: DateTime
+  endedAt: DateTime?
+  finalText: String?
+}
+class Sign <<domain record>> {
+  id: UUID
+  gloss: String
+  meaning: String
+  demoPath: String?
+  isPublished: Boolean
+}
+class UserAchievement <<schema support>> #F1F3F6 {
+  userId: UUID
+  achievementId: UUID
+  unlockedAt: DateTime
+}
+class XpAward <<domain record>> {
+  id: UUID
+  source: AwardSource
+  amount: Integer
+  awardedAt: DateTime
+}
+Profile "1" -- "0..*" Enrollment : user_id
+Course "1" -- "0..*" Enrollment : course_id
+Enrollment "1" -- "0..*" ExerciseAttempt : enrollment_id
+Exercise "1" -- "0..*" ExerciseAttempt : exercise_id
+ModelVersion "0..1" -- "0..*" ExerciseAttempt : model_version_id
+ExerciseOption "0..1" -- "0..*" ExerciseAttempt : exercise_id + selected_option_id
+Exercise "1" -- "0..*" ExerciseOption : exercise_id
+Lesson "1" -- "0..*" Exercise : lesson_id
+Sign "0..1" -- "0..*" Exercise : sign_id
+HeartPracticeRound "1" -- "0..*" HeartPracticeQuestion : round_id
+Exercise "1" -- "0..*" HeartPracticeQuestion : exercise_id
+Profile "1" -- "0..*" HeartPracticeRound : user_id
+ExerciseOption "1" -- "0..*" HeartPracticeSubmission : selected_option_id
+HeartPracticeQuestion "1" -- "0..*" HeartPracticeSubmission : round_id + question_index
+Profile "1" -- "0..1" LearnerHearts : user_id
+Enrollment "1" -- "0..*" LessonProgress : enrollment_id
+Lesson "1" -- "0..*" LessonProgress : lesson_id
+LessonRun "1" -- "0..*" LessonRunQuestion : run_id
+Exercise "1" -- "0..*" LessonRunQuestion : exercise_id
+ExerciseAttempt "0..1" -- "0..*" LessonRunQuestion : attempt_id
+Enrollment "1" -- "0..*" LessonRun : enrollment_id
+Lesson "1" -- "0..*" LessonRun : lesson_id
+Lesson "1" -- "0..*" LessonSign : lesson_id
+Sign "1" -- "0..*" LessonSign : sign_id
+Course "1" -- "0..*" Lesson : course_id
+Profile "1" -- "0..*" PracticeAttempt : user_id
+Lesson "0..1" -- "0..*" PracticeAttempt : lesson_id
+Sign "1" -- "0..*" PracticeAttempt : target_sign_id
+Sign "0..1" -- "0..*" PracticeAttempt : predicted_sign_id
+ModelVersion "1" -- "0..*" PracticeAttempt : model_version_id
+AuthUser "1" -- "0..1" Profile : id
+RecognitionSession "1" -- "0..*" RecognitionResult : session_id
+Sign "0..1" -- "0..*" RecognitionResult : sign_id
+ModelVersion "1" -- "0..*" RecognitionResult : model_version_id
+Profile "1" -- "0..*" RecognitionSession : user_id
+Profile "1" -- "0..*" UserAchievement : user_id
+Achievement "1" -- "0..*" UserAchievement : achievement_id
+Enrollment "1" -- "0..*" XpAward : enrollment_id
+Lesson "1" -- "0..*" XpAward : lesson_id
+LessonRun "0..1" -- "0..*" XpAward : run_id
+Exercise "0..1" -- "0..*" XpAward : exercise_id
+
+legend bottom
+Domain records model the current Drizzle schema.
+Gray = schema support without a complete application workflow.
+/attribute = derived value. Foreign-key fields are shown on associations.
+Profile.role holds the learner/admin distinction.
+endlegend
+@enduml

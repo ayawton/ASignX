@@ -1,236 +1,240 @@
 @startuml
-title Normalized ASL Learning and Recognition Database (3NF)
-
+title ASignX Current Database ERD
 hide circle
 skinparam linetype ortho
-skinparam entity {
-    BackgroundColor #F5F0FF
-    BorderColor #9370DB
-    FontColor #222222
-}
-skinparam ArrowColor #777777
-
-' =========================
-' AUTHENTICATION AND USERS
-' =========================
-
-entity "auth_users" as auth_users {
+skinparam backgroundColor white
+entity "auth.users (managed)" as auth_users {
     * id : uuid <<PK>>
-    --
-    Supabase-managed authentication
 }
-
 entity "profiles" as profiles {
-    * id : uuid <<PK, FK>>
-    --
-    display_name : varchar(100)
-    role : varchar(10)
-    timezone : varchar(64)
-    created_at : timestamptz
-    updated_at : timestamptz
+    * id : uuid <<PK,FK>>
+    * display_name : varchar(100)
+    * role : varchar(10)
+    * timezone : varchar(64)
+    * created_at : timestamptz
+    * updated_at : timestamptz
 }
-
-' =========================
-' COURSES AND ENROLLMENT
-' =========================
-
-entity "courses" as courses {
-    * id : uuid <<PK>>
-    --
-    title : varchar(150)
-    description : text
-    is_published : boolean
-    created_at : timestamptz
-}
-
-entity "enrollments" as enrollments {
-    * id : uuid <<PK>>
-    --
-    user_id : uuid <<FK>>
-    course_id : uuid <<FK>>
-    enrolled_at : timestamptz
-}
-
-entity "lessons" as lessons {
-    * id : uuid <<PK>>
-    --
-    course_id : uuid <<FK>>
-    title : varchar(150)
-    content : text
-    sort_order : integer
-    xp_reward : integer
-    is_published : boolean
-}
-
-entity "lesson_progress" as lesson_progress {
-    * enrollment_id : uuid <<PK, FK>>
-    * lesson_id : uuid <<PK, FK>>
-    --
-    started_at : timestamptz
-    completed_at : timestamptz
-    xp_earned : integer
-}
-
-' =========================
-' ASL SIGNS
-' =========================
-
 entity "signs" as signs {
     * id : uuid <<PK>>
-    --
-    gloss : varchar(100) <<UK>>
-    meaning : text
+    * gloss : varchar(100) <<UK>>
+    * meaning : text
     category : varchar(60)
     instructions : text
     demo_path : text
-    is_published : boolean
-    created_at : timestamptz
+    * is_published : boolean
+    * created_at : timestamptz
 }
-
+entity "courses" as courses {
+    * id : uuid <<PK>>
+    * title : varchar(150)
+    description : text
+    * cover_size : integer
+    * cover_angle : integer
+    * cover_density : integer
+    * cover_weight : varchar(3)
+    * cover_font : varchar(12)
+    * cover_text : varchar(32)
+    * cover_style : varchar(12)
+    * cover_tone : varchar(12)
+    * is_published : boolean
+    * created_at : timestamptz
+}
+entity "lessons" as lessons {
+    * id : uuid <<PK>>
+    * course_id : uuid <<FK>>
+    * title : varchar(150)
+    content : text
+    * sort_order : integer
+    * xp_reward : integer
+    * is_published : boolean
+}
 entity "lesson_signs" as lesson_signs {
-    * lesson_id : uuid <<PK, FK>>
-    * sign_id : uuid <<PK, FK>>
-    --
-    sort_order : integer
+    * lesson_id : uuid <<PK,FK>>
+    * sign_id : uuid <<PK,FK>>
+    * sort_order : integer
 }
-
-' =========================
-' EXERCISES AND OPTIONS
-' =========================
-
 entity "exercises" as exercises {
     * id : uuid <<PK>>
-    --
-    lesson_id : uuid <<FK>>
-    prompt : text
-    sign_id : uuid <<FK, nullable>>
-    sort_order : integer
+    * lesson_id : uuid <<FK>>
+    * answer_type : varchar(16)
+    * prompt : text
+    sign_id : uuid <<FK>>
+    * sort_order : integer
 }
-
 entity "exercise_options" as exercise_options {
     * id : uuid <<PK>>
-    --
-    exercise_id : uuid <<FK>>
-    option_text : text
-    is_correct : boolean
-    sort_order : integer
+    * exercise_id : uuid <<FK>>
+    * option_text : text
+    * is_correct : boolean
+    * sort_order : integer
 }
-
+entity "enrollments" as enrollments {
+    * id : uuid <<PK>>
+    * user_id : uuid <<FK>>
+    * course_id : uuid <<FK>>
+    * enrolled_at : timestamptz
+}
+entity "lesson_progress" as lesson_progress {
+    * enrollment_id : uuid <<PK,FK>>
+    * lesson_id : uuid <<PK,FK>>
+    perfected_at : timestamptz
+    * started_at : timestamptz
+    completed_at : timestamptz
+}
 entity "exercise_attempts" as exercise_attempts {
     * id : uuid <<PK>>
-    --
-    enrollment_id : uuid <<FK>>
-    exercise_id : uuid <<FK>>
+    * enrollment_id : uuid <<FK>>
+    * exercise_id : uuid <<FK>>
+    response_text : text
+    recognition_confidence : numeric(6, 5)
+    model_version_id : uuid <<FK>>
     selected_option_id : uuid <<FK>>
-    attempted_at : timestamptz
+    * is_correct : boolean
+    * attempted_at : timestamptz
 }
-
-' =========================
-' ACHIEVEMENTS
-' =========================
-
-entity "achievements" as achievements {
+entity "learner_hearts" as learner_hearts {
+    * user_id : uuid <<PK,FK>>
+    * hearts : integer
+    * regenerated_at : timestamptz
+}
+entity "lesson_runs" as lesson_runs {
     * id : uuid <<PK>>
-    --
-    code : varchar(50) <<UK>>
-    name : varchar(100)
-    description : text
-    metric : varchar(25)
-    threshold : integer
+    * enrollment_id : uuid <<FK>>
+    * lesson_id : uuid <<FK>>
+    * replay : boolean
+    * started_at : timestamptz
+    completed_at : timestamptz
+    * perfect : boolean
 }
-
-entity "user_achievements" as user_achievements {
-    * user_id : uuid <<PK, FK>>
-    * achievement_id : uuid <<PK, FK>>
-    --
-    unlocked_at : timestamptz
+entity "lesson_run_questions" as lesson_run_questions {
+    * run_id : uuid <<PK,FK>>
+    * exercise_id : uuid <<PK,FK>>
+    * xp_value : integer
+    * sort_order : integer
+    attempt_id : uuid <<FK>>
 }
-
-' =========================
-' MACHINE LEARNING MODELS
-' =========================
-
+entity "xp_awards" as xp_awards {
+    * id : uuid <<PK>>
+    * enrollment_id : uuid <<FK>>
+    * lesson_id : uuid <<FK>>
+    run_id : uuid <<FK>>
+    exercise_id : uuid <<FK>>
+    * source : varchar(20)
+    * amount : integer
+    * awarded_at : timestamptz
+}
+entity "heart_practice_rounds" as heart_practice_rounds {
+    * id : uuid <<PK>>
+    * user_id : uuid <<FK>>
+    completed_at : timestamptz
+    * created_at : timestamptz
+}
+entity "heart_practice_questions" as heart_practice_questions {
+    * round_id : uuid <<PK,FK>>
+    * question_index : integer <<PK>>
+    * exercise_id : uuid <<FK>>
+}
+entity "heart_practice_submissions" as heart_practice_submissions {
+    * id : uuid <<PK>>
+    * round_id : uuid <<FK>>
+    * question_index : integer <<FK>>
+    * selected_option_id : uuid <<FK>>
+    * is_correct : boolean
+    * submitted_at : timestamptz
+}
 entity "model_versions" as model_versions {
     * id : uuid <<PK>>
-    --
-    version : varchar(50) <<UK>>
+    * version : varchar(50) <<UK>>
+    fingerprint : varchar(128) <<UK>>
     artifact_path : text
-    confidence_threshold : numeric(6,5)
-    created_at : timestamptz
+    * confidence_threshold : numeric(6, 5)
+    * created_at : timestamptz
 }
-
-' =========================
-' PRACTICE AND RECOGNITION
-' =========================
-
 entity "practice_attempts" as practice_attempts {
     * id : uuid <<PK>>
-    --
-    user_id : uuid <<FK>>
-    lesson_id : uuid <<FK, nullable>>
-    target_sign_id : uuid <<FK>>
-    predicted_sign_id : uuid <<FK, nullable>>
-    model_version_id : uuid <<FK>>
-    confidence : numeric(6,5)
-    attempted_at : timestamptz
+    * user_id : uuid <<FK>>
+    lesson_id : uuid <<FK>>
+    * target_sign_id : uuid <<FK>>
+    predicted_sign_id : uuid <<FK>>
+    * model_version_id : uuid <<FK>>
+    * confidence : numeric(6, 5)
+    * is_correct : boolean
+    * attempted_at : timestamptz
 }
-
 entity "recognition_sessions" as recognition_sessions {
     * id : uuid <<PK>>
-    --
-    user_id : uuid <<FK>>
-    started_at : timestamptz
+    * user_id : uuid <<FK>>
+    * started_at : timestamptz
     ended_at : timestamptz
     final_text : text
 }
-
 entity "recognition_results" as recognition_results {
     * id : uuid <<PK>>
-    --
-    session_id : uuid <<FK>>
-    sign_id : uuid <<FK, nullable>>
-    model_version_id : uuid <<FK>>
-    sequence_no : integer
-    confidence : numeric(6,5)
-    recognized_at : timestamptz
+    * session_id : uuid <<FK>>
+    sign_id : uuid <<FK>>
+    * model_version_id : uuid <<FK>>
+    * sequence_no : integer
+    * confidence : numeric(6, 5)
+    * recognized_at : timestamptz
 }
+entity "achievements" as achievements {
+    * id : uuid <<PK>>
+    * code : varchar(50) <<UK>>
+    * name : varchar(100)
+    * description : text
+    * metric : varchar(25)
+    * threshold : integer
+}
+entity "user_achievements" as user_achievements {
+    * user_id : uuid <<PK,FK>>
+    * achievement_id : uuid <<PK,FK>>
+    * unlocked_at : timestamptz
+}
+auth_users ||--o| profiles : id
+courses ||--o{ lessons : course_id
+lessons ||--o{ lesson_signs : lesson_id
+signs ||--o{ lesson_signs : sign_id
+lessons ||--o{ exercises : lesson_id
+signs |o--o{ exercises : sign_id
+exercises ||--o{ exercise_options : exercise_id
+profiles ||--o{ enrollments : user_id
+courses ||--o{ enrollments : course_id
+enrollments ||--o{ lesson_progress : enrollment_id
+lessons ||--o{ lesson_progress : lesson_id
+enrollments ||--o{ exercise_attempts : enrollment_id
+exercises ||--o{ exercise_attempts : exercise_id
+model_versions |o--o{ exercise_attempts : model_version_id
+exercise_options |o--o{ exercise_attempts : exercise_id, selected_option_id
+profiles ||--o| learner_hearts : user_id
+enrollments ||--o{ lesson_runs : enrollment_id
+lessons ||--o{ lesson_runs : lesson_id
+lesson_runs ||--o{ lesson_run_questions : run_id
+exercises ||--o{ lesson_run_questions : exercise_id
+exercise_attempts |o--o{ lesson_run_questions : attempt_id
+enrollments ||--o{ xp_awards : enrollment_id
+lessons ||--o{ xp_awards : lesson_id
+lesson_runs |o--o{ xp_awards : run_id
+exercises |o--o{ xp_awards : exercise_id
+profiles ||--o{ heart_practice_rounds : user_id
+heart_practice_rounds ||--o{ heart_practice_questions : round_id
+exercises ||--o{ heart_practice_questions : exercise_id
+exercise_options ||--o{ heart_practice_submissions : selected_option_id
+heart_practice_questions ||--o{ heart_practice_submissions : round_id, question_index
+profiles ||--o{ practice_attempts : user_id
+lessons |o--o{ practice_attempts : lesson_id
+signs ||--o{ practice_attempts : target_sign_id
+signs |o--o{ practice_attempts : predicted_sign_id
+model_versions ||--o{ practice_attempts : model_version_id
+profiles ||--o{ recognition_sessions : user_id
+recognition_sessions ||--o{ recognition_results : session_id
+signs |o--o{ recognition_results : sign_id
+model_versions ||--o{ recognition_results : model_version_id
+profiles ||--o{ user_achievements : user_id
+achievements ||--o{ user_achievements : achievement_id
 
-' =========================
-' RELATIONSHIPS
-' =========================
-
-auth_users ||--|| profiles : has profile
-
-profiles ||--o{ enrollments : enrolls
-courses ||--o{ enrollments : receives
-courses ||--o{ lessons : contains
-
-enrollments ||--o{ lesson_progress : tracks
-lessons ||--o{ lesson_progress : progress for
-
-lessons ||--o{ lesson_signs : includes
-signs ||--o{ lesson_signs : appears in
-
-lessons ||--o{ exercises : contains
-signs |o--o{ exercises : reference sign
-exercises ||--o{ exercise_options : offers
-
-enrollments ||--o{ exercise_attempts : makes
-exercises ||--o{ exercise_attempts : attempted in
-exercise_options ||--o{ exercise_attempts : selected option
-
-profiles ||--o{ user_achievements : earns
-achievements ||--o{ user_achievements : awarded as
-
-profiles ||--o{ practice_attempts : performs
-lessons |o--o{ practice_attempts : practiced in
-signs ||--o{ practice_attempts : target sign
-signs |o--o{ practice_attempts : predicted sign
-model_versions ||--o{ practice_attempts : evaluates with
-
-profiles ||--o{ recognition_sessions : starts
-recognition_sessions ||--o{ recognition_results : contains
-signs |o--o{ recognition_results : recognized sign
-model_versions ||--o{ recognition_results : generated by
-
+legend bottom
+PK primary key | FK foreign key | UK single-column unique
+Mandatory fields use *; other fields permit NULL
+23 application tables plus external auth.users
+endlegend
 @enduml

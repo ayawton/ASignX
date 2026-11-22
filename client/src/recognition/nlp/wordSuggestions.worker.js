@@ -71,5 +71,15 @@ self.onmessage = async ({ data }) => {
   if (data.mode !== 'preload') {
    self.postMessage({ id: data.id, error: 'Word suggestions are unavailable for this input.' })
   }
+  if (data.preserveSigns) {
+   self.postMessage({ id: data.id, result: { suggestions: [] } })
+   return
+  }
+  const response = await fetch('/api/recognition/nlp/sentence', {
+   method: 'POST', headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ text: data.text, fallback: data.fallback }), credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(8000),
+  })
+  if (!response.ok) throw new Error('Word correction unavailable')
+  self.postMessage({ id: data.id, result: await response.json() })
  }
 }

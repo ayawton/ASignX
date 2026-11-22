@@ -18,6 +18,7 @@ export function createWordLookup(dictionary) {
   if (/^[a-z]+$/.test(word)) {
    for (let i = previous.length - 1; i >= 0; i--) {
     const group = previous[i]
+    if (group.wholeSign) break
     const part = capRepeatedLetters(group.detected.toLowerCase())
     if (!/^[a-z]+$/.test(part)) break
     joined = capRepeatedLetters(part + joined)

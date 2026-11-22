@@ -17,9 +17,11 @@ export default function useRecognition(video, sessionKey, onRecognized) {
     setState({ ...data, status: 'ready', error: '' })
     if (data.emissions.length) {
      soundRef.current?.()
-     const letters = data.emissions.map(item => ({ ...item, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }))
-     setHistory(previous => [...previous, ...letters].slice(-200))
-     dispatch({ type: 'letters', letters })
+     const signs = data.emissions.map(item => ({ ...item, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }))
+     setHistory(previous => [...previous, ...signs].slice(-200))
+     for (const sign of signs) {
+      dispatch(sign.label.length > 1 ? { type: 'sign', label: sign.label } : { type: 'letters', letters: [sign] })
+     }
     }
    },
   })

@@ -1,6 +1,11 @@
 ﻿export const GAME_MODES = {
   letters: { title: 'Alphabet patrol', description: 'One letter. One shot.', targets: ['A', 'B', 'C', 'K', 'L', 'M', 'R', 'S', 'T', 'V'] },
-  words: { title: 'Word defense', description: 'Fingerspell each word, one letter at a time.', targets: ['CAT', 'WAVE', 'SUN', 'HELLO', 'STAR', 'MOON', 'HOME', 'SKY'] },
+  words: {
+    title: 'Word defense',
+    description: 'Fingerspell each word, one letter at a time.',
+    // J and Z are excluded until their camera recognition is reliable.
+    targets: ['CAT', 'WAVE', 'SUN', 'HELLO', 'STAR', 'MOON', 'HOME', 'SKY'].filter(word => !/[JZ]/i.test(word)),
+  },
 }
 export const PACES = {
   relaxed: { label: 'Take it easy', speed: 2.5, spawnEvery: 6, duration: 60, shields: 5, maxTargets: 5 },

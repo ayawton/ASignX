@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'server/.onnx-export-deps'))
 parser = argparse.ArgumentParser()
 parser.add_argument('--ml-root', type=Path, required=True)
+parser.add_argument('--sequence-checkpoint', type=Path, help='Export only this sequence checkpoint')
+parser.add_argument('--sequence-samples', type=Path, help='Directory of preprocessed sequence NPZ files')
+parser.add_argument('--output-dir', type=Path, default=ROOT / 'server/private/models/asignx')
 args = parser.parse_args()
 sys.path.insert(0, str(args.ml_root))
 
@@ -26,7 +29,7 @@ from ml.model import load_checkpoint
 from ml.sequence_model import load_sequence_checkpoint
 from ml.preprocessing import FEATURE_COLUMNS, canonicalize_static_features
 
-OUT = ROOT / 'server/private/models/asignx'
+OUT = args.output_dir.resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 torch.set_num_threads(1)
 torch.manual_seed(42)
@@ -52,8 +55,11 @@ def real_static_samples(labels, mode):
     return np.stack(samples), counts
 
 report = {'versions': {'torch': torch.__version__, 'onnx': onnx.__version__, 'onnxruntime': ort.__version__}, 'models': []}
-for kind, name, loader in [('static', 'sign_classifier_canonical', load_checkpoint), ('sequence', 'sequence_classifier', load_sequence_checkpoint)]:
-    source = args.ml_root / f'ml/models/{name}.pth'
+models = [('static', 'sign_classifier_canonical', load_checkpoint), ('sequence', 'sequence_classifier', load_sequence_checkpoint)]
+if args.sequence_checkpoint:
+    models = [('sequence', args.sequence_checkpoint.stem, load_sequence_checkpoint)]
+for kind, name, loader in models:
+    source = args.sequence_checkpoint or args.ml_root / f'ml/models/{name}.pth'
     source_hash = sha256(source)
     model, labels, checkpoint = loader(source)
     model.eval()
@@ -79,8 +85,11 @@ for kind, name, loader in [('static', 'sign_classifier_canonical', load_checkpoi
         batches.extend([real[i:i+1] for i in range(len(real))])
     else:
         # Saved NPZ sequences are already preprocessed. Only use compatible arrays.
-        for path in sorted((args.ml_root / 'dist/data/sequences').glob('*/*.npz')):
+        sample_root = args.sequence_samples or args.ml_root / 'dist/data/sequences'
+        for path in sorted(sample_root.rglob('*.npz')):
             with np.load(path, allow_pickle=False) as saved:
+                if 'preprocessing' in saved and saved['preprocessing'].item() != checkpoint['preprocessing']:
+                    continue
                 for key in ['features', 'sequence', 'landmarks']:
                     if key in saved and saved[key].shape == shape[1:] and np.isfinite(saved[key]).all():
                         batches.append(saved[key].astype(np.float32)[None])
@@ -113,7 +122,7 @@ for kind, name, loader in [('static', 'sign_classifier_canonical', load_checkpoi
     else:
         metadata.update(sequence_length=shape[1], sampling_fps=checkpoint.get('training', {}).get('sampling_fps', 15.0),
             backbone=model.config.get('backbone'),
-            input_contract='30 preprocessed frames with 126 features: stable Left then Right hand slots, sequence_anchor_trajectory_v2. Graph includes kinematic features.')
+            input_contract=f'{shape[1]} preprocessed frames with {width} features each, using {checkpoint["preprocessing"]}.')
     target.with_suffix('.meta.json').write_text(json.dumps(metadata, indent=2)+'\n', encoding='utf-8')
     item = {'file': str(target.relative_to(ROOT)).replace('\\','/'), 'bytes': target.stat().st_size,
         'source_sha256': source_hash, 'onnx_sha256': metadata['onnx_sha256'],
@@ -125,4 +134,5 @@ for kind, name, loader in [('static', 'sign_classifier_canonical', load_checkpoi
     report['models'].append(item)
     print(json.dumps(item))
 report['limitations'] = ['Numerical equivalence verifies conversion, not recognition accuracy.', 'Browser/WASM/WebGPU and live camera behavior have not been verified.']
-(ROOT / 'docs/onnx-export-report.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
+report_path = OUT / 'onnx-export-report.json' if args.sequence_checkpoint else ROOT / 'docs/onnx-export-report.json'
+report_path.write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')

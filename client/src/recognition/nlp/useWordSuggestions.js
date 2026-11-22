@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createLatestSuggestions } from './latestSuggestions'
 import { createAutomaticWords } from './automaticWords'
 
-export default function useWordSuggestions(text, revision, onFinish, { mode = 'automatic-word', pauseMs = 2000, fallback = text, enabled = true, canFinish = true, previous } = {}) {
+export default function useWordSuggestions(text, revision, onFinish, { mode = 'automatic-word', pauseMs = 2000, fallback = text, enabled = true, canFinish = true, previous, preserveSigns = false } = {}) {
  const [response, setResponse] = useState(null)
  const [failed, setFailed] = useState(false)
  const requests = useRef(null)
@@ -26,7 +26,7 @@ export default function useWordSuggestions(text, revision, onFinish, { mode = 'a
  useEffect(() => {
   const input = enabled ? text : ''
   boundary.current?.update(canFinish ? input : '', revision, fallback)
-  if (!failed) requests.current?.update(input, revision, mode === 'sentence' ? { fallback } : { previous })
- }, [text, revision, failed, enabled, fallback, mode, pauseMs, canFinish, previous])
+  if (!failed) requests.current?.update(input, revision, mode === 'sentence' ? { fallback, preserveSigns } : { previous })
+ }, [text, revision, failed, enabled, fallback, mode, pauseMs, canFinish, previous, preserveSigns])
  return { response: enabled && text && response?.id === revision ? response : null, failed }
 }

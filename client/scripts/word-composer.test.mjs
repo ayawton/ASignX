@@ -29,6 +29,14 @@ state = add(state, 'A'.repeat(201))
 assert.equal(state.pending.length, 200); assert.equal(state.full, true)
 assert.deepEqual(state.accepted, [], 'A full input never silently creates a word boundary')
 
+let mixed = add(initialWordState, 'XIAN')
+mixed = wordComposer(mixed, { type: 'sign', label: 'THANK YOU' })
+assert.equal(mixed.pending, '')
+assert.deepEqual(mixed.sentenceWords.map(word => word.text), ['XIAN', 'THANK YOU'])
+assert.equal(mixed.sentenceWords.at(-1).wholeSign, true)
+mixed = wordComposer(mixed, { type: 'sentence', revision: mixed.revision })
+assert.equal(mixed.sentences.at(-1).text, 'Xian thank you.')
+
 const sent = [], responses = []
 const worker = { postMessage: data => sent.push(data), terminate: () => { worker.stopped = true } }
 const requests = createLatestSuggestions(worker, data => responses.push(data))

@@ -1,0 +1,47 @@
+{
+  "model_type": "dynamic_sequence",
+  "labels": [
+    "BACKGROUND",
+    "HELLO",
+    "HELP",
+    "J",
+    "PLEASE",
+    "THANK_YOU",
+    "Z"
+  ],
+  "input_name": "sequence",
+  "output_name": "logits",
+  "input_shape": [
+    "batch_size",
+    30,
+    180
+  ],
+  "input_dim": 180,
+  "output_shape": [
+    "batch_size",
+    7
+  ],
+  "preprocessing": "hands_upper_body_temples_xy_v3",
+  "model_config": {
+    "num_classes": 7,
+    "input_size": 180,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "bidirectional": false,
+    "pooling": "mean",
+    "backbone": "tcn_attention",
+    "use_kinematics": false,
+    "cosine_head": true,
+    "use_motion_deltas": true
+  },
+  "source_sha256": "cdb8b1eabba373dcf47f2a453104a8bff8067b9f05a01a89c222cc5471ed65bf",
+  "onnx_sha256": "d0e1ba9215a95f320fb52a8906a764d884cd2c194314d869325318a701d47f23",
+  "opset": 17,
+  "use_kinematic_features": false,
+  "use_cosine_head": true,
+  "sequence_length": 30,
+  "sampling_fps": 15.0,
+  "backbone": "tcn_attention",
+  "input_contract": "30 preprocessed frames with 180 features each, using hands_upper_body_temples_xy_v3."
+}

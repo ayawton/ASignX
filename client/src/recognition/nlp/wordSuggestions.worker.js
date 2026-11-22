@@ -18,6 +18,10 @@ self.onmessage = async ({ data }) => {
    self.postMessage({ id: data.id, result: suggest(data.text, data.previous) })
    return
   }
+  if (data.preserveSigns) {
+   self.postMessage({ id: data.id, result: { suggestions: [] } })
+   return
+  }
   const response = await fetch('/api/recognition/nlp/sentence', {
    method: 'POST', headers: { 'Content-Type': 'application/json' },
    body: JSON.stringify({ text: data.text, fallback: data.fallback }), credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(8000),

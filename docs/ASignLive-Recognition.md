@@ -1,10 +1,16 @@
-# ASignLive backend recognition
+# ASignLive browser recognition
 
-ASignLive captures resized JPEG frames using the existing Start/Stop camera
-controls. Detection, preprocessing, ONNX inference, confidence filtering, motion
-routing and stabilization run on the backend. The client does not download models,
-MediaPipe, or ONNX Runtime. Public and dashboard Live routes use the same pipeline.
+Both ASignLive routes load the existing static and J/Z ONNX models and the
+MediaPipe hand detector when the camera starts. Camera frames stay in the
+browser. The browser downloads the model assets from the frontend and the
+versioned inference runtimes from jsDelivr on first use. The frontend build
+publishes the model weights, so users can download a copy. When updating an
+ONNX model, update its matching graph and inference metadata in
+`client/public/recognition`.
 
+The backend still handles word and sentence suggestions. ASignLearn uses the
+server recognition service to verify and record graded camera answers. The
+server setup and transport notes below apply to that path.
 ## Local startup
 
 Run these in separate terminals:
@@ -46,15 +52,11 @@ install into that target directory. Python 3.14 is used locally.
 ## Private assets
 
 The trained graphs and metadata live in `server/private/models/asignx` and the
-hand detector in `server/private/models/mediapipe/hand_landmarker.task`. These
-assets are excluded from Git and must be provisioned privately on deployment.
+hand detector in `server/private/models/mediapipe/hand_landmarker.task`. These are the backend copies.
 The export script now writes directly into that private directory. The original
 ML repository and trained PyTorch checkpoints are unchanged.
 
-Neither service serves model files. Vite is restricted to the client directory
-and explicitly denies private/backend dependency directories. Client production
-builds are checked for ONNX, PyTorch, MediaPipe task, metadata and WASM files.
-Generated browser inference runtimes and previous public model copies were removed.
+Vite denies access to private backend directories. The frontend publishes the explicit browser copies described above.
 
 ## Transport and session behavior
 

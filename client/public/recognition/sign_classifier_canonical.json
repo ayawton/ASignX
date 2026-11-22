@@ -1,0 +1,31 @@
+{
+  "labels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y"
+  ],
+  "input_name": "landmarks",
+  "output_name": "logits",
+  "static_hand_preprocessing": "left_x_reflection_v1"
+}

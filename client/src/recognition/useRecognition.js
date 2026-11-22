@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { createFrameStream } from './frameStream'
+import { createBrowserFrameStream } from './browserFrameStream'
 import { initialWordState, wordComposer } from './wordComposer'
 
 export default function useRecognition(video, sessionKey, onRecognized) {
@@ -11,7 +11,7 @@ export default function useRecognition(video, sessionKey, onRecognized) {
  useEffect(() => { soundRef.current = onRecognized }, [onRecognized])
  useEffect(() => {
   if (!video) return
-  const stream = createFrameStream(video, {
+  const stream = createBrowserFrameStream(video, {
    onState: (status, error = '') => setState({ status, hands: [], readings: [], error }),
    onResult: data => {
     setState({ ...data, status: 'ready', error: '' })

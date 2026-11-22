@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readdir } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { createFrameStream } from '../src/recognition/frameStream.js'
 
 const id = 'a'.repeat(43)
@@ -83,11 +83,16 @@ latest.stream.stop()
 
 console.log('PASS latest-frame replacement')
 
-async function scan(url) {
- for (const entry of await readdir(url, { withFileTypes: true })) {
-  if (entry.isDirectory()) await scan(new URL(`${entry.name}/`, url))
-  else assert.ok(!/\.(onnx|task|wasm|pth)$|\.meta\.json$/.test(entry.name), `Private model/runtime found in public assets: ${entry.name}`)
- }
+const browserAssets = new Map([
+ ['sign_classifier_canonical.onnx', 'asignx/sign_classifier_canonical.onnx'],
+ ['sequence_classifier.onnx', 'asignx/sequence_classifier.onnx'],
+ ['hand_landmarker.task', 'mediapipe/hand_landmarker.task'],
+])
+assert.deepEqual((await readdir(new URL('../public/recognition/', import.meta.url))).sort(),
+ [...browserAssets.keys(), 'sign_classifier_canonical.json', 'sequence_classifier.json'].sort())
+for (const [name, source] of browserAssets) {
+ const browser = await readFile(new URL('../public/recognition/' + name, import.meta.url))
+ const server = await readFile(new URL('../../server/private/models/' + source, import.meta.url))
+ assert.deepEqual(browser, server, name + ' matches the server model')
 }
-await scan(new URL('../public/', import.meta.url))
-console.log('PASS no model files, metadata, or inference WASM in client public assets')
+console.log('PASS browser recognition assets match the existing models')

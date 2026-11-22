@@ -1,3 +1,5 @@
+import { bodyFeatures, bodyFrameVisible, bodySequence } from './bodyFeatures.js'
+
 const sides = ['Left', 'Right']
 const windowSize = 30
 const distance = (a, b) => Math.hypot(...a.map((value, i) => value - b[i]))
@@ -58,13 +60,15 @@ function stabilizer(required) {
  }
 }
 
-export function createRecognitionEngine(predict, staticMode, samplingFps) {
+export function createRecognitionEngine(predict, staticMode, samplingFps, allSigns = false) {
  const interval = 1000 / samplingFps
- let stable, motion, frames, nextSample, lastMotion, dynamic, stabilizeMotion
+ const motionThreshold = allSigns ? .025 : .045
+ let stable, motion, frames, bodyFrames, nextSample, lastMotion, dynamic, stabilizeMotion
  function reset() {
   stable = sides.map(() => stabilizer(5))
   motion = sides.map(() => [])
   frames = []
+  bodyFrames = []
   nextSample = null
   lastMotion = -Infinity
   dynamic = null
@@ -79,7 +83,7 @@ export function createRecognitionEngine(predict, staticMode, samplingFps) {
   if (history.length < 2) return false
   const travel = history.slice(1).reduce((sum, sample, i) =>
    sum + sample.tips.reduce((total, tip, j) => total + distance(tip, history[i].tips[j]), 0) / 6, 0)
-  return travel / (30 * (timestamp - history[0].time) / 1000) >= .045
+  return travel / (30 * (timestamp - history[0].time) / 1000) >= motionThreshold
  }
  function append(frame) {
   frames.push(frame)
@@ -88,7 +92,7 @@ export function createRecognitionEngine(predict, staticMode, samplingFps) {
  }
  return {
   reset,
-  async process(detected, timestamp) {
+  async process(detected, timestamp, body) {
    const frame = sides.map(side => detected[side] ?? null)
    const readings = [], emissions = []
    for (const [i, side] of sides.entries()) {
@@ -107,7 +111,14 @@ export function createRecognitionEngine(predict, staticMode, samplingFps) {
     const [label, confidence] = await predict('static', features)
     readings.push({ hand: side, label: moving ? null : label, confidence })
    }
-   const active = readings.length > 0 && timestamp - lastMotion <= 350
+   const bodyFrame = allSigns && bodyFeatures(frame, body)
+   if (allSigns) {
+    if (timestamp - (bodyFrames.at(-1)?.time ?? timestamp) > 250) bodyFrames = []
+    bodyFrames.push({ time: timestamp, features: bodyFrame })
+    while (bodyFrames.length && timestamp - bodyFrames[0].time > interval * windowSize) bodyFrames.shift()
+   }
+   const visible = bodyFrameVisible(bodyFrame)
+   const active = readings.length > 0 && timestamp - lastMotion <= (visible ? 650 : 350)
    nextSample ??= timestamp
    if (timestamp + 1e-5 >= nextSample) {
     if (timestamp - nextSample > interval * 3) {
@@ -116,8 +127,11 @@ export function createRecognitionEngine(predict, staticMode, samplingFps) {
     }
     while (timestamp - nextSample >= interval - 1e-5) append([null, null])
     append(frame)
-    const features = active && sequenceFeatures(frames)
-    const [label, confidence] = features ? await predict('sequence', features) : [null, 0]
+    const extended = active && visible && bodySequence(bodyFrames.map(sample => sample.features), windowSize,
+     bodyFrames.map(sample => sample.time))
+    const legacy = active && !visible && sequenceFeatures(frames)
+    const [label, confidence] = extended ? await predict('allSigns', extended) :
+     legacy ? await predict('sequence', legacy) : [null, 0]
     const [steady, emitted] = stabilizeMotion(label, timestamp)
     dynamic = active ? { hand: 'Motion', label, confidence, stable: steady } : null
     if (emitted) emissions.push({ hand: 'Motion', label: emitted, confidence })
@@ -129,6 +143,7 @@ export function createRecognitionEngine(predict, staticMode, samplingFps) {
    }
    return {
     hands: readings.map(({ hand }) => ({ handedness: hand })),
+    allSigns, bodyVisible: visible,
     readings, emissions, dynamic: active ? dynamic : null, moving: active,
    }
   },

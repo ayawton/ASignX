@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile, readdir } from 'node:fs/promises'
 import { createFrameStream } from '../src/recognition/frameStream.js'
+import { bodyFeatures, bodyFrameVisible, bodySequence } from '../src/recognition/bodyFeatures.js'
+import { createRecognitionEngine } from '../src/recognition/recognitionEngine.js'
 
 const id = 'a'.repeat(43)
 const empty = { hands: [], readings: [], emissions: [], dynamic: null, moving: false }
@@ -89,10 +92,43 @@ const browserAssets = new Map([
  ['hand_landmarker.task', 'mediapipe/hand_landmarker.task'],
 ])
 assert.deepEqual((await readdir(new URL('../public/recognition/', import.meta.url))).sort(),
- [...browserAssets.keys(), 'sign_classifier_canonical.json', 'sequence_classifier.json'].sort())
+ [...browserAssets.keys(), 'sign_classifier_canonical.json', 'sequence_classifier.json',
+  'sequence_all_signs_v1.json', 'sequence_all_signs_v1.onnx', 'face_landmarker.task', 'pose_landmarker_lite.task'].sort())
 for (const [name, source] of browserAssets) {
  const browser = await readFile(new URL('../public/recognition/' + name, import.meta.url))
  const server = await readFile(new URL('../../server/private/models/' + source, import.meta.url))
  assert.deepEqual(browser, server, name + ' matches the server model')
 }
 console.log('PASS browser recognition assets match the existing models')
+
+const allSignsAsset = name => readFile(new URL('../public/recognition/sequence_all_signs_v1.' + name, import.meta.url))
+const metadata = JSON.parse(await allSignsAsset('json'))
+assert.deepEqual(metadata.input_shape, ['batch_size', 30, 180])
+assert.equal(createHash('sha256').update(await allSignsAsset('onnx')).digest('hex'), metadata.onnx_sha256)
+const body = [[.5, .3], [.5, .4], [.75, .5], [.25, .5], [.8, .8], [.2, .8], [.6, .3], [.4, .3]]
+const hand = Array.from({ length: 21 }, (_, i) => [.55 + i * .01, .3, 0])
+const row = bodyFeatures([hand, null], body)
+assert.ok(bodyFrameVisible(row))
+assert.deepEqual(Array.from(row.slice(132, 138)), [.5, 0, 1, -.5, 0, 1])
+assert.ok(Math.abs(row[156] + .25) < 1e-6)
+assert.equal(row[158], 1)
+assert.equal(row[170], 0)
+assert.equal(bodySequence([row, row, ...Array(4).fill(null), ...Array(8).fill(row)], 30), null)
+const engine = createRecognitionEngine(async (kind, input) => {
+ if (kind === 'allSigns') {
+  assert.equal(input.length, 30 * 180)
+  return ['THANK YOU', .95]
+ }
+ return [null, 0]
+}, null, 15, true)
+for (const interval of [1000 / 15, 140]) {
+ engine.reset()
+ const emissions = []
+ for (let i = 0; i < 40; i++) {
+  const points = hand.map(([x, y, z]) => [x + .2 * Math.sin(i), y, z])
+  const result = await engine.process({ Left: points }, i * interval, body)
+  emissions.push(...result.emissions)
+ }
+ assert.deepEqual(emissions.map(item => item.label), ['THANK YOU'])
+}
+console.log('PASS extended input layout, tracking gaps and whole-sign emission')

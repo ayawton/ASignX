@@ -1,5 +1,6 @@
 """Start the private recognition service; no trained assets are served over HTTP."""
 from pathlib import Path
+import os
 import sys
 sys.dont_write_bytecode = True
 SERVER = Path(__file__).resolve().parents[1]
@@ -10,4 +11,5 @@ load_dotenv(SERVER / '.env')
 import uvicorn
 
 if __name__ == '__main__':
-    uvicorn.run('service:app', host='127.0.0.1', port=8001, access_log=False)
+    uvicorn.run('service:app', host=os.getenv('RECOGNITION_HOST', '127.0.0.1'),
+                port=int(os.getenv('PORT', '8001')), workers=1, access_log=False)

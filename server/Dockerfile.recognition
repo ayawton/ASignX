@@ -1,0 +1,20 @@
+# Build context: server/. Build locally or inject private models in secured CI.
+# Push only to a PRIVATE registry. Git deployment alone has no model files.
+FROM python:3.14-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 RECOGNITION_HOST=:: PORT=8001
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 recognition
+COPY recognition/requirements.txt ./recognition/requirements.txt
+RUN pip install --no-cache-dir -r recognition/requirements.txt
+COPY recognition/*.py ./recognition/
+COPY recognition/model-manifest.json ./recognition/model-manifest.json
+COPY private/models/asignx/*.onnx ./private/models/asignx/
+COPY private/models/asignx/*.meta.json ./private/models/asignx/
+COPY private/models/mediapipe/hand_landmarker.task ./private/models/mediapipe/
+RUN python recognition/verify_models.py
+# MediaPipe native bindings link EGL/GLES even with CPU inference.
+RUN apt-get update && apt-get install -y --no-install-recommends libegl1 libgles2 && rm -rf /var/lib/apt/lists/*
+USER recognition
+CMD ["python", "recognition/run.py"]

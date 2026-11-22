@@ -4,11 +4,15 @@ import { applicationTables } from './db/tables.js';
 import { personal } from './personal.js';
 import { admin } from './admin.js';
 import { createRecognitionRouter } from './recognition.js';
+import { recognitionCapabilities } from './recognitionTransport.js';
+import { configureProxyTrust } from './proxyTrust.js';
 const app = express();
+configureProxyTrust(app, process.env.TRUST_PROXY_CIDRS);
 const PORT = Number(process.env.PORT ?? 3000);
 app.disable('x-powered-by');
 // Include writes so grading latency can be separated from session verification.
 app.use('/api', (req,res,next)=>{
+ res.setHeader('Cache-Control', 'no-store');
  const started=performance.now(), json=res.json.bind(res);
  res.json=(body)=>{
   const total=performance.now()-started, auth=Number(res.locals.authDuration ?? 0);
@@ -32,11 +36,17 @@ app.post('/api/practice/check', (req, res) => {
     res.json({ correct: req.body.answer === expected });
 });
 app.get('/health/ready', async (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
     try {
         const rows = await connection<{ name: string; present: boolean }[]>`select name, to_regclass('public.' || name) is not null as present from unnest(${[...applicationTables]}::text[]) as name`;
         const ready = rows.every(row => row.present);
         res.status(ready ? 200 : 503).json({ ready });
     } catch { res.status(503).json({ ready: false }); }
+});
+app.get('/health/recognition', async (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try { await recognitionCapabilities(); res.json({ ready: true }); }
+    catch { res.status(503).json({ ready: false }); }
 });
 app.use((_req, res) => { res.status(404).json({ error: 'Endpoint not found.' }); });
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

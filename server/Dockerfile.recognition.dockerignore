@@ -1,0 +1,12 @@
+**
+!recognition/
+!recognition/*.py
+!recognition/requirements.txt
+!recognition/model-manifest.json
+!private/
+!private/models/
+!private/models/asignx/
+!private/models/asignx/*.onnx
+!private/models/asignx/*.meta.json
+!private/models/mediapipe/
+!private/models/mediapipe/hand_landmarker.task

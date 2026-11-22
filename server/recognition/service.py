@@ -107,6 +107,11 @@ def create_app(factory=None, token=None):
         if not configured_token:
             raise RuntimeError('RECOGNITION_INTERNAL_TOKEN must be configured')
         models = None if factory else Models()
+        # Fail startup before accepting traffic if the detector or dictionary is missing.
+        if models is not None:
+            probe = Recognition(models)
+            probe.close()
+            english_words()
         registry = Registry(factory or (lambda: Recognition(models)))
         app.state.registry = registry
         metadata = models.metadata if models else {}
@@ -137,6 +142,10 @@ def create_app(factory=None, token=None):
     @app.get('/capabilities', dependencies=[Depends(authorized)])
     async def capabilities():
         return app.state.capabilities
+    # This service has no public domain. Reveal no model or session details here.
+    @app.get('/health/ready')
+    async def ready():
+        return {'ready': True}
     @app.post('/sessions', dependencies=[Depends(authorized)])
     async def create():
         key = await run_in_threadpool(registry.create)

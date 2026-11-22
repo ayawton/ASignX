@@ -18,7 +18,7 @@ export default function useWordSuggestions(text, revision, onFinish, { mode = 'a
    const worker = new Worker(new URL('./wordSuggestions.worker.js', import.meta.url), { type: 'module' })
    current = createLatestSuggestions(worker, data => { setResponse(data); automatic.receive(data) }, mode)
    requests.current = current
-   if (mode !== 'sentence') worker.postMessage({ mode: 'preload' })
+   worker.postMessage({ mode: 'preload' })
    worker.onerror = () => { setFailed(true); automatic.fail(); current.stop() }
   } catch { queueMicrotask(() => { if (!disposed) { setFailed(true); automatic.fail() } }) }
   return () => { disposed = true; current?.stop(); automatic.stop(); boundary.current = null; requests.current = null }

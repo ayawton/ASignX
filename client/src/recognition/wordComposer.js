@@ -1,3 +1,4 @@
+import { capRepeatedLetters } from './nlp/spellingEdits.js'
 import { formatSentence } from './nlp/sentences.js'
 export const initialWordState = { pending: '', accepted: [], sentenceWords: [], sentences: [], revision: 0, full: false }
 
@@ -14,6 +15,19 @@ export function wordComposer(state, action) {
    if (!state.pending || action.revision !== state.revision) return state
    const text = action.text ?? state.pending
    if (text.length > 399 || !/^[A-Z]+(?:[' ][A-Z]+)*$/.test(text)) return state
+   const count = action.joinPrevious
+   if (Number.isInteger(count) && count > 0 && count <= state.sentenceWords.length) {
+    const fragments = state.sentenceWords.slice(-count)
+    const detected = fragments.map(group => group.detected).join('') + state.pending
+    if (text === capRepeatedLetters(detected)) {
+     const word = { text, detected }
+     return {
+      ...state, pending: '', full: false, revision: state.revision + 1,
+      accepted: [...state.accepted.slice(0, -count), word],
+      sentenceWords: [...state.sentenceWords.slice(0, -count), word],
+     }
+    }
+   }
    const word = { text, detected: state.pending }
    return { ...state, pending: '', accepted: [...state.accepted, word].slice(-200), sentenceWords: [...state.sentenceWords, word].slice(-200), revision: state.revision + 1, full: false }
   }

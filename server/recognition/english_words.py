@@ -4,6 +4,10 @@ from importlib.resources import files
 from symspellpy import SymSpell, Verbosity
 
 
+def cap_repeats(text):
+    return re.sub(r'([a-z])\1{2,}', r'\1\1', text, flags=re.IGNORECASE)
+
+
 class EnglishWords:
     def __init__(self):
         self.spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
@@ -14,7 +18,7 @@ class EnglishWords:
     def suggest(self, text):
         if not isinstance(text, str) or not re.fullmatch(r'[A-Za-z]{1,200}', text):
             raise ValueError('Send 1 to 200 English letters')
-        word = text.lower()
+        word = cap_repeats(text.lower())
         limit = min(2, len(word) // 3)
         suggestions = self.spell.lookup(word, Verbosity.CLOSEST, max_edit_distance=limit)
         result = [{'text': item.term.upper(), 'edits': item.distance, 'uncertain': False} for item in suggestions if re.fullmatch(r"[a-z]+(?:'[a-z]+)*", item.term)][:3]
@@ -31,7 +35,7 @@ class EnglishWords:
             raise ValueError('Send up to 2000 sentence letters and spaces')
         if not isinstance(fallback, str) or len(fallback) > 4000 or not re.fullmatch(r"[A-Z]+(?:[' ][A-Z]+)*", fallback):
             raise ValueError('Send the provisional words')
-        groups = text.lower().split()
+        groups = [cap_repeats(group) for group in text.lower().split()]
         def known(word):
             return word in self.spell.words and (len(word) > 1 or word in ('a', 'i'))
         provisional = fallback.split()
@@ -59,16 +63,28 @@ class EnglishWords:
                     return
                 raw = [groups[index] for index in fragments]
                 repaired = ' '.join(provisional[index] for index in fragments)
-                if len(raw) > 1 and not all(known(part) for part in raw):
-                    joined = ''.join(raw)
-                    segmented = self.spell.word_segmentation(joined, max_edit_distance=0).corrected_string
-                    parts = segmented.split()
-                    if ''.join(parts) == joined and all(known(part) for part in parts):
-                        repaired = ' '.join(parts).upper()
+                if not all(known(part) for part in raw):
+                    joined = cap_repeats(''.join(raw))
+                    # Exact segmentation can recover continuous signing without
+                    # guessing the spelling of an unknown name.
+                    if len(joined) <= 64 and (len(raw) > 1 or len(joined) >= 6):
+                        segmented = self.spell.word_segmentation(joined, max_edit_distance=0).corrected_string
+                        parts = segmented.split()
+                        if ''.join(parts) == joined and all(known(part) for part in parts):
+                            repaired = ' '.join(parts).upper()
+                    if len(raw) > 1 and len(joined) <= 64:
+                        candidates = self.spell.lookup_compound(' '.join(raw), max_edit_distance=1)
+                        if candidates:
+                            candidate = candidates[0].term
+                            # Let compound lookup remove pause boundaries when
+                            # it can account for every detected letter.
+                            if (candidate.replace(' ', '') == joined and len(candidate.split()) < len(repaired.split())
+                                    and all(known(part) for part in candidate.split())):
+                                repaired = candidate.upper()
                 output.append(repaired)
                 fragments.clear()
             for index, (raw, proposed) in enumerate(zip(groups, provisional)):
-                if len(raw) >= 3 and len(proposed) >= 3:
+                if len(raw) >= 3 and len(proposed) >= 3 and (known(raw) or raw.upper() != proposed):
                     flush()
                     output.append(proposed)
                 else:

@@ -1,32 +1,43 @@
 @startuml ASignX_System_Architecture
-title ASignX - Simplified System Architecture
+title ASignX - Current system architecture
 top to bottom direction
 skinparam shadowing false
 skinparam defaultFontName Arial
-skinparam defaultFontSize 14
+skinparam defaultFontSize 13
 skinparam roundCorner 8
-skinparam ranksep 40
-skinparam rectangleBackgroundColor White
-skinparam rectangleBorderColor Black
+skinparam ArrowColor #526581
+skinparam rectangleBackgroundColor #F7FAFF
+skinparam rectangleBorderColor #AFC5ED
+skinparam cloudBorderColor #AFC5ED
+skinparam ranksep 45
 
-rectangle "Users\nGuest, Learner, Administrator" as Users
-
-rectangle "ASignX Web Application\nReact\n\nASignLive | ASign Learn | Sign Strike\nProfile, Progress and Administration" as Web
-
-rectangle "Backend API\nNode.js + Express\n\nAccess control and application logic\nDrizzle ORM for database queries" as API
-
-rectangle "ASL Recognition Service\n(Proposed)\n\nRecognizes static and movement signs\nReturns sign labels and confidence" as AI
-
-rectangle "Supabase\n\nAuth: user accounts\nPostgreSQL: application data\nStorage: demonstrations and model files" as Data
-
-Users -down-> Web : Use application
-Web -down-> API : Requests / responses
-API -[hidden]down-> AI
-AI -[hidden]down-> Data
-Web -right-> AI : Camera-derived sequences / predictions
-API -left-> Data : Read / write data
-Web -left-> Data : Sign-in / media
-AI -down-> Data : Load model
-
-footer Proposed architecture | Camera video is not stored
+actor "People\nGuest, learner, administrator" as Users
+rectangle "Web browser\nReact + Vite\n\nASignLive, ASign Learn, admin workspace\nCamera JPEG capture and text composition\nSign Strike simulated-input demo" as Web
+rectangle "Application API\nNode.js + Express + TypeScript\n\nIdentity, role and ownership checks\nLearning, imports, hearts and XP transactions\nPrivate recognition gateway\nPostgres.js + Drizzle schema" as API
+rectangle "Private recognition service\nPython + FastAPI\n\nMediaPipe hand landmarks\nStatic / sequence ONNX inference\nStabilized labels and confidence\nSymSpell word / sentence assistance" as Recognition
+artifact "Local private assets\nserver/private/models\nONNX models, metadata, hand_landmarker.task" as Models
+cloud "Supabase" {
+ rectangle "Auth\nAccounts and access tokens" as Auth
+ database "PostgreSQL\n23 application tables\nRLS, constraints and grading triggers" as DB
+ rectangle "Storage\nPrivate learning-media bucket\nCurated sign MP4 demonstrations" as Storage
+}
+Users --> Web : Use application
+Web --> API : /api requests and responses\nJWT for protected routes
+API <--> Recognition : Private HTTP + X-Recognition-Key\nJPEG frames, NLP input and results
+Recognition --> Models : Read local assets
+API --> DB : Transactional SQL
+Web --> Auth : Registration, confirmation, sign-in\nand session refresh
+API --> Auth : Verify protected-request access tokens
+Web --> Storage : Signed video playback\nAdmin uploads under Storage policies
+Auth ..> DB : Managed auth.users\nand confirmed-profile trigger
+API -[hidden]down-> Recognition
+Recognition -[hidden]down-> Models
+Auth -[hidden]down-> DB
+DB -[hidden]down-> Storage
+legend bottom
+ Current source review: 5 November 2026.
+ Camera frames are processed in memory; lesson grades and XP persist in PostgreSQL.
+ ASignLive text stays in browser memory. Curated videos persist in Storage.
+ Local development: browser 5173 -> Express 3000 -> private service 8001.
+endlegend
 @enduml

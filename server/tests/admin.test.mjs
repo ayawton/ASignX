@@ -1,0 +1,141 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { build } from 'esbuild';
+import { PGlite } from '@electric-sql/pglite';
+
+test('admin checks current database roles and permits only validated draft writes', async () => {
+ const db = new PGlite();
+ globalThis.__adminSql = async (parts, ...values) => (await db.query(parts.reduce((text, part, index) => text + (index ? `$${index}` : '') + part, ''), values)).rows;
+ globalThis.__adminSql.begin = async callback => { await db.exec('begin'); try { const result = await callback(globalThis.__adminSql); await db.exec('commit'); return result; } catch(error) { await db.exec('rollback'); throw error; } };
+ const response = user => ({ locals: { user: { id: user } }, code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; } });
+ try {
+  await db.exec(`create table profiles(id text, role text); insert into profiles values ('admin','admin'),('learner','learner');
+   create table courses(id uuid primary key default gen_random_uuid(),title text,description text,cover_size int default 100,cover_angle int default -18,cover_density int default 5,cover_weight text default '600',cover_font text default 'outfit',cover_text varchar(32) default '',cover_style text default 'plain',cover_tone text default 'sky',is_published boolean,created_at timestamptz default now());
+   create table lessons(id uuid primary key default gen_random_uuid(),course_id uuid,title text,content text,sort_order int,xp_reward int,is_published boolean default false,unique(course_id,sort_order));
+   create table exercises(id uuid primary key default gen_random_uuid(),lesson_id uuid,prompt text,sort_order int,sign_id uuid,answer_type text default 'choice');
+   create table exercise_options(id uuid default gen_random_uuid(),exercise_id uuid,option_text text,is_correct boolean,sort_order int);
+   create table lesson_progress(lesson_id uuid,completed_at timestamptz);
+   create table exercise_attempts(exercise_id uuid);`);
+  await db.exec('create table enrollments(id uuid);');
+  await db.exec(`create table signs(id uuid primary key default gen_random_uuid(),gloss text unique,meaning text,category text,instructions text,is_published boolean default false,demo_path text);
+   create table lesson_signs(lesson_id uuid,sign_id uuid,sort_order int);`);
+  await db.exec('create schema storage; create table storage.objects(bucket_id text,name text,metadata jsonb);');
+  const bundle = await build({ entryPoints: ['src/admin.ts'], bundle: true, write: false, platform: 'node', format: 'esm', packages: 'external', plugins: [{ name: 'test-db', setup(builder) {
+   builder.onResolve({ filter: /^\.\/db\/index\.js$/ }, () => ({ path: 'db', namespace: 'test' }));
+   builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const connection = Object.assign((...args) => globalThis.__adminSql(...args), { begin: fn => globalThis.__adminSql.begin(fn) })' }));
+  } }] });
+  const source = bundle.outputFiles[0].text.replaceAll('from "express"', `from ${JSON.stringify(import.meta.resolve('express'))}`);
+  const { admin, requireAdmin } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  for (const user of ['learner','missing']) {
+   const res = response(user); await requireAdmin({}, res, () => assert.fail('non-admin allowed')); assert.equal(res.code, 403);
+  }
+  let allowed = false; await requireAdmin({}, response('admin'), () => { allowed = true; }); assert.ok(allowed);
+  await db.exec("update profiles set role='learner' where id='admin'");
+  const revoked = response('admin'); await requireAdmin({}, revoked, () => assert.fail('revoked admin allowed')); assert.equal(revoked.code,403);
+  async function call(method, path, body = {}, id = '') {
+   const route = admin.stack.find(layer => layer.route?.path === path && layer.route.methods[method]);
+   const res = response('admin'); await route.route.stack[0].handle({ body, params: { id } }, res); return res;
+  }
+  assert.equal((await call('post','/courses',{title:' '})).code,400);
+  assert.equal((await call('post','/courses',{title:'x'.repeat(151)})).code,400);
+  assert.equal((await call('post','/courses',{title:'Valid',description:'x'.repeat(5001)})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_size:181})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_size:59})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_angle:46})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_angle:-46})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_density:6})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_density:2.5})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_weight:'900'})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_font:'invalid'})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_style:'invalid'})).code,400);
+  assert.equal((await call('post','/courses',{title:'Cover',cover_text:'x'.repeat(33)})).code,400);
+  const created = await call('post','/courses',{title:' First course ',description:' Introduction ',cover_text:'Aa',cover_font:'chalk',cover_weight:'700',cover_density:3,cover_angle:25,cover_size:140,cover_style:'pattern',cover_tone:'yellow',is_published:true});
+  const cover = (await call('get','/courses/:id',{},created.body.id)).body;
+  assert.equal(cover.cover_size,140);assert.equal(cover.cover_angle,25);assert.equal(cover.cover_density,3);assert.equal(cover.cover_weight,'700');assert.equal(cover.cover_font,'chalk');assert.equal(cover.cover_text,'Aa');assert.equal(cover.cover_style,'pattern');assert.equal(cover.cover_tone,'yellow');
+  for (const [style,tone] of [['corner','mint'],['frame','lavender'],['split','peach'],['plain','aqua'],['pattern','sand']]) {
+   const custom = await call('post','/courses',{title:'Graphic option',cover_style:style,cover_tone:tone});
+   assert.equal(custom.code,201);
+   const loaded = (await call('get','/courses/:id',{},custom.body.id)).body;
+   assert.equal(loaded.cover_style,style);assert.equal(loaded.cover_tone,tone);
+   await db.query('delete from courses where id=$1',[custom.body.id]);
+  }
+  const sign = {gloss:' a ',meaning:'Letter A',category:'Alphabet',instructions:'Reviewed guidance',is_published:false};
+  assert.equal((await call('post','/signs',{...sign,meaning:''})).code,400);
+  const newSign=await call('post','/signs',sign);assert.equal(newSign.body.gloss,'A');assert.equal(newSign.code,201);
+  assert.equal((await call('post','/signs',sign)).code,409);
+  assert.equal((await call('patch','/signs/:id',{...sign,is_published:true},newSign.body.id)).body.is_published,true);
+  assert.equal((await call('patch','/signs/:id',sign,newSign.body.id)).code,409);
+  assert.equal((await call('get','/signs')).body.length,1);
+  const videoPath=`signs/${newSign.body.id}/00000000-0000-4000-8000-000000000123.mp4`;
+  assert.equal((await call('post','/signs/:id/video',{demo_path:'https://external.example/video.mp4'},newSign.body.id)).code,400);
+  assert.equal((await call('post','/signs/:id/video',{demo_path:videoPath},newSign.body.id)).code,400);
+  await db.query('insert into storage.objects values ($1,$2,$3)', ['learning-media',videoPath,JSON.stringify({mimetype:'video/mp4',size:1024})]);
+  assert.equal((await call('post','/signs/:id/video',{demo_path:videoPath},newSign.body.id)).body.demo_path,videoPath,'Published signs can receive media without changing frozen text');
+  await db.query('update storage.objects set metadata=$1',[JSON.stringify({mimetype:'video/mp4',size:30000000})]);
+  assert.equal((await call('post','/signs/:id/video',{demo_path:videoPath},newSign.body.id)).code,400);
+  assert.equal(created.code,201); assert.equal(created.body.is_published,false); assert.equal(created.body.title,'First course');
+  const id = created.body.id;
+  assert.equal((await call('patch','/courses/:id',{title:'Renamed'},id)).body.title,'Renamed');
+  assert.equal((await call('patch','/courses/:id',{title:'Valid'},'bad')).code,400);
+  assert.equal((await call('post','/courses/:id/publish',{},id)).code,409,'Empty course cannot publish');
+  const lesson = {title:'First lesson', content:'Learn letter A',sort_order:1,xp_reward:10,sign_ids:[newSign.body.id],exercises:[{prompt:'Choose A',options:[{option_text:'A',is_correct:true},{option_text:'B',is_correct:false}]}]};
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,sign_ids:[newSign.body.id,newSign.body.id]},id)).code,400);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,sign_ids:['00000000-0000-4000-8000-000000000999']},id)).code,409);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[{prompt:'Invalid',options:[]}]},id)).code,400);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[null]},id)).code,400);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[{...lesson.exercises[0],answer_type:'unknown'}]},id)).code,400);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,exercises:[{...lesson.exercises[0],answer_type:'text'}]},id)).code,400);
+  const saved = await call('post','/courses/:id/lessons',lesson,id); assert.equal(saved.code,200);
+  assert.equal((await call('post','/courses/:id/lessons',lesson,id)).code,409,'Duplicate order rejected');
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,lesson_id:saved.body.id,title:'Revised'},id)).code,200);
+  const detail = await call('get','/courses/:id',{},id);
+  assert.equal(detail.body.lessons.length,1); assert.equal(detail.body.lessons[0].title,'Revised');
+  assert.deepEqual(detail.body.lessons[0].sign_ids,[newSign.body.id]);
+  assert.equal(detail.body.lessons[0].exercises[0].options[0].is_correct,true);
+  await db.query('insert into exercise_attempts select id from exercises');
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,lesson_id:saved.body.id},id)).code,409,'Used lesson frozen');
+  assert.equal((await call('post','/courses/:id/publish',{},id)).code,200);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,sort_order:2},id)).code,409,'Published course frozen');
+  assert.equal((await db.query('select is_published from lessons')).rows[0].is_published,true);
+  await db.query('update courses set is_published=true where id=$1',[id]);
+  const publishedEdit=await call('patch','/courses/:id',{title:'Renamed',cover_text:'Updated',is_published:false},id);
+  assert.equal(publishedEdit.code,200);assert.equal(publishedEdit.body.is_published,true);
+  assert.equal((await call('get','/courses/:id',{},id)).body.cover_text,'Updated');
+  const listed = await call('get','/courses'); assert.equal(listed.body[0].title,'Renamed');
+  const overview = await call('get','/overview');
+  assert.equal(overview.body.courses,1); assert.equal(overview.body.published_courses,1);
+  assert.equal(overview.body.lessons,1); assert.equal(overview.body.enrollments,0);
+  assert.equal(overview.body.learners,2); assert.equal(overview.body.completed_lessons,0);
+  assert.equal(overview.body.recent_courses[0].title,'Renamed');
+  assert.ok(!JSON.stringify(overview.body).includes('email'), 'Overview exposes aggregates, not account details');
+  const copy=await call('post','/courses/:id/copy',{},id);assert.equal(copy.code,201);assert.notEqual(copy.body.id,id);
+  const copied=await call('get','/courses/:id',{},copy.body.id);
+  assert.equal(copied.body.is_published,false);assert.equal(copied.body.lessons[0].is_published,false);
+  assert.notEqual(copied.body.lessons[0].id,saved.body.id);
+  assert.equal(copied.body.lessons[0].exercises[0].options[0].is_correct,true);
+  assert.deepEqual(copied.body.lessons[0].sign_ids,[newSign.body.id]);
+  const testFetch=globalThis.fetch,testToken=process.env.RECOGNITION_INTERNAL_TOKEN;
+  try{
+   process.env.RECOGNITION_INTERNAL_TOKEN='test';globalThis.fetch=async()=>Response.json({labels:['A'],model:'test-model',threshold:.8});
+   const temp=await call('post','/courses',{title:'Mixed authoring'});
+   const mixed={...lesson,exercises:[{prompt:'True?',answer_type:'boolean',options:[{option_text:'True',is_correct:true},{option_text:'False',is_correct:false}]},{prompt:'Sign A',answer_type:'recognition',sign_id:newSign.body.id,options:[]}]};
+   assert.equal((await call('post','/courses/:id/lessons',mixed,temp.body.id)).code,200);
+   const authored=(await call('get','/courses/:id',{},temp.body.id)).body;
+   assert.deepEqual(authored.lessons[0].exercises.map(q=>q.answer_type),['boolean','recognition']);
+   assert.equal((await call('post','/courses/:id/lessons',{...mixed,sort_order:2,sign_ids:[]},temp.body.id)).code,400);
+   await db.query('delete from exercise_options where exercise_id in (select x.id from exercises x join lessons l on l.id=x.lesson_id where l.course_id=$1)',[temp.body.id]);
+   await db.query('delete from exercises where lesson_id in (select id from lessons where course_id=$1)',[temp.body.id]);
+   await db.query('delete from lesson_signs where lesson_id in (select id from lessons where course_id=$1)',[temp.body.id]);
+   await db.query('delete from lessons where course_id=$1',[temp.body.id]);await db.query('delete from courses where id=$1',[temp.body.id]);
+  }finally{globalThis.fetch=testFetch;if(testToken===undefined)delete process.env.RECOGNITION_INTERNAL_TOKEN;else process.env.RECOGNITION_INTERNAL_TOKEN=testToken;}
+  const originalAttempts=(await db.query('select count(*)::int as count from exercise_attempts')).rows[0].count;
+  assert.equal((await call('post','/courses/:id/archive',{},id)).code,200);
+  const archived=await call('get','/courses/:id',{},id);assert.equal(archived.body.is_archived,true);
+  assert.equal((await call('post','/courses/:id/lessons',{...lesson,sort_order:2},id)).code,409);
+  assert.equal((await call('patch','/courses/:id',{title:'Archive details updated',cover_style:'frame',is_published:true},id)).code,200);
+  const archiveEdit=(await call('get','/courses/:id',{},id)).body;assert.equal(archiveEdit.is_archived,true);assert.equal(archiveEdit.is_published,false);assert.equal(archiveEdit.cover_style,'frame');
+  assert.equal((await db.query('select count(*)::int as count from exercise_attempts')).rows[0].count,originalAttempts);
+  assert.equal((await call('post','/courses/:id/publish',{},id)).code,200);
+  assert.ok(admin.stack.filter(layer => !layer.route).length >= 3, 'Authentication and role middleware precede routes');
+ } finally { delete globalThis.__adminSql; await db.close(); }
+});

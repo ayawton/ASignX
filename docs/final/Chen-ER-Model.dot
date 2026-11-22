@@ -1,0 +1,233 @@
+graph Chen {graph [rankdir=LR,overlap=false,splines=spline,nodesep=0.24,ranksep=1.0,pad=0.4,bgcolor=white,label="ASignX Entity Relationship Model - Chen notation
+23 application entities plus external Supabase identity
+Rectangles: entities | Diamonds: relationships | Ovals: attributes | Underlined: primary key
+Endpoint labels show minimum..maximum participation; composite keys are jointly unique",labelloc=t,fontsize=24,fontname="Arial"];node [fontname="Arial",fontsize=12];edge [fontname="Arial",fontsize=10,color="#718096"];
+subgraph cluster_auth_users {style=invis; rank=same; auth_users [shape=box,style=filled,fillcolor="#e7eff9",label="auth.users (external)",penwidth=1.5];
+auth_users__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; auth_users -- auth_users__id [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_profiles {style=invis; rank=same; profiles [shape=box,style=filled,fillcolor="#e7eff9",label="profiles",penwidth=1.5];
+profiles__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; profiles -- profiles__id [color="#b6bec9",weight=0.2];
+profiles__display_name [shape=ellipse,label="display_name",color="#a3afbf"]; profiles -- profiles__display_name [color="#b6bec9",weight=0.2];
+profiles__role [shape=ellipse,label="role",color="#a3afbf"]; profiles -- profiles__role [color="#b6bec9",weight=0.2];
+profiles__timezone [shape=ellipse,label="timezone",color="#a3afbf"]; profiles -- profiles__timezone [color="#b6bec9",weight=0.2];
+profiles__created_at [shape=ellipse,label="created_at",color="#a3afbf"]; profiles -- profiles__created_at [color="#b6bec9",weight=0.2];
+profiles__updated_at [shape=ellipse,label="updated_at",color="#a3afbf"]; profiles -- profiles__updated_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_signs {style=invis; rank=same; signs [shape=box,style=filled,fillcolor="#e7eff9",label="signs",penwidth=1.5];
+signs__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; signs -- signs__id [color="#b6bec9",weight=0.2];
+signs__gloss [shape=ellipse,label="gloss",color="#a3afbf"]; signs -- signs__gloss [color="#b6bec9",weight=0.2];
+signs__meaning [shape=ellipse,label="meaning",color="#a3afbf"]; signs -- signs__meaning [color="#b6bec9",weight=0.2];
+signs__category [shape=ellipse,label="category",color="#a3afbf"]; signs -- signs__category [color="#b6bec9",weight=0.2];
+signs__instructions [shape=ellipse,label="instructions",color="#a3afbf"]; signs -- signs__instructions [color="#b6bec9",weight=0.2];
+signs__demo_path [shape=ellipse,label="demo_path",color="#a3afbf"]; signs -- signs__demo_path [color="#b6bec9",weight=0.2];
+signs__is_published [shape=ellipse,label="is_published",color="#a3afbf"]; signs -- signs__is_published [color="#b6bec9",weight=0.2];
+signs__created_at [shape=ellipse,label="created_at",color="#a3afbf"]; signs -- signs__created_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_courses {style=invis; rank=same; courses [shape=box,style=filled,fillcolor="#e7eff9",label="courses",penwidth=1.5];
+courses__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; courses -- courses__id [color="#b6bec9",weight=0.2];
+courses__title [shape=ellipse,label="title",color="#a3afbf"]; courses -- courses__title [color="#b6bec9",weight=0.2];
+courses__description [shape=ellipse,label="description",color="#a3afbf"]; courses -- courses__description [color="#b6bec9",weight=0.2];
+courses__cover_size [shape=ellipse,label="cover_size",color="#a3afbf"]; courses -- courses__cover_size [color="#b6bec9",weight=0.2];
+courses__cover_angle [shape=ellipse,label="cover_angle",color="#a3afbf"]; courses -- courses__cover_angle [color="#b6bec9",weight=0.2];
+courses__cover_density [shape=ellipse,label="cover_density",color="#a3afbf"]; courses -- courses__cover_density [color="#b6bec9",weight=0.2];
+courses__cover_weight [shape=ellipse,label="cover_weight",color="#a3afbf"]; courses -- courses__cover_weight [color="#b6bec9",weight=0.2];
+courses__cover_font [shape=ellipse,label="cover_font",color="#a3afbf"]; courses -- courses__cover_font [color="#b6bec9",weight=0.2];
+courses__cover_text [shape=ellipse,label="cover_text",color="#a3afbf"]; courses -- courses__cover_text [color="#b6bec9",weight=0.2];
+courses__cover_style [shape=ellipse,label="cover_style",color="#a3afbf"]; courses -- courses__cover_style [color="#b6bec9",weight=0.2];
+courses__cover_tone [shape=ellipse,label="cover_tone",color="#a3afbf"]; courses -- courses__cover_tone [color="#b6bec9",weight=0.2];
+courses__is_published [shape=ellipse,label="is_published",color="#a3afbf"]; courses -- courses__is_published [color="#b6bec9",weight=0.2];
+courses__created_at [shape=ellipse,label="created_at",color="#a3afbf"]; courses -- courses__created_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_lessons {style=invis; rank=same; lessons [shape=box,style=filled,fillcolor="#e7eff9",label="lessons",penwidth=1.5];
+lessons__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; lessons -- lessons__id [color="#b6bec9",weight=0.2];
+lessons__course_id [shape=ellipse,label="course_id",color="#a3afbf"]; lessons -- lessons__course_id [color="#b6bec9",weight=0.2];
+lessons__title [shape=ellipse,label="title",color="#a3afbf"]; lessons -- lessons__title [color="#b6bec9",weight=0.2];
+lessons__content [shape=ellipse,label="content",color="#a3afbf"]; lessons -- lessons__content [color="#b6bec9",weight=0.2];
+lessons__sort_order [shape=ellipse,label="sort_order",color="#a3afbf"]; lessons -- lessons__sort_order [color="#b6bec9",weight=0.2];
+lessons__xp_reward [shape=ellipse,label="xp_reward",color="#a3afbf"]; lessons -- lessons__xp_reward [color="#b6bec9",weight=0.2];
+lessons__is_published [shape=ellipse,label="is_published",color="#a3afbf"]; lessons -- lessons__is_published [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_lesson_signs {style=invis; rank=same; lesson_signs [shape=box,style=filled,fillcolor="#e7eff9",label="lesson_signs",penwidth=1.5];
+lesson_signs__lesson_id [shape=ellipse,label=<<U>lesson_id</U>>,color="#a3afbf"]; lesson_signs -- lesson_signs__lesson_id [color="#b6bec9",weight=0.2];
+lesson_signs__sign_id [shape=ellipse,label=<<U>sign_id</U>>,color="#a3afbf"]; lesson_signs -- lesson_signs__sign_id [color="#b6bec9",weight=0.2];
+lesson_signs__sort_order [shape=ellipse,label="sort_order",color="#a3afbf"]; lesson_signs -- lesson_signs__sort_order [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_exercises {style=invis; rank=same; exercises [shape=box,style=filled,fillcolor="#e7eff9",label="exercises",penwidth=1.5];
+exercises__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; exercises -- exercises__id [color="#b6bec9",weight=0.2];
+exercises__lesson_id [shape=ellipse,label="lesson_id",color="#a3afbf"]; exercises -- exercises__lesson_id [color="#b6bec9",weight=0.2];
+exercises__answer_type [shape=ellipse,label="answer_type",color="#a3afbf"]; exercises -- exercises__answer_type [color="#b6bec9",weight=0.2];
+exercises__prompt [shape=ellipse,label="prompt",color="#a3afbf"]; exercises -- exercises__prompt [color="#b6bec9",weight=0.2];
+exercises__sign_id [shape=ellipse,label="sign_id",color="#a3afbf"]; exercises -- exercises__sign_id [color="#b6bec9",weight=0.2];
+exercises__sort_order [shape=ellipse,label="sort_order",color="#a3afbf"]; exercises -- exercises__sort_order [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_exercise_options {style=invis; rank=same; exercise_options [shape=box,style=filled,fillcolor="#e7eff9",label="exercise_options",penwidth=1.5];
+exercise_options__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; exercise_options -- exercise_options__id [color="#b6bec9",weight=0.2];
+exercise_options__exercise_id [shape=ellipse,label="exercise_id",color="#a3afbf"]; exercise_options -- exercise_options__exercise_id [color="#b6bec9",weight=0.2];
+exercise_options__option_text [shape=ellipse,label="option_text",color="#a3afbf"]; exercise_options -- exercise_options__option_text [color="#b6bec9",weight=0.2];
+exercise_options__is_correct [shape=ellipse,label="is_correct",color="#a3afbf"]; exercise_options -- exercise_options__is_correct [color="#b6bec9",weight=0.2];
+exercise_options__sort_order [shape=ellipse,label="sort_order",color="#a3afbf"]; exercise_options -- exercise_options__sort_order [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_enrollments {style=invis; rank=same; enrollments [shape=box,style=filled,fillcolor="#e7eff9",label="enrollments",penwidth=1.5];
+enrollments__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; enrollments -- enrollments__id [color="#b6bec9",weight=0.2];
+enrollments__user_id [shape=ellipse,label="user_id",color="#a3afbf"]; enrollments -- enrollments__user_id [color="#b6bec9",weight=0.2];
+enrollments__course_id [shape=ellipse,label="course_id",color="#a3afbf"]; enrollments -- enrollments__course_id [color="#b6bec9",weight=0.2];
+enrollments__enrolled_at [shape=ellipse,label="enrolled_at",color="#a3afbf"]; enrollments -- enrollments__enrolled_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_lesson_progress {style=invis; rank=same; lesson_progress [shape=box,style=filled,fillcolor="#e7eff9",label="lesson_progress",penwidth=1.5];
+lesson_progress__enrollment_id [shape=ellipse,label=<<U>enrollment_id</U>>,color="#a3afbf"]; lesson_progress -- lesson_progress__enrollment_id [color="#b6bec9",weight=0.2];
+lesson_progress__lesson_id [shape=ellipse,label=<<U>lesson_id</U>>,color="#a3afbf"]; lesson_progress -- lesson_progress__lesson_id [color="#b6bec9",weight=0.2];
+lesson_progress__perfected_at [shape=ellipse,label="perfected_at",color="#a3afbf"]; lesson_progress -- lesson_progress__perfected_at [color="#b6bec9",weight=0.2];
+lesson_progress__started_at [shape=ellipse,label="started_at",color="#a3afbf"]; lesson_progress -- lesson_progress__started_at [color="#b6bec9",weight=0.2];
+lesson_progress__completed_at [shape=ellipse,label="completed_at",color="#a3afbf"]; lesson_progress -- lesson_progress__completed_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_exercise_attempts {style=invis; rank=same; exercise_attempts [shape=box,style=filled,fillcolor="#e7eff9",label="exercise_attempts",penwidth=1.5];
+exercise_attempts__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; exercise_attempts -- exercise_attempts__id [color="#b6bec9",weight=0.2];
+exercise_attempts__enrollment_id [shape=ellipse,label="enrollment_id",color="#a3afbf"]; exercise_attempts -- exercise_attempts__enrollment_id [color="#b6bec9",weight=0.2];
+exercise_attempts__exercise_id [shape=ellipse,label="exercise_id",color="#a3afbf"]; exercise_attempts -- exercise_attempts__exercise_id [color="#b6bec9",weight=0.2];
+exercise_attempts__response_text [shape=ellipse,label="response_text",color="#a3afbf"]; exercise_attempts -- exercise_attempts__response_text [color="#b6bec9",weight=0.2];
+exercise_attempts__recognition_confidence [shape=ellipse,label="recognition_confidence",color="#a3afbf"]; exercise_attempts -- exercise_attempts__recognition_confidence [color="#b6bec9",weight=0.2];
+exercise_attempts__model_version_id [shape=ellipse,label="model_version_id",color="#a3afbf"]; exercise_attempts -- exercise_attempts__model_version_id [color="#b6bec9",weight=0.2];
+exercise_attempts__selected_option_id [shape=ellipse,label="selected_option_id",color="#a3afbf"]; exercise_attempts -- exercise_attempts__selected_option_id [color="#b6bec9",weight=0.2];
+exercise_attempts__is_correct [shape=ellipse,label="is_correct",color="#a3afbf"]; exercise_attempts -- exercise_attempts__is_correct [color="#b6bec9",weight=0.2];
+exercise_attempts__attempted_at [shape=ellipse,label="attempted_at",color="#a3afbf"]; exercise_attempts -- exercise_attempts__attempted_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_learner_hearts {style=invis; rank=same; learner_hearts [shape=box,style=filled,fillcolor="#e7eff9",label="learner_hearts",penwidth=1.5];
+learner_hearts__user_id [shape=ellipse,label=<<U>user_id</U>>,color="#a3afbf"]; learner_hearts -- learner_hearts__user_id [color="#b6bec9",weight=0.2];
+learner_hearts__hearts [shape=ellipse,label="hearts",color="#a3afbf"]; learner_hearts -- learner_hearts__hearts [color="#b6bec9",weight=0.2];
+learner_hearts__regenerated_at [shape=ellipse,label="regenerated_at",color="#a3afbf"]; learner_hearts -- learner_hearts__regenerated_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_lesson_runs {style=invis; rank=same; lesson_runs [shape=box,style=filled,fillcolor="#e7eff9",label="lesson_runs",penwidth=1.5];
+lesson_runs__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; lesson_runs -- lesson_runs__id [color="#b6bec9",weight=0.2];
+lesson_runs__enrollment_id [shape=ellipse,label="enrollment_id",color="#a3afbf"]; lesson_runs -- lesson_runs__enrollment_id [color="#b6bec9",weight=0.2];
+lesson_runs__lesson_id [shape=ellipse,label="lesson_id",color="#a3afbf"]; lesson_runs -- lesson_runs__lesson_id [color="#b6bec9",weight=0.2];
+lesson_runs__replay [shape=ellipse,label="replay",color="#a3afbf"]; lesson_runs -- lesson_runs__replay [color="#b6bec9",weight=0.2];
+lesson_runs__started_at [shape=ellipse,label="started_at",color="#a3afbf"]; lesson_runs -- lesson_runs__started_at [color="#b6bec9",weight=0.2];
+lesson_runs__completed_at [shape=ellipse,label="completed_at",color="#a3afbf"]; lesson_runs -- lesson_runs__completed_at [color="#b6bec9",weight=0.2];
+lesson_runs__perfect [shape=ellipse,label="perfect",color="#a3afbf"]; lesson_runs -- lesson_runs__perfect [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_lesson_run_questions {style=invis; rank=same; lesson_run_questions [shape=box,style=filled,fillcolor="#e7eff9",label="lesson_run_questions",penwidth=1.5];
+lesson_run_questions__run_id [shape=ellipse,label=<<U>run_id</U>>,color="#a3afbf"]; lesson_run_questions -- lesson_run_questions__run_id [color="#b6bec9",weight=0.2];
+lesson_run_questions__exercise_id [shape=ellipse,label=<<U>exercise_id</U>>,color="#a3afbf"]; lesson_run_questions -- lesson_run_questions__exercise_id [color="#b6bec9",weight=0.2];
+lesson_run_questions__xp_value [shape=ellipse,label="xp_value",color="#a3afbf"]; lesson_run_questions -- lesson_run_questions__xp_value [color="#b6bec9",weight=0.2];
+lesson_run_questions__sort_order [shape=ellipse,label="sort_order",color="#a3afbf"]; lesson_run_questions -- lesson_run_questions__sort_order [color="#b6bec9",weight=0.2];
+lesson_run_questions__attempt_id [shape=ellipse,label="attempt_id",color="#a3afbf"]; lesson_run_questions -- lesson_run_questions__attempt_id [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_xp_awards {style=invis; rank=same; xp_awards [shape=box,style=filled,fillcolor="#e7eff9",label="xp_awards",penwidth=1.5];
+xp_awards__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; xp_awards -- xp_awards__id [color="#b6bec9",weight=0.2];
+xp_awards__enrollment_id [shape=ellipse,label="enrollment_id",color="#a3afbf"]; xp_awards -- xp_awards__enrollment_id [color="#b6bec9",weight=0.2];
+xp_awards__lesson_id [shape=ellipse,label="lesson_id",color="#a3afbf"]; xp_awards -- xp_awards__lesson_id [color="#b6bec9",weight=0.2];
+xp_awards__run_id [shape=ellipse,label="run_id",color="#a3afbf"]; xp_awards -- xp_awards__run_id [color="#b6bec9",weight=0.2];
+xp_awards__exercise_id [shape=ellipse,label="exercise_id",color="#a3afbf"]; xp_awards -- xp_awards__exercise_id [color="#b6bec9",weight=0.2];
+xp_awards__source [shape=ellipse,label="source",color="#a3afbf"]; xp_awards -- xp_awards__source [color="#b6bec9",weight=0.2];
+xp_awards__amount [shape=ellipse,label="amount",color="#a3afbf"]; xp_awards -- xp_awards__amount [color="#b6bec9",weight=0.2];
+xp_awards__awarded_at [shape=ellipse,label="awarded_at",color="#a3afbf"]; xp_awards -- xp_awards__awarded_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_heart_practice_rounds {style=invis; rank=same; heart_practice_rounds [shape=box,style=filled,fillcolor="#e7eff9",label="heart_practice_rounds",penwidth=1.5];
+heart_practice_rounds__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; heart_practice_rounds -- heart_practice_rounds__id [color="#b6bec9",weight=0.2];
+heart_practice_rounds__user_id [shape=ellipse,label="user_id",color="#a3afbf"]; heart_practice_rounds -- heart_practice_rounds__user_id [color="#b6bec9",weight=0.2];
+heart_practice_rounds__completed_at [shape=ellipse,label="completed_at",color="#a3afbf"]; heart_practice_rounds -- heart_practice_rounds__completed_at [color="#b6bec9",weight=0.2];
+heart_practice_rounds__created_at [shape=ellipse,label="created_at",color="#a3afbf"]; heart_practice_rounds -- heart_practice_rounds__created_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_heart_practice_questions {style=invis; rank=same; heart_practice_questions [shape=box,style=filled,fillcolor="#e7eff9",label="heart_practice_questions",penwidth=1.5];
+heart_practice_questions__round_id [shape=ellipse,label=<<U>round_id</U>>,color="#a3afbf"]; heart_practice_questions -- heart_practice_questions__round_id [color="#b6bec9",weight=0.2];
+heart_practice_questions__question_index [shape=ellipse,label=<<U>question_index</U>>,color="#a3afbf"]; heart_practice_questions -- heart_practice_questions__question_index [color="#b6bec9",weight=0.2];
+heart_practice_questions__exercise_id [shape=ellipse,label="exercise_id",color="#a3afbf"]; heart_practice_questions -- heart_practice_questions__exercise_id [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_heart_practice_submissions {style=invis; rank=same; heart_practice_submissions [shape=box,style=filled,fillcolor="#e7eff9",label="heart_practice_submissions",penwidth=1.5];
+heart_practice_submissions__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; heart_practice_submissions -- heart_practice_submissions__id [color="#b6bec9",weight=0.2];
+heart_practice_submissions__round_id [shape=ellipse,label="round_id",color="#a3afbf"]; heart_practice_submissions -- heart_practice_submissions__round_id [color="#b6bec9",weight=0.2];
+heart_practice_submissions__question_index [shape=ellipse,label="question_index",color="#a3afbf"]; heart_practice_submissions -- heart_practice_submissions__question_index [color="#b6bec9",weight=0.2];
+heart_practice_submissions__selected_option_id [shape=ellipse,label="selected_option_id",color="#a3afbf"]; heart_practice_submissions -- heart_practice_submissions__selected_option_id [color="#b6bec9",weight=0.2];
+heart_practice_submissions__is_correct [shape=ellipse,label="is_correct",color="#a3afbf"]; heart_practice_submissions -- heart_practice_submissions__is_correct [color="#b6bec9",weight=0.2];
+heart_practice_submissions__submitted_at [shape=ellipse,label="submitted_at",color="#a3afbf"]; heart_practice_submissions -- heart_practice_submissions__submitted_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_model_versions {style=invis; rank=same; model_versions [shape=box,style=filled,fillcolor="#e7eff9",label="model_versions",penwidth=1.5];
+model_versions__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; model_versions -- model_versions__id [color="#b6bec9",weight=0.2];
+model_versions__version [shape=ellipse,label="version",color="#a3afbf"]; model_versions -- model_versions__version [color="#b6bec9",weight=0.2];
+model_versions__fingerprint [shape=ellipse,label="fingerprint",color="#a3afbf"]; model_versions -- model_versions__fingerprint [color="#b6bec9",weight=0.2];
+model_versions__artifact_path [shape=ellipse,label="artifact_path",color="#a3afbf"]; model_versions -- model_versions__artifact_path [color="#b6bec9",weight=0.2];
+model_versions__confidence_threshold [shape=ellipse,label="confidence_threshold",color="#a3afbf"]; model_versions -- model_versions__confidence_threshold [color="#b6bec9",weight=0.2];
+model_versions__created_at [shape=ellipse,label="created_at",color="#a3afbf"]; model_versions -- model_versions__created_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_practice_attempts {style=invis; rank=same; practice_attempts [shape=box,style=filled,fillcolor="#e7eff9",label="practice_attempts",penwidth=1.5];
+practice_attempts__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; practice_attempts -- practice_attempts__id [color="#b6bec9",weight=0.2];
+practice_attempts__user_id [shape=ellipse,label="user_id",color="#a3afbf"]; practice_attempts -- practice_attempts__user_id [color="#b6bec9",weight=0.2];
+practice_attempts__lesson_id [shape=ellipse,label="lesson_id",color="#a3afbf"]; practice_attempts -- practice_attempts__lesson_id [color="#b6bec9",weight=0.2];
+practice_attempts__target_sign_id [shape=ellipse,label="target_sign_id",color="#a3afbf"]; practice_attempts -- practice_attempts__target_sign_id [color="#b6bec9",weight=0.2];
+practice_attempts__predicted_sign_id [shape=ellipse,label="predicted_sign_id",color="#a3afbf"]; practice_attempts -- practice_attempts__predicted_sign_id [color="#b6bec9",weight=0.2];
+practice_attempts__model_version_id [shape=ellipse,label="model_version_id",color="#a3afbf"]; practice_attempts -- practice_attempts__model_version_id [color="#b6bec9",weight=0.2];
+practice_attempts__confidence [shape=ellipse,label="confidence",color="#a3afbf"]; practice_attempts -- practice_attempts__confidence [color="#b6bec9",weight=0.2];
+practice_attempts__is_correct [shape=ellipse,label="is_correct",color="#a3afbf"]; practice_attempts -- practice_attempts__is_correct [color="#b6bec9",weight=0.2];
+practice_attempts__attempted_at [shape=ellipse,label="attempted_at",color="#a3afbf"]; practice_attempts -- practice_attempts__attempted_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_recognition_sessions {style=invis; rank=same; recognition_sessions [shape=box,style=filled,fillcolor="#e7eff9",label="recognition_sessions",penwidth=1.5];
+recognition_sessions__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; recognition_sessions -- recognition_sessions__id [color="#b6bec9",weight=0.2];
+recognition_sessions__user_id [shape=ellipse,label="user_id",color="#a3afbf"]; recognition_sessions -- recognition_sessions__user_id [color="#b6bec9",weight=0.2];
+recognition_sessions__started_at [shape=ellipse,label="started_at",color="#a3afbf"]; recognition_sessions -- recognition_sessions__started_at [color="#b6bec9",weight=0.2];
+recognition_sessions__ended_at [shape=ellipse,label="ended_at",color="#a3afbf"]; recognition_sessions -- recognition_sessions__ended_at [color="#b6bec9",weight=0.2];
+recognition_sessions__final_text [shape=ellipse,label="final_text",color="#a3afbf"]; recognition_sessions -- recognition_sessions__final_text [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_recognition_results {style=invis; rank=same; recognition_results [shape=box,style=filled,fillcolor="#e7eff9",label="recognition_results",penwidth=1.5];
+recognition_results__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; recognition_results -- recognition_results__id [color="#b6bec9",weight=0.2];
+recognition_results__session_id [shape=ellipse,label="session_id",color="#a3afbf"]; recognition_results -- recognition_results__session_id [color="#b6bec9",weight=0.2];
+recognition_results__sign_id [shape=ellipse,label="sign_id",color="#a3afbf"]; recognition_results -- recognition_results__sign_id [color="#b6bec9",weight=0.2];
+recognition_results__model_version_id [shape=ellipse,label="model_version_id",color="#a3afbf"]; recognition_results -- recognition_results__model_version_id [color="#b6bec9",weight=0.2];
+recognition_results__sequence_no [shape=ellipse,label="sequence_no",color="#a3afbf"]; recognition_results -- recognition_results__sequence_no [color="#b6bec9",weight=0.2];
+recognition_results__confidence [shape=ellipse,label="confidence",color="#a3afbf"]; recognition_results -- recognition_results__confidence [color="#b6bec9",weight=0.2];
+recognition_results__recognized_at [shape=ellipse,label="recognized_at",color="#a3afbf"]; recognition_results -- recognition_results__recognized_at [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_achievements {style=invis; rank=same; achievements [shape=box,style=filled,fillcolor="#e7eff9",label="achievements",penwidth=1.5];
+achievements__id [shape=ellipse,label=<<U>id</U>>,color="#a3afbf"]; achievements -- achievements__id [color="#b6bec9",weight=0.2];
+achievements__code [shape=ellipse,label="code",color="#a3afbf"]; achievements -- achievements__code [color="#b6bec9",weight=0.2];
+achievements__name [shape=ellipse,label="name",color="#a3afbf"]; achievements -- achievements__name [color="#b6bec9",weight=0.2];
+achievements__description [shape=ellipse,label="description",color="#a3afbf"]; achievements -- achievements__description [color="#b6bec9",weight=0.2];
+achievements__metric [shape=ellipse,label="metric",color="#a3afbf"]; achievements -- achievements__metric [color="#b6bec9",weight=0.2];
+achievements__threshold [shape=ellipse,label="threshold",color="#a3afbf"]; achievements -- achievements__threshold [color="#b6bec9",weight=0.2];
+}
+subgraph cluster_user_achievements {style=invis; rank=same; user_achievements [shape=box,style=filled,fillcolor="#e7eff9",label="user_achievements",penwidth=1.5];
+user_achievements__user_id [shape=ellipse,label=<<U>user_id</U>>,color="#a3afbf"]; user_achievements -- user_achievements__user_id [color="#b6bec9",weight=0.2];
+user_achievements__achievement_id [shape=ellipse,label=<<U>achievement_id</U>>,color="#a3afbf"]; user_achievements -- user_achievements__achievement_id [color="#b6bec9",weight=0.2];
+user_achievements__unlocked_at [shape=ellipse,label="unlocked_at",color="#a3afbf"]; user_achievements -- user_achievements__unlocked_at [color="#b6bec9",weight=0.2];
+}
+rel0 [shape=diamond,style=filled,fillcolor="#fff7e6",label="id",fontsize=10]; auth_users -- rel0 [taillabel="1..1",labeldistance=2,weight=2]; rel0 -- profiles [headlabel="0..1",labeldistance=2,weight=2];
+rel1 [shape=diamond,style=filled,fillcolor="#fff7e6",label="course id",fontsize=10]; courses -- rel1 [taillabel="1..1",labeldistance=2,weight=2]; rel1 -- lessons [headlabel="0..N",labeldistance=2,weight=2];
+rel2 [shape=diamond,style=filled,fillcolor="#fff7e6",label="lesson id",fontsize=10]; lessons -- rel2 [taillabel="1..1",labeldistance=2,weight=2]; rel2 -- lesson_signs [headlabel="0..N",labeldistance=2,weight=2];
+rel3 [shape=diamond,style=filled,fillcolor="#fff7e6",label="sign id",fontsize=10]; signs -- rel3 [taillabel="1..1",labeldistance=2,weight=2]; rel3 -- lesson_signs [headlabel="0..N",labeldistance=2,weight=2];
+rel4 [shape=diamond,style=filled,fillcolor="#fff7e6",label="lesson id",fontsize=10]; lessons -- rel4 [taillabel="1..1",labeldistance=2,weight=2]; rel4 -- exercises [headlabel="0..N",labeldistance=2,weight=2];
+rel5 [shape=diamond,style=filled,fillcolor="#fff7e6",label="sign id",fontsize=10]; signs -- rel5 [taillabel="0..1",labeldistance=2,weight=2]; rel5 -- exercises [headlabel="0..N",labeldistance=2,weight=2];
+rel6 [shape=diamond,style=filled,fillcolor="#fff7e6",label="exercise id",fontsize=10]; exercises -- rel6 [taillabel="1..1",labeldistance=2,weight=2]; rel6 -- exercise_options [headlabel="0..N",labeldistance=2,weight=2];
+rel7 [shape=diamond,style=filled,fillcolor="#fff7e6",label="user id",fontsize=10]; profiles -- rel7 [taillabel="1..1",labeldistance=2,weight=2]; rel7 -- enrollments [headlabel="0..N",labeldistance=2,weight=2];
+rel8 [shape=diamond,style=filled,fillcolor="#fff7e6",label="course id",fontsize=10]; courses -- rel8 [taillabel="1..1",labeldistance=2,weight=2]; rel8 -- enrollments [headlabel="0..N",labeldistance=2,weight=2];
+rel9 [shape=diamond,style=filled,fillcolor="#fff7e6",label="enrollment id",fontsize=10]; enrollments -- rel9 [taillabel="1..1",labeldistance=2,weight=2]; rel9 -- lesson_progress [headlabel="0..N",labeldistance=2,weight=2];
+rel10 [shape=diamond,style=filled,fillcolor="#fff7e6",label="lesson id",fontsize=10]; lessons -- rel10 [taillabel="1..1",labeldistance=2,weight=2]; rel10 -- lesson_progress [headlabel="0..N",labeldistance=2,weight=2];
+rel11 [shape=diamond,style=filled,fillcolor="#fff7e6",label="enrollment id",fontsize=10]; enrollments -- rel11 [taillabel="1..1",labeldistance=2,weight=2]; rel11 -- exercise_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel12 [shape=diamond,style=filled,fillcolor="#fff7e6",label="exercise id",fontsize=10]; exercises -- rel12 [taillabel="1..1",labeldistance=2,weight=2]; rel12 -- exercise_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel13 [shape=diamond,style=filled,fillcolor="#fff7e6",label="model version id",fontsize=10]; model_versions -- rel13 [taillabel="0..1",labeldistance=2,weight=2]; rel13 -- exercise_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel14 [shape=diamond,style=filled,fillcolor="#fff7e6",label="exercise id selected option id",fontsize=10]; exercise_options -- rel14 [taillabel="0..1",labeldistance=2,weight=2]; rel14 -- exercise_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel15 [shape=diamond,style=filled,fillcolor="#fff7e6",label="user id",fontsize=10]; profiles -- rel15 [taillabel="1..1",labeldistance=2,weight=2]; rel15 -- learner_hearts [headlabel="0..1",labeldistance=2,weight=2];
+rel16 [shape=diamond,style=filled,fillcolor="#fff7e6",label="enrollment id",fontsize=10]; enrollments -- rel16 [taillabel="1..1",labeldistance=2,weight=2]; rel16 -- lesson_runs [headlabel="0..N",labeldistance=2,weight=2];
+rel17 [shape=diamond,style=filled,fillcolor="#fff7e6",label="lesson id",fontsize=10]; lessons -- rel17 [taillabel="1..1",labeldistance=2,weight=2]; rel17 -- lesson_runs [headlabel="0..N",labeldistance=2,weight=2];
+rel18 [shape=diamond,style=filled,fillcolor="#fff7e6",label="run id",fontsize=10]; lesson_runs -- rel18 [taillabel="1..1",labeldistance=2,weight=2]; rel18 -- lesson_run_questions [headlabel="0..N",labeldistance=2,weight=2];
+rel19 [shape=diamond,style=filled,fillcolor="#fff7e6",label="exercise id",fontsize=10]; exercises -- rel19 [taillabel="1..1",labeldistance=2,weight=2]; rel19 -- lesson_run_questions [headlabel="0..N",labeldistance=2,weight=2];
+rel20 [shape=diamond,style=filled,fillcolor="#fff7e6",label="attempt id",fontsize=10]; exercise_attempts -- rel20 [taillabel="0..1",labeldistance=2,weight=2]; rel20 -- lesson_run_questions [headlabel="0..N",labeldistance=2,weight=2];
+rel21 [shape=diamond,style=filled,fillcolor="#fff7e6",label="enrollment id",fontsize=10]; enrollments -- rel21 [taillabel="1..1",labeldistance=2,weight=2]; rel21 -- xp_awards [headlabel="0..N",labeldistance=2,weight=2];
+rel22 [shape=diamond,style=filled,fillcolor="#fff7e6",label="lesson id",fontsize=10]; lessons -- rel22 [taillabel="1..1",labeldistance=2,weight=2]; rel22 -- xp_awards [headlabel="0..N",labeldistance=2,weight=2];
+rel23 [shape=diamond,style=filled,fillcolor="#fff7e6",label="run id",fontsize=10]; lesson_runs -- rel23 [taillabel="0..1",labeldistance=2,weight=2]; rel23 -- xp_awards [headlabel="0..N",labeldistance=2,weight=2];
+rel24 [shape=diamond,style=filled,fillcolor="#fff7e6",label="exercise id",fontsize=10]; exercises -- rel24 [taillabel="0..1",labeldistance=2,weight=2]; rel24 -- xp_awards [headlabel="0..N",labeldistance=2,weight=2];
+rel25 [shape=diamond,style=filled,fillcolor="#fff7e6",label="user id",fontsize=10]; profiles -- rel25 [taillabel="1..1",labeldistance=2,weight=2]; rel25 -- heart_practice_rounds [headlabel="0..N",labeldistance=2,weight=2];
+rel26 [shape=diamond,style=filled,fillcolor="#fff7e6",label="round id",fontsize=10]; heart_practice_rounds -- rel26 [taillabel="1..1",labeldistance=2,weight=2]; rel26 -- heart_practice_questions [headlabel="0..N",labeldistance=2,weight=2];
+rel27 [shape=diamond,style=filled,fillcolor="#fff7e6",label="exercise id",fontsize=10]; exercises -- rel27 [taillabel="1..1",labeldistance=2,weight=2]; rel27 -- heart_practice_questions [headlabel="0..N",labeldistance=2,weight=2];
+rel28 [shape=diamond,style=filled,fillcolor="#fff7e6",label="selected option id",fontsize=10]; exercise_options -- rel28 [taillabel="1..1",labeldistance=2,weight=2]; rel28 -- heart_practice_submissions [headlabel="0..N",labeldistance=2,weight=2];
+rel29 [shape=diamond,style=filled,fillcolor="#fff7e6",label="round id question index",fontsize=10]; heart_practice_questions -- rel29 [taillabel="1..1",labeldistance=2,weight=2]; rel29 -- heart_practice_submissions [headlabel="0..N",labeldistance=2,weight=2];
+rel30 [shape=diamond,style=filled,fillcolor="#fff7e6",label="user id",fontsize=10]; profiles -- rel30 [taillabel="1..1",labeldistance=2,weight=2]; rel30 -- practice_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel31 [shape=diamond,style=filled,fillcolor="#fff7e6",label="lesson id",fontsize=10]; lessons -- rel31 [taillabel="0..1",labeldistance=2,weight=2]; rel31 -- practice_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel32 [shape=diamond,style=filled,fillcolor="#fff7e6",label="target sign id",fontsize=10]; signs -- rel32 [taillabel="1..1",labeldistance=2,weight=2]; rel32 -- practice_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel33 [shape=diamond,style=filled,fillcolor="#fff7e6",label="predicted sign id",fontsize=10]; signs -- rel33 [taillabel="0..1",labeldistance=2,weight=2]; rel33 -- practice_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel34 [shape=diamond,style=filled,fillcolor="#fff7e6",label="model version id",fontsize=10]; model_versions -- rel34 [taillabel="1..1",labeldistance=2,weight=2]; rel34 -- practice_attempts [headlabel="0..N",labeldistance=2,weight=2];
+rel35 [shape=diamond,style=filled,fillcolor="#fff7e6",label="user id",fontsize=10]; profiles -- rel35 [taillabel="1..1",labeldistance=2,weight=2]; rel35 -- recognition_sessions [headlabel="0..N",labeldistance=2,weight=2];
+rel36 [shape=diamond,style=filled,fillcolor="#fff7e6",label="session id",fontsize=10]; recognition_sessions -- rel36 [taillabel="1..1",labeldistance=2,weight=2]; rel36 -- recognition_results [headlabel="0..N",labeldistance=2,weight=2];
+rel37 [shape=diamond,style=filled,fillcolor="#fff7e6",label="sign id",fontsize=10]; signs -- rel37 [taillabel="0..1",labeldistance=2,weight=2]; rel37 -- recognition_results [headlabel="0..N",labeldistance=2,weight=2];
+rel38 [shape=diamond,style=filled,fillcolor="#fff7e6",label="model version id",fontsize=10]; model_versions -- rel38 [taillabel="1..1",labeldistance=2,weight=2]; rel38 -- recognition_results [headlabel="0..N",labeldistance=2,weight=2];
+rel39 [shape=diamond,style=filled,fillcolor="#fff7e6",label="user id",fontsize=10]; profiles -- rel39 [taillabel="1..1",labeldistance=2,weight=2]; rel39 -- user_achievements [headlabel="0..N",labeldistance=2,weight=2];
+rel40 [shape=diamond,style=filled,fillcolor="#fff7e6",label="achievement id",fontsize=10]; achievements -- rel40 [taillabel="1..1",labeldistance=2,weight=2]; rel40 -- user_achievements [headlabel="0..N",labeldistance=2,weight=2];
+}

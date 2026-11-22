@@ -16,7 +16,12 @@ coverage/
 .vite/
 __pycache__/
 *.pyc
+.onnx-export-deps/
+.recognition-deps/
+server/private/models/
+client/public/vendor/
 *.log
+/work/
 
 # Local editor and operating-system files
 .DS_Store

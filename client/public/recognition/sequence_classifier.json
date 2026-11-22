@@ -1,0 +1,9 @@
+{
+  "labels": [
+    "J",
+    "Z"
+  ],
+  "input_name": "sequence",
+  "output_name": "logits",
+  "sampling_fps": 15
+}

@@ -13,6 +13,7 @@ export function ResetPassword() { return <Auth /> }
 
 function Auth({ register = false }) {
  const [show, setShow] = useState(false)
+ const [showConfirm, setShowConfirm] = useState(false)
  const [busy, setBusy] = useState(false)
  const [message, setMessage] = useState('')
  const [registeredEmail, setRegisteredEmail] = useState('')
@@ -51,8 +52,8 @@ function Auth({ register = false }) {
      <label>Display name<input name="name" required maxLength={100} pattern=".*\S.*" autoComplete="nickname" aria-describedby="register-name-help" placeholder="What should we call you?" /><small id="register-name-help">The name shown on your profile. Up to 100 characters.</small></label>
      <label>Email address<input name="email" required type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" /><small>Use an email address you can access for account confirmation.</small></label>
     </>}
-    <label>Password<div className="studio-password"><input name="password" required minLength={8} type={show ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" /><button type="button" onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'}>{show ? 'Hide' : 'Show'}</button></div>{register && <small>Use at least 8 characters. Choose a longer, unique password.</small>}</label>
-    {register && <label>Confirm password<div className="studio-password"><input name="confirmPassword" required minLength={8} type={show ? 'text' : 'password'} autoComplete="new-password" placeholder="Enter your password again" /><button type="button" onClick={() => setShow(!show)} aria-label={show ? 'Hide confirmation password' : 'Show confirmation password'}>{show ? 'Hide' : 'Show'}</button></div><small>Enter the same password to check for typos.</small></label>}
+    <label>Password<div className="studio-password"><input name="password" required minLength={8} type={show ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" /><button type="button" tabIndex={-1} onClick={() => setShow(value => !value)} aria-label={show ? 'Hide password' : 'Show password'}>{show ? 'Hide' : 'Show'}</button></div>{register && <small>Use at least 8 characters. Choose a longer, unique password.</small>}</label>
+    {register && <label>Confirm password<div className="studio-password"><input name="confirmPassword" required minLength={8} type={showConfirm ? 'text' : 'password'} autoComplete="new-password" placeholder="Enter your password again" /><button type="button" tabIndex={-1} onClick={() => setShowConfirm(value => !value)} aria-label={showConfirm ? 'Hide confirmation password' : 'Show confirmation password'}>{showConfirm ? 'Hide' : 'Show'}</button></div><small>Enter the same password to check for typos.</small></label>}
     <button className="btn" disabled={busy || (!register && (!user || loading))} type="submit">{busy ? (register ? 'Creating account…' : 'Updating password…') : register ? 'Create account' : 'Update password'} <ArrowUpRight size={18} /></button>
     {message && <div className="studio-auth-message" role="status">{message}</div>}
     {!register && !loading && !user && <p role="status">Open the password reset link from your email to continue.</p>}

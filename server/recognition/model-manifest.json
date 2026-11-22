@@ -1,0 +1,7 @@
+{
+  "asignx/sign_classifier_canonical.onnx": "896d66204ea9971e74927e29984deea5141c8a716adc849ab837f815ae152d51",
+  "asignx/sign_classifier_canonical.meta.json": "5f5ea6e65c143bab33a3cea7e7d03398ecc7c2a0ad336171f4441bc6d2966a95",
+  "asignx/sequence_classifier.onnx": "8c5847b5485ca6cf40650d56c070113b9cd17407221e389c8e00620f6ab83077",
+  "asignx/sequence_classifier.meta.json": "dc9c8389619026be7935cb359323e07ca3789dd9535656e55f2108c811e45655",
+  "mediapipe/hand_landmarker.task": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
+}

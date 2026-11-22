@@ -10,16 +10,19 @@ try {
  const { default: App } = await vite.ssrLoadModule('/src/App.jsx')
  const { AuthProvider, internalPath } = await vite.ssrLoadModule('/src/auth.jsx')
  const render = path => renderToString(h(MemoryRouter, { initialEntries: [path] }, h(AuthProvider, null, h(App))))
- for (const [path, text] of [['/', 'Connection'], ['/learn', 'Your learning studio'], ['/learn/courses', 'Published account courses'], ['/live', 'Room for a conversation'], ['/login', 'Hello again'], ['/register', 'Start something good'], ['/auth/callback', 'Confirming your email'], ['/forgot-password', 'Forgot password?'], ['/reset-password', 'A fresh start'], ['/about', 'Understanding'], ['/learn/lesson/1', 'Meet the letter A'], ['/missing', 'Let’s find your way']]) {
+ for (const [path, text] of [['/', 'Connection'], ['/learn', 'Try your first ASL lesson.'], ['/learn/courses', 'Explore full courses'], ['/live', 'Room for a conversation'], ['/login', 'Hello again'], ['/register', 'Start something good'], ['/auth/callback', 'Confirming your email'], ['/forgot-password', 'Forgot password?'], ['/reset-password', 'A fresh start'], ['/about', 'Understanding'], ['/learn/lesson/1', 'Meet the letter A'], ['/missing', 'Let’s find your way']]) {
   const html = render(path)
   assert.ok(html.includes(text), `${path}: expected content`)
   assert.equal((html.match(/<main/g) || []).length, 1)
   assert.equal((html.match(/<h1/g) || []).length, 1)
   console.log(`PASS public route ${path}`)
  }
+ const live = render('/live')
+ assert.ok(live.includes('Automatic word recognition') && live.includes('Sentence assembly'), 'Live exposes both automatic pipeline stages')
+ assert.ok(!live.includes('Finish word') && !live.includes('Select a word'), 'Word selection is not required')
  assert.ok(!render('/dashboard').includes('Your hands have'), 'Guest dashboard is protected')
  assert.equal(internalPath(null), '/dashboard')
- for (const path of ['/dashboard', '/dashboard/live', '/dashboard/learn', '/dashboard/profile', '/dashboard/progress']) {
+ for (const path of ['/dashboard/admin/courses/00000000-0000-4000-8000-000000000010', '/dashboard/admin', '/dashboard/admin/courses/import', '/dashboard/admin/courses/00000000-0000-4000-8000-000000000010/import', '/dashboard', '/dashboard/live', '/dashboard/learn', '/dashboard/learn/lessons/00000000-0000-4000-8000-000000000031', '/dashboard/learn/courses/00000000-0000-4000-8000-000000000010', '/dashboard/profile', '/dashboard/progress', '/dashboard/heart-practice']) {
   const html = render(path)
   assert.ok(!html.includes('site-header') && !html.includes('site-footer'), 'Workspace excludes public navigation and footer')
   assert.ok(!html.includes('Room for a conversation'), 'Guest workspace is protected')
@@ -28,8 +31,13 @@ try {
  const shell = renderToString(h(MemoryRouter, { initialEntries: ['/dashboard'] }, h(AuthProvider, null, h(DashboardLayout))))
  assert.ok(shell.includes('href="/dashboard/live"') && shell.includes('href="/dashboard/learn"'))
  assert.ok(!shell.includes('href="/"') && !shell.includes('href="/about"'), 'Workspace has no Home or Our Story links')
+ const { default: CourseTextImport } = await vite.ssrLoadModule('/src/pages/CourseTextImport.jsx')
+ const importer = renderToString(h(MemoryRouter, null, h(CourseTextImport)))
+ assert.ok(importer.includes('Create a course from text') && importer.includes('Preview structure'))
+ assert.ok(importer.includes('asignx-course-template.txt') && importer.includes('text/plain') && importer.includes('accept=".txt,text/plain"'))
+ assert.ok(!importer.includes('Create draft course</button>'), 'Saving is unavailable before a successful preview')
  const { default: WorkspaceLink } = await vite.ssrLoadModule('/src/components/WorkspaceLink.jsx')
- for (const path of ['/learn', '/live', '/learn/courses', '/learn/lesson/1', '/learn/arcade', '/profile', '/progress']) {
+ for (const path of ['/learn', '/live', '/learn/courses', '/learn/courses/00000000-0000-4000-8000-000000000010', '/learn/lesson/1', '/learn/arcade', '/profile', '/progress', '/heart-practice']) {
   const link = location => renderToString(h(MemoryRouter, { initialEntries: [location] }, h(WorkspaceLink, { to: path }, 'Open')))
   assert.ok(link('/dashboard').includes(`href="/dashboard${path}"`), 'Workspace links remain in workspace')
   assert.ok(link('/learn').includes(`href="${path}"`), 'Public links retain public destinations')

@@ -1,0 +1,98 @@
+@startuml ASignX_Class_Diagram
+title ASignX - Core domain class diagram
+top to bottom direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+hide methods
+class Course <<domain record>> {
+  id: UUID
+  title: String
+  description: String?
+}
+class Enrollment <<domain record>> {
+  id: UUID
+  enrolledAt: DateTime
+}
+class ExerciseAttempt <<domain record>> {
+  id: UUID
+  isCorrect: Boolean
+  responseText: String?
+}
+class ExerciseOption <<domain record>> {
+  id: UUID
+  optionText: String
+  isCorrect: Boolean
+}
+class Exercise <<domain record>> {
+  id: UUID
+  prompt: String
+  answerType: choice | boolean | recognition
+}
+class HeartPracticeRound <<domain record>> {
+  id: UUID
+  completedAt: DateTime?
+  /correctCount: Integer
+}
+class LearnerHearts <<domain record>> {
+  userId: UUID
+  hearts: Integer [0..3]
+  regeneratedAt: DateTime
+}
+class LessonRunQuestion <<domain record>> {
+  runId: UUID
+  exerciseId: UUID
+  xpValue: Integer
+}
+class LessonRun <<domain record>> {
+  id: UUID
+  replay: Boolean
+  perfect: Boolean
+}
+class Lesson <<domain record>> {
+  id: UUID
+  title: String
+  content: String?
+}
+class Profile <<domain record>> {
+  id: UUID
+  displayName: String
+  role: learner | admin
+}
+class Sign <<domain record>> {
+  id: UUID
+  gloss: String
+  meaning: String
+}
+class XpAward <<domain record>> {
+  id: UUID
+  source: AwardSource
+  amount: Integer
+}
+Profile "1" -- "0..*" Enrollment : user_id
+Course "1" -- "0..*" Enrollment : course_id
+Enrollment "1" -- "0..*" ExerciseAttempt : enrollment_id
+Exercise "1" -- "0..*" ExerciseAttempt : exercise_id
+ExerciseOption "0..1" -- "0..*" ExerciseAttempt : exercise_id + selected_option_id
+Exercise "1" -- "0..*" ExerciseOption : exercise_id
+Lesson "1" -- "0..*" Exercise : lesson_id
+Sign "0..1" -- "0..*" Exercise : sign_id
+Profile "1" -- "0..*" HeartPracticeRound : user_id
+Profile "1" -- "0..1" LearnerHearts : user_id
+LessonRun "1" -- "0..*" LessonRunQuestion : run_id
+Exercise "1" -- "0..*" LessonRunQuestion : exercise_id
+ExerciseAttempt "0..1" -- "0..*" LessonRunQuestion : attempt_id
+Enrollment "1" -- "0..*" LessonRun : enrollment_id
+Lesson "1" -- "0..*" LessonRun : lesson_id
+Course "1" -- "0..*" Lesson : course_id
+Enrollment "1" -- "0..*" XpAward : enrollment_id
+Lesson "1" -- "0..*" XpAward : lesson_id
+LessonRun "0..1" -- "0..*" XpAward : run_id
+Exercise "0..1" -- "0..*" XpAward : exercise_id
+Lesson "0..*" -- "0..*" Sign : linked through LessonSign
+legend bottom
+Overview of active learning records; selected attributes.
+Associations follow persisted foreign keys, except the labeled LessonSign shortcut.
+See Class-Diagram-Detailed for every application record and FK.
+endlegend
+@enduml

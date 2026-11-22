@@ -1,5 +1,5 @@
 /* eslint-disable react/only-export-components -- Shared authentication context and its helpers form one module. */
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, Fragment, useContext, useEffect, useState } from 'react'
 import { observeSession } from './login'
 import { createClient } from '@supabase/supabase-js'
 import { Navigate, useLocation } from 'react-router-dom'
@@ -27,7 +27,7 @@ export function Protected({ children }) {
   const { user, loading } = useAuth()
   const location = useLocation()
   if (loading) return <p className="container studio-section" role="status">Restoring your account…</p>
-  return user?.email_confirmed_at ? children : <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />
+  return user?.email_confirmed_at ? <Fragment key={user.id}>{children}</Fragment> : <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />
 }
 export async function api(path, options = {}) {
   const { data } = supabase ? await supabase.auth.getSession() : { data: {} }

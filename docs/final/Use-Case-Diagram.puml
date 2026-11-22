@@ -1,0 +1,72 @@
+@startuml ASignX_Use_Case_Diagram
+title ASignX - Use case diagram
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+actor "Visitor\n(guest or signed-in user)" as visitor
+actor Learner as learner
+actor Administrator as administrator
+rectangle ASignX {
+  package "Public access" {
+    usecase "Browse published courses" as catalog
+    usecase "Try introductory sample lessons" as sample
+    usecase "Register and confirm email" as register
+    usecase "Log in" as login
+    usecase "Recover account password" as recover
+    usecase "Recognize letters with ASignLive" as live
+    usecase "Play Sign Strike demo" as arcade
+  }
+  package "Learning workspace" {
+    usecase "View personal dashboard" as dashboard
+    usecase "Enroll in a published course" as enroll
+    usecase "View enrolled learning path" as path
+    usecase "Study lesson material and videos" as material
+    usecase "Answer graded lesson exercises" as exercise
+    usecase "Answer using camera recognition" as camera
+    usecase "Restore a heart through practice" as heart
+    usecase "Review results, XP and progress" as progress
+    usecase "Manage personal profile" as profile
+  }
+  package "Administration" {
+    usecase "View system overview" as overview
+    usecase "Create or edit course and graphic" as course
+    usecase "Author lessons and question types" as lesson
+    usecase "Import course or lessons from text" as importText
+    usecase "Validate and preview text import" as previewImport
+    usecase "Publish, archive or copy courses" as lifecycle
+    usecase "Manage signs and demo videos" as library
+  }
+}
+visitor -- catalog
+visitor -- sample
+visitor -- register
+visitor -- login
+visitor -- recover
+visitor -- live
+visitor -- arcade
+learner -- dashboard
+learner -- enroll
+learner -- path
+learner -- material
+learner -- exercise
+learner -- heart
+learner -- progress
+learner -- profile
+administrator -- overview
+administrator -- course
+administrator -- lesson
+administrator -- importText
+administrator -- lifecycle
+administrator -- library
+administrator -- profile
+camera ..> exercise : <<extend>>\n[recognition question]
+importText ..> previewImport : <<include>>
+legend bottom
+Visitor covers public access by guests and signed-in users.
+Learner/admin workspace goals require a confirmed account.
+Camera answers extend graded exercises for recognition question types.
+Sign Strike currently uses simulated/keyboard input.
+ASignLive text is transient; imports create editable drafts.
+endlegend
+@enduml

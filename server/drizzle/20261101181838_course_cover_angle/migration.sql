@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ADD COLUMN "cover_angle" integer DEFAULT -18 NOT NULL;

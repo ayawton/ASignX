@@ -1,6 +1,6 @@
 erDiagram
     auth_users {
-        uuid id PK "Supabase managed"
+        uuid id PK "required"
     }
     profiles {
         uuid id PK,FK "required"
@@ -24,6 +24,14 @@ erDiagram
         uuid id PK "required"
         varchar(150) title "required"
         text description "optional"
+        integer cover_size "required"
+        integer cover_angle "required"
+        integer cover_density "required"
+        varchar(3) cover_weight "required"
+        varchar(12) cover_font "required"
+        varchar(32) cover_text "required"
+        varchar(12) cover_style "required"
+        varchar(12) cover_tone "required"
         boolean is_published "required"
         timestamptz created_at "required"
     }
@@ -44,6 +52,7 @@ erDiagram
     exercises {
         uuid id PK "required"
         uuid lesson_id FK "required"
+        varchar(16) answer_type "required"
         text prompt "required"
         uuid sign_id FK "optional"
         integer sort_order "required"
@@ -64,23 +73,77 @@ erDiagram
     lesson_progress {
         uuid enrollment_id PK,FK "required"
         uuid lesson_id PK,FK "required"
+        timestamptz perfected_at "optional"
         timestamptz started_at "required"
         timestamptz completed_at "optional"
-        integer xp_earned "required"
     }
     exercise_attempts {
         uuid id PK "required"
         uuid enrollment_id FK "required"
         uuid exercise_id FK "required"
-        uuid selected_option_id FK "required"
+        text response_text "optional"
+        numeric(6__5) recognition_confidence "optional"
+        uuid model_version_id FK "optional"
+        uuid selected_option_id FK "optional"
         boolean is_correct "required"
         timestamptz attempted_at "required"
+    }
+    learner_hearts {
+        uuid user_id PK,FK "required"
+        integer hearts "required"
+        timestamptz regenerated_at "required"
+    }
+    lesson_runs {
+        uuid id PK "required"
+        uuid enrollment_id FK "required"
+        uuid lesson_id FK "required"
+        boolean replay "required"
+        timestamptz started_at "required"
+        timestamptz completed_at "optional"
+        boolean perfect "required"
+    }
+    lesson_run_questions {
+        uuid run_id PK,FK "required"
+        uuid exercise_id PK,FK "required"
+        integer xp_value "required"
+        integer sort_order "required"
+        uuid attempt_id FK "optional"
+    }
+    xp_awards {
+        uuid id PK "required"
+        uuid enrollment_id FK "required"
+        uuid lesson_id FK "required"
+        uuid run_id FK "optional"
+        uuid exercise_id FK "optional"
+        varchar(20) source "required"
+        integer amount "required"
+        timestamptz awarded_at "required"
+    }
+    heart_practice_rounds {
+        uuid id PK "required"
+        uuid user_id FK "required"
+        timestamptz completed_at "optional"
+        timestamptz created_at "required"
+    }
+    heart_practice_questions {
+        uuid round_id PK,FK "required"
+        integer question_index PK "required"
+        uuid exercise_id FK "required"
+    }
+    heart_practice_submissions {
+        uuid id PK "required"
+        uuid round_id FK "required"
+        integer question_index FK "required"
+        uuid selected_option_id FK "required"
+        boolean is_correct "required"
+        timestamptz submitted_at "required"
     }
     model_versions {
         uuid id PK "required"
         varchar(50) version UK "required"
-        text artifact_path "required"
-        numeric(6_5) confidence_threshold "required"
+        varchar(128) fingerprint UK "optional"
+        text artifact_path "optional"
+        numeric(6__5) confidence_threshold "required"
         timestamptz created_at "required"
     }
     practice_attempts {
@@ -90,7 +153,7 @@ erDiagram
         uuid target_sign_id FK "required"
         uuid predicted_sign_id FK "optional"
         uuid model_version_id FK "required"
-        numeric(6_5) confidence "required"
+        numeric(6__5) confidence "required"
         boolean is_correct "required"
         timestamptz attempted_at "required"
     }
@@ -107,7 +170,7 @@ erDiagram
         uuid sign_id FK "optional"
         uuid model_version_id FK "required"
         integer sequence_no "required"
-        numeric(6_5) confidence "required"
+        numeric(6__5) confidence "required"
         timestamptz recognized_at "required"
     }
     achievements {
@@ -136,7 +199,23 @@ erDiagram
     lessons ||--o{ lesson_progress : "lesson_id"
     enrollments ||--o{ exercise_attempts : "enrollment_id"
     exercises ||--o{ exercise_attempts : "exercise_id"
-    exercise_options ||--o{ exercise_attempts : "exercise_id_selected_option_id"
+    model_versions |o--o{ exercise_attempts : "model_version_id"
+    exercise_options |o--o{ exercise_attempts : "exercise_id_selected_option_id"
+    profiles ||--o| learner_hearts : "user_id"
+    enrollments ||--o{ lesson_runs : "enrollment_id"
+    lessons ||--o{ lesson_runs : "lesson_id"
+    lesson_runs ||--o{ lesson_run_questions : "run_id"
+    exercises ||--o{ lesson_run_questions : "exercise_id"
+    exercise_attempts |o--o{ lesson_run_questions : "attempt_id"
+    enrollments ||--o{ xp_awards : "enrollment_id"
+    lessons ||--o{ xp_awards : "lesson_id"
+    lesson_runs |o--o{ xp_awards : "run_id"
+    exercises |o--o{ xp_awards : "exercise_id"
+    profiles ||--o{ heart_practice_rounds : "user_id"
+    heart_practice_rounds ||--o{ heart_practice_questions : "round_id"
+    exercises ||--o{ heart_practice_questions : "exercise_id"
+    exercise_options ||--o{ heart_practice_submissions : "selected_option_id"
+    heart_practice_questions ||--o{ heart_practice_submissions : "round_id_question_index"
     profiles ||--o{ practice_attempts : "user_id"
     lessons |o--o{ practice_attempts : "lesson_id"
     signs ||--o{ practice_attempts : "target_sign_id"

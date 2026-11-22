@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ADD COLUMN "cover_weight" varchar(3) DEFAULT '600' NOT NULL;

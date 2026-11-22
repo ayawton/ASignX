@@ -1,15 +1,17 @@
-# ASignX — ER Schema
+# ASignX Current ER Schema
 
-A simplified proposed database for ASignLive and ASign Learn: **16 application tables**, with Supabase Auth managing authentication. This replaces the earlier expanded proposal.
+Updated 8 November 2026. Generated from the current Drizzle application schema: **23 application tables, 138 application fields and 41 foreign keys**. `auth_users` represents the external Supabase `auth.users` table and is not included in the application table count.
 
-![ASignX ER diagram](ER-Schema.svg)
+[PNG image](ER-Schema.png) · [Zoomable SVG](ER-Schema.svg) · [Mermaid source](ER-Schema.mmd) · [PlantUML source](Normalized-ERD.uml.txt) · [Data dictionary](Data-Dictionary.md)
 
-## Editable ER diagram
+The image includes all fields and declared FK relationships. Crow’s-foot endpoints describe the cardinality allowed by keys and nullability; they do not promise that every parent has a child. Composite FKs are one relationship, even when they include two fields. Partial unique indexes and trigger rules are documented in the dictionary, rather than represented as unconditional cardinalities. PNG and SVG are rendered from the PlantUML source using its bundled Smetana layout. The Mermaid source may use different placement.
+
+## Editable diagram
 
 ```mermaid
 erDiagram
     auth_users {
-        uuid id PK "Supabase managed"
+        uuid id PK "required"
     }
     profiles {
         uuid id PK,FK "required"
@@ -33,6 +35,14 @@ erDiagram
         uuid id PK "required"
         varchar(150) title "required"
         text description "optional"
+        integer cover_size "required"
+        integer cover_angle "required"
+        integer cover_density "required"
+        varchar(3) cover_weight "required"
+        varchar(12) cover_font "required"
+        varchar(32) cover_text "required"
+        varchar(12) cover_style "required"
+        varchar(12) cover_tone "required"
         boolean is_published "required"
         timestamptz created_at "required"
     }
@@ -53,6 +63,7 @@ erDiagram
     exercises {
         uuid id PK "required"
         uuid lesson_id FK "required"
+        varchar(16) answer_type "required"
         text prompt "required"
         uuid sign_id FK "optional"
         integer sort_order "required"
@@ -73,23 +84,77 @@ erDiagram
     lesson_progress {
         uuid enrollment_id PK,FK "required"
         uuid lesson_id PK,FK "required"
+        timestamptz perfected_at "optional"
         timestamptz started_at "required"
         timestamptz completed_at "optional"
-        integer xp_earned "required"
     }
     exercise_attempts {
         uuid id PK "required"
         uuid enrollment_id FK "required"
         uuid exercise_id FK "required"
-        uuid selected_option_id FK "required"
+        text response_text "optional"
+        numeric(6__5) recognition_confidence "optional"
+        uuid model_version_id FK "optional"
+        uuid selected_option_id FK "optional"
         boolean is_correct "required"
         timestamptz attempted_at "required"
+    }
+    learner_hearts {
+        uuid user_id PK,FK "required"
+        integer hearts "required"
+        timestamptz regenerated_at "required"
+    }
+    lesson_runs {
+        uuid id PK "required"
+        uuid enrollment_id FK "required"
+        uuid lesson_id FK "required"
+        boolean replay "required"
+        timestamptz started_at "required"
+        timestamptz completed_at "optional"
+        boolean perfect "required"
+    }
+    lesson_run_questions {
+        uuid run_id PK,FK "required"
+        uuid exercise_id PK,FK "required"
+        integer xp_value "required"
+        integer sort_order "required"
+        uuid attempt_id FK "optional"
+    }
+    xp_awards {
+        uuid id PK "required"
+        uuid enrollment_id FK "required"
+        uuid lesson_id FK "required"
+        uuid run_id FK "optional"
+        uuid exercise_id FK "optional"
+        varchar(20) source "required"
+        integer amount "required"
+        timestamptz awarded_at "required"
+    }
+    heart_practice_rounds {
+        uuid id PK "required"
+        uuid user_id FK "required"
+        timestamptz completed_at "optional"
+        timestamptz created_at "required"
+    }
+    heart_practice_questions {
+        uuid round_id PK,FK "required"
+        integer question_index PK "required"
+        uuid exercise_id FK "required"
+    }
+    heart_practice_submissions {
+        uuid id PK "required"
+        uuid round_id FK "required"
+        integer question_index FK "required"
+        uuid selected_option_id FK "required"
+        boolean is_correct "required"
+        timestamptz submitted_at "required"
     }
     model_versions {
         uuid id PK "required"
         varchar(50) version UK "required"
-        text artifact_path "required"
-        numeric(6_5) confidence_threshold "required"
+        varchar(128) fingerprint UK "optional"
+        text artifact_path "optional"
+        numeric(6__5) confidence_threshold "required"
         timestamptz created_at "required"
     }
     practice_attempts {
@@ -99,7 +164,7 @@ erDiagram
         uuid target_sign_id FK "required"
         uuid predicted_sign_id FK "optional"
         uuid model_version_id FK "required"
-        numeric(6_5) confidence "required"
+        numeric(6__5) confidence "required"
         boolean is_correct "required"
         timestamptz attempted_at "required"
     }
@@ -116,7 +181,7 @@ erDiagram
         uuid sign_id FK "optional"
         uuid model_version_id FK "required"
         integer sequence_no "required"
-        numeric(6_5) confidence "required"
+        numeric(6__5) confidence "required"
         timestamptz recognized_at "required"
     }
     achievements {
@@ -145,7 +210,23 @@ erDiagram
     lessons ||--o{ lesson_progress : "lesson_id"
     enrollments ||--o{ exercise_attempts : "enrollment_id"
     exercises ||--o{ exercise_attempts : "exercise_id"
-    exercise_options ||--o{ exercise_attempts : "exercise_id_selected_option_id"
+    model_versions |o--o{ exercise_attempts : "model_version_id"
+    exercise_options |o--o{ exercise_attempts : "exercise_id_selected_option_id"
+    profiles ||--o| learner_hearts : "user_id"
+    enrollments ||--o{ lesson_runs : "enrollment_id"
+    lessons ||--o{ lesson_runs : "lesson_id"
+    lesson_runs ||--o{ lesson_run_questions : "run_id"
+    exercises ||--o{ lesson_run_questions : "exercise_id"
+    exercise_attempts |o--o{ lesson_run_questions : "attempt_id"
+    enrollments ||--o{ xp_awards : "enrollment_id"
+    lessons ||--o{ xp_awards : "lesson_id"
+    lesson_runs |o--o{ xp_awards : "run_id"
+    exercises |o--o{ xp_awards : "exercise_id"
+    profiles ||--o{ heart_practice_rounds : "user_id"
+    heart_practice_rounds ||--o{ heart_practice_questions : "round_id"
+    exercises ||--o{ heart_practice_questions : "exercise_id"
+    exercise_options ||--o{ heart_practice_submissions : "selected_option_id"
+    heart_practice_questions ||--o{ heart_practice_submissions : "round_id_question_index"
     profiles ||--o{ practice_attempts : "user_id"
     lessons |o--o{ practice_attempts : "lesson_id"
     signs ||--o{ practice_attempts : "target_sign_id"
@@ -159,28 +240,12 @@ erDiagram
     achievements ||--o{ user_achievements : "achievement_id"
 ```
 
-## Relationships
+## Current persistence boundaries
 
-| Relationship | Cardinality |
-|---|---|
-| Supabase identity → profile | One identity has at most one profile; each profile requires one email-confirmed identity. Pending signups have no profile. |
-| Course → lessons | One course has zero or more lessons; each lesson belongs to one course. |
-| Lessons ↔ signs | Many-to-many through lesson_signs. |
-| Lesson → exercises → options | Each exercise is one multiple-choice question with several answer options. |
-| Learners ↔ courses | Many-to-many through enrollments. |
-| Enrollment → progress and exercise attempts | Learning activity belongs to one learner/course enrollment. |
-| Learner → practice attempts | Each attempt has a target sign and model; a predicted sign and lesson context are optional. |
-| Learner → recognition sessions → results | Saved Live history contains ordered predictions; a recognized sign may be unknown. |
-| Learners ↔ achievements | Many-to-many through user_achievements. |
+- Profiles hold learner or admin authorization; Supabase Auth owns identities and credentials.
+- Courses store cover settings. Lessons, signs and exercises supply published learning content.
+- Enrollment progress stores milestones; lesson runs snapshot question order and XP allocation. `xp_awards` is the single XP ledger. Heart practice uses relational question and submission tables, without duplicated JSON or correct-count fields.
+- Model versions identify recognition evidence. `practice_attempts`, recognition session/result tables and achievement tables are schema capabilities; standalone persisted practice, saved Live history and automatic achievement awarding are not implemented end to end. Current Live text history remains in browser memory.
+- Curated demonstration media uses Storage object paths. Model files belong to the recognition deployment. Camera frames and raw recordings are not columns in this schema.
 
-## Scope decisions
-
-- A profile has the learner or admin role. Guests have no stored profile, and ML developers operate the model service without requiring another application role.
-- Each exercise is a single multiple-choice question. Several exercises form the lesson quiz; camera-based practice uses practice_attempts. A separate quiz/question hierarchy is unnecessary.
-- Signs hold a simple category label and one optional demonstration-video path. Lesson text plus linked sign demonstrations supply the learning content.
-- Lesson completion stores its one-time xp_earned. Total XP is calculated from completed lessons; no XP balance or transaction table is needed for this policy.
-- Streaks are calculated from distinct local dates of lesson completion and successful practice, using profiles.timezone. No streak table or cache is needed.
-- Model versions identify which model produced each practice/Live result. Separate deployment, evaluation, audit, role-assignment, and per-model vocabulary tables are outside this baseline.
-- Save authenticated Live history only with user opt-in. Guest and unsaved sessions stay transient. Store curated media/model files in Supabase Storage, and only object paths in PostgreSQL. Do not store camera frames or raw video.
-
-PK = primary key; FK = foreign key; UK = single-column unique key. Composite uniqueness, checks, and backend validation rules are specified in [Data Dictionary](Data-Dictionary.md). `auth_users` represents external `auth.users`; it is not an additional application table. Numeric diagram notation uses an underscore for scale; the dictionary supplies exact PostgreSQL types.
+This is a source-based schema snapshot, not a live Supabase introspection. See the dictionary for keys, defaults, checks, deletion rules and application validation.

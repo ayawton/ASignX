@@ -1,6 +1,3 @@
-/* Clear hierarchy and restrained decoration, with the original colorful palette. */
-.home-hero{padding-block:64px}.hero-grid{gap:48px;align-items:center}.hero-copy h1{font-size:clamp(38px,5vw,64px);max-width:12ch;line-height:1.12}.hero-copy>p{max-width:44ch;font-size:15px}.hero-visual{background:none;border:0;box-shadow:none;padding:0;min-height:0;transform:none}.hero-visual .hand-art{max-width:330px;margin:auto}.hero-visual::before,.hero-visual::after{content:none}
-.studio-section{padding-block:52px}.section-title{margin-bottom:26px}.section-title h2{font-size:32px}.learning-section{background:#f7f9fc;padding-block:48px}
 .studio-experience{border:1px solid var(--line);border-radius:8px;padding:28px;box-shadow:none}.studio-experience:hover{transform:none;box-shadow:none}.studio-experience>svg{color:var(--accent);margin-bottom:18px}.studio-experience h3{font-size:28px;margin-bottom:12px}.studio-experience p{max-width:50ch;font-size:14px;margin-bottom:20px}.studio-experience>.text-link{font-size:13px}
 .studio-course{box-shadow:none}.course-art{height:100px;min-height:0;border-radius:6px;padding:20px}.course-art>span{font-size:34px}.course-meta{font-size:11px}.studio-course h3{font-size:23px}.studio-course p{font-size:13px}
 .text-label{font-size:12px;text-transform:none;letter-spacing:0}.page-heading h1{font-size:clamp(32px,4vw,44px)}.page-heading p{font-size:14px}.studio-page{padding-top:40px}.studio-dashboard{grid-template-columns:1fr}.continue-panel{background:#2962f5;grid-template-columns:1fr;border:1px solid var(--line);padding:28px;border-radius:8px}.continue-panel h2{font-size:30px}.continue-panel p{font-size:14px}.continue-panel .btn{margin-top:20px}
@@ -13,6 +10,16 @@
 @media(max-width:700px){.home-hero{padding-block:36px}.hero-grid{gap:24px}.hero-visual .hand-art{max-width:220px}.hero-copy h1{font-size:40px}.studio-section{padding-block:32px}.section-title h2{font-size:27px}.studio-experience{padding:23px}.footer-top{grid-template-columns:1fr 1fr;gap:25px}.footer-top>div:first-child{grid-column:1/-1}.studio-auth{padding-block:35px}.learner-heading h1{font-size:30px}}
 
 /* Color distinguishes learning choices and account summaries without extra decoration. */
+.recognition-sound-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 0;margin-top:6px;background:none;border:0;color:var(--text);font-size:11px;cursor:pointer}.recognition-sound-toggle:hover{color:var(--accent)}.recognition-sound-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
+.recognition-status{font-size:12px;margin-top:18px}.recognition-error{padding:14px;background:#fff1ed;border-radius:6px;margin-top:14px}.recognition-error p{font-size:12px}.recognition-error button{border:0;background:none;font-size:12px;margin-top:8px}.recognition-last{font-size:11px;margin-top:8px}.recognized-text{overflow-wrap:anywhere;max-height:160px;overflow:auto}
 .experience-live{background:#edf3ff;border-color:#d5e1fc}.experience-learn{background:#fff9e5;border-color:#f0e3b1}
+.word-audit{font-size:12px;margin-top:12px}.word-audit summary{cursor:pointer}.word-audit ol{padding-left:20px;max-height:160px;overflow:auto;overflow-wrap:anywhere}
 .experience-learn>svg{color:#896b18}.learner-metrics>div:nth-child(1) dd{color:#2962f5}.learner-metrics>div:nth-child(2) dd{color:#896b18}.learner-metrics>div:nth-child(3) dd{color:#aa4d7b}.learner-metrics>div:nth-child(4) dd{color:#7863a6}
 .learner-catalog article:nth-child(3n+1){border-top:3px solid #2962f5}.learner-catalog article:nth-child(3n+2){border-top:3px solid #d3ab32}.learner-catalog article:nth-child(3n){border-top:3px solid #aa4d7b}
+
+
+
+
+/* Clear hierarchy and restrained decoration, with the original colorful palette. */
+.home-hero{padding-block:64px}.hero-grid{gap:48px;align-items:center}.hero-copy h1{font-size:clamp(38px,5vw,64px);max-width:12ch;line-height:1.12}.hero-copy>p{max-width:44ch;font-size:15px}.hero-visual{background:none;border:0;box-shadow:none;padding:0;min-height:0;transform:none}.hero-visual .hand-art{max-width:330px;margin:auto}.hero-visual::before,.hero-visual::after{content:none}
+.studio-section{padding-block:52px}.section-title{margin-bottom:26px}.section-title h2{font-size:32px}.learning-section{background:#f7f9fc;padding-block:48px}

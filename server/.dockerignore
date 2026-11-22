@@ -1,0 +1,17 @@
+.git
+**/.env
+**/.env.*
+node_modules
+dist
+.recognition-deps
+.onnx-export-deps
+**/__pycache__
+**/*.pyc
+**/*.log
+tests
+recognition/tests
+private
+**/*.pem
+**/*.key
+**/*.crt
+# The recognition Dockerfile has a separate, explicit context allowlist.

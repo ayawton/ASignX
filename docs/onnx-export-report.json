@@ -1,0 +1,107 @@
+{
+  "versions": {
+    "torch": "2.14.1+cpu",
+    "onnx": "1.23.2",
+    "onnxruntime": "1.31.0"
+  },
+  "models": [
+    {
+      "file": "server/private/models/asignx/sign_classifier_canonical.onnx",
+      "bytes": 274889,
+      "source_sha256": "98559a10c553c23d2c6aad227f52416b59ad92483bf4f079cfca5eb512bf5b66",
+      "onnx_sha256": "896d66204ea9971e74927e29984deea5141c8a716adc849ab837f815ae152d51",
+      "input_shape": [
+        "batch_size",
+        63
+      ],
+      "labels": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "K",
+        "L",
+        "M",
+        "N",
+        "O",
+        "P",
+        "Q",
+        "R",
+        "S",
+        "T",
+        "U",
+        "V",
+        "W",
+        "X",
+        "Y"
+      ],
+      "validation": {
+        "onnx_checker": "passed",
+        "runtime": "ONNX Runtime CPU",
+        "samples": 108,
+        "matching_predictions": 108,
+        "max_absolute_logit_error": 3.4570693969726562e-06,
+        "real_static_samples_per_label": {
+          "A": 4,
+          "B": 4,
+          "C": 4,
+          "D": 4,
+          "E": 4,
+          "F": 4,
+          "G": 4,
+          "H": 4,
+          "I": 4,
+          "K": 4,
+          "L": 4,
+          "M": 4,
+          "N": 4,
+          "O": 4,
+          "P": 4,
+          "Q": 4,
+          "R": 4,
+          "S": 4,
+          "T": 4,
+          "U": 4,
+          "V": 4,
+          "W": 4,
+          "X": 4,
+          "Y": 4
+        },
+        "real_sequence_samples": null
+      }
+    },
+    {
+      "file": "server/private/models/asignx/sequence_classifier.onnx",
+      "bytes": 1236734,
+      "source_sha256": "1e2228a5970d18b19a25f62cb76fc560aa4c5e33962a8bc2a362a87309db2ec9",
+      "onnx_sha256": "8c5847b5485ca6cf40650d56c070113b9cd17407221e389c8e00620f6ab83077",
+      "input_shape": [
+        "batch_size",
+        30,
+        126
+      ],
+      "labels": [
+        "J",
+        "Z"
+      ],
+      "validation": {
+        "onnx_checker": "passed",
+        "runtime": "ONNX Runtime CPU",
+        "samples": 28,
+        "matching_predictions": 28,
+        "max_absolute_logit_error": 1.6689300537109375e-06,
+        "real_static_samples_per_label": null,
+        "real_sequence_samples": 16
+      }
+    }
+  ],
+  "limitations": [
+    "Numerical equivalence verifies conversion, not recognition accuracy.",
+    "Browser/WASM/WebGPU and live camera behavior have not been verified."
+  ]
+}

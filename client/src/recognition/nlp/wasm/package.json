@@ -1,0 +1,15 @@
+{
+  "name": "nlp-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "nlp_wasm_bg.wasm",
+    "nlp_wasm.js",
+    "nlp_wasm.d.ts"
+  ],
+  "main": "nlp_wasm.js",
+  "types": "nlp_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

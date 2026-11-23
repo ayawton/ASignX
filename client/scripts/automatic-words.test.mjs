@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { createWordLookup } from '../src/recognition/nlp/wordLookup.js'
 import { createAutomaticWords } from '../src/recognition/nlp/automaticWords.js'
 import { wordComposer, initialWordState } from '../src/recognition/wordComposer.js'
 import { canFinishSentence } from '../src/recognition/nlp/sentences.js'
@@ -104,3 +106,48 @@ advance(1)
 assert.deepEqual(slowState.sentences, [{ text: 'Hello.', detected: 'HEL LO' }], 'Hands-away completion produces Hello., not Hel. Lo.')
 wordBoundary.stop(); sentenceBoundary.stop()
 console.log('PASS automatic word timing, async ordering, fallback and second-tier sentence assembly')
+
+const suggest = createWordLookup(readFileSync(new URL('../public/dictionary/english-frequency.txt', import.meta.url), 'utf8'))
+const typeLetters = (state, letters) => wordComposer(state, { type: 'letters', letters: [...letters].map(label => ({ label })) })
+const commitWord = (state, text, joinPrevious) => wordComposer(state, { type: 'finish', revision: state.revision, text, joinPrevious })
+const firstFragment = commitWord(typeLetters(initialWordState, 'HEL'), 'HEL')
+const pausedWord = typeLetters(firstFragment, 'LO')
+const match = suggest(pausedWord.pending, pausedWord.sentenceWords).suggestions[0]
+assert.equal(match.text, 'HELLO')
+assert.equal(match.joinPrevious, 1)
+const joined = commitWord(pausedWord, match.text, match.joinPrevious)
+assert.deepEqual(joined.sentenceWords, [{ text: 'HELLO', detected: 'HELLO' }])
+assert.deepEqual(joined.accepted, joined.sentenceWords)
+assert.equal(wordComposer(joined, { type: 'sentence', revision: joined.revision }).sentences[0].text, 'Hello.')
+assert.equal(suggest('ME', [{ text: 'THE', detected: 'THE' }]).suggestions[0].joinPrevious, undefined)
+console.log('PASS joining paused word fragments and preserving separate words')
+for (const [expected, parts] of [
+ ['HELLO', ['HE', 'LLO']],
+ ['HELLO', ['HELL', 'O']],
+ ['WATER', ['W', 'ATER']],
+ ['PLEASE', ['PLEAS', 'E']],
+ ['COMPUTER', ['COMP', 'UTER']],
+ ['RECOGNITION', ['RECOGN', 'ITION']],
+ ['SCHOOL', ['SC', 'H', 'OOL']],
+ ['HELLO', ['HEL', 'L', 'O']],
+]) {
+ let state = initialWordState
+ for (const part of parts) {
+  state = typeLetters(state, part)
+  const best = suggest(part, state.sentenceWords).suggestions[0]
+  state = commitWord(state, best && !best.uncertain ? best.text : part, best?.joinPrevious)
+ }
+ assert.deepEqual(state.sentenceWords.map(group => group.text), [expected], parts.join(' + '))
+}
+for (const [first, second] of [['THE', 'ME'], ['IN', 'SIDE'], ['GOOD', 'BYE'], ['A', 'WAY']]) {
+ assert.equal(suggest(second, [{ text: first, detected: first }]).suggestions[0]?.joinPrevious, undefined)
+}
+assert.equal(suggest('LO', [{ text: 'HELP', detected: 'HEL' }]).suggestions[0]?.text, 'HELLO')
+const closed = wordComposer(firstFragment, { type: 'sentence', revision: firstFragment.revision })
+assert.equal(suggest('LO', closed.sentenceWords).suggestions[0]?.joinPrevious, undefined)
+console.log('PASS multiple pause patterns, separate words, corrected groups and finalized sentences')
+const customLookup = createWordLookup('sill 2000000\nfill 9000000\nhello 3000000')
+assert.equal(customLookup('AILL').suggestions[0].text, 'SILL', 'A/S costs less than A/F')
+assert.equal(customLookup('AILL').suggestions[0].uncertain, false)
+assert.equal(customLookup('HELLLLO').suggestions[0].text, 'HELLO')
+assert.equal(suggest('BOOOK').suggestions[0].text, 'BOOK')

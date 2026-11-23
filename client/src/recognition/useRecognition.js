@@ -17,9 +17,11 @@ export default function useRecognition(video, sessionKey, onRecognized) {
     setState({ ...data, status: 'ready', error: '' })
     if (data.emissions.length) {
      soundRef.current?.()
-     const letters = data.emissions.map(item => ({ ...item, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }))
-     setHistory(previous => [...previous, ...letters].slice(-200))
-     dispatch({ type: 'letters', letters })
+     const signs = data.emissions.map(item => ({ ...item, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }))
+     setHistory(previous => [...previous, ...signs].slice(-200))
+     for (const sign of signs) {
+      dispatch(sign.label.length > 1 ? { type: 'sign', label: sign.label } : { type: 'letters', letters: [sign] })
+     }
     }
    },
   })
@@ -28,5 +30,5 @@ export default function useRecognition(video, sessionKey, onRecognized) {
   return () => { stream.stop(); if (streamRef.current === stream) streamRef.current = null }
  }, [video, sessionKey])
  function clear() { dispatch({ type: 'clear' }); setHistory([]); setState(previous => ({ ...previous, readings: [], dynamic: null })); streamRef.current?.clear() }
- return { ...(video ? state : { status: 'off', hands: [], readings: [], error: '' }), history, pendingText: composition.pending, accepted: composition.accepted, sentenceWords: composition.sentenceWords, sentences: composition.sentences, revision: composition.revision, wordFull: composition.full, finishSentence: (text, revision = composition.revision) => dispatch({ type: 'sentence', text, revision }), finishWord: (text, revision = composition.revision) => dispatch({ type: 'finish', text, revision }), clear }
+ return { ...(video ? state : { status: 'off', hands: [], readings: [], error: '' }), history, pendingText: composition.pending, accepted: composition.accepted, sentenceWords: composition.sentenceWords, sentences: composition.sentences, revision: composition.revision, wordFull: composition.full, finishSentence: (text, revision = composition.revision) => dispatch({ type: 'sentence', text, revision }), finishWord: (text, revision = composition.revision, joinPrevious = 0) => dispatch({ type: 'finish', text, revision, joinPrevious }), clear }
 }

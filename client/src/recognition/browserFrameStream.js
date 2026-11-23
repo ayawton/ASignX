@@ -1,4 +1,5 @@
 import { createRecognitionEngine } from './recognitionEngine.js'
+import { bodyFeatureWidth, bodyLandmarks } from './bodyFeatures.js'
 
 const visionRoot = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304'
 const ortRoot = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist'
@@ -20,11 +21,12 @@ async function loadRuntime() {
   const session = await ort.InferenceSession.create(assetUrl(name + '.onnx'), { executionProviders: ['wasm'] })
   return { metadata, session, shape }
  }
- const [staticModel, sequenceModel] = await Promise.all([
+ const [staticModel, sequenceModel, allSignsModel] = await Promise.all([
   loadModel('sign_classifier_canonical', [1, 63]),
   loadModel('sequence_classifier', [1, 30, 126]),
+  loadModel('sequence_all_signs_v1', [1, 30, bodyFeatureWidth]).catch(() => null),
  ])
- return { vision, ort, files, models: { static: staticModel, sequence: sequenceModel } }
+ return { vision, ort, files, models: { static: staticModel, sequence: sequenceModel, allSigns: allSignsModel } }
 }
 
 async function createBrowserRecognizer() {
@@ -35,6 +37,22 @@ async function createBrowserRecognizer() {
   runningMode: 'VIDEO',
   numHands: 2,
  })
+ let pose, face
+ if (models.allSigns) {
+  try {
+   pose = await vision.PoseLandmarker.createFromOptions(files, {
+    baseOptions: { modelAssetPath: assetUrl('pose_landmarker_lite.task') },
+    runningMode: 'VIDEO', numPoses: 1,
+   })
+   face = await vision.FaceLandmarker.createFromOptions(files, {
+    baseOptions: { modelAssetPath: assetUrl('face_landmarker.task') },
+    runningMode: 'VIDEO', numFaces: 1,
+   })
+  } catch {
+   pose?.close()
+   pose = null
+  }
+ }
  async function predict(kind, features) {
   const { metadata, session, shape } = models[kind]
   const input = new ort.Tensor('float32', features, shape)
@@ -45,15 +63,16 @@ async function createBrowserRecognizer() {
     const logits = output.data
     const peak = Math.max(...logits)
     const confidence = 1 / logits.reduce((sum, logit) => sum + Math.exp(logit - peak), 0)
-    return [confidence >= .8 ? metadata.labels[logits.indexOf(peak)] : null, confidence]
+    const label = metadata.labels[logits.indexOf(peak)]
+    return [confidence >= .8 && label !== 'BACKGROUND' ? label?.replaceAll('_', ' ') : null, confidence]
    } finally { output.dispose() }
   } finally { input.dispose() }
  }
  const engine = createRecognitionEngine(predict, models.static.metadata.static_hand_preprocessing,
-  models.sequence.metadata.sampling_fps ?? 15)
+  models.sequence.metadata.sampling_fps ?? 15, Boolean(face))
  return {
   reset: engine.reset,
-  close: () => detector.close(),
+  close() { detector.close(); pose?.close(); face?.close() },
   process(video, timestamp) {
    const result = detector.detectForVideo(video, timestamp)
    const hands = {}
@@ -61,7 +80,9 @@ async function createBrowserRecognizer() {
     const side = result.handedness[i]?.[0]?.categoryName
     if (side === 'Left' || side === 'Right') hands[side] = points.map(({ x, y, z }) => [x, y, z])
    })
-   return engine.process(hands, timestamp)
+   const body = face && bodyLandmarks(pose.detectForVideo(video, timestamp).landmarks[0],
+    face.detectForVideo(video, timestamp).faceLandmarks[0])
+   return engine.process(hands, timestamp, body)
   },
  }
 }

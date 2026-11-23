@@ -1,4 +1,4 @@
-// Run after npm run build: verifies the bundled worker's backend transport.
+// Run after npm run build: verifies the bundled worker's dictionary fallback, backend transport, and preserveSigns guard.
 import assert from 'node:assert/strict'
 import { readdir } from 'node:fs/promises'
 import { Worker } from 'node:worker_threads'
@@ -9,15 +9,17 @@ const file = (await readdir(assets)).find(name => /^wordSuggestions\.worker-.*\.
 assert.ok(file, 'Production build includes the NLP worker')
 const source = `import { parentPort } from 'node:worker_threads';
 globalThis.self = { postMessage: data => parentPort.postMessage(data) };
-globalThis.fetch = async (url, options) => {
- if (!['/api/recognition/nlp/word', '/api/recognition/nlp/sentence'].includes(url) || options.method !== 'POST' || options.credentials !== 'same-origin') throw new Error('Invalid NLP transport');
- const { text, fallback } = JSON.parse(options.body);
- if (url.endsWith('/sentence')) {
-  if (text !== 'HE L LO THERE' || fallback !== 'HE I LO THERE') throw new Error('Sentence request must preserve raw letters and provisional words');
-  return Response.json({ original: text, engine: 'symspellpy', suggestions: [{ text: 'HELLO THERE', edits: 0, uncertain: false }] });
+globalThis.fetch = async (url, options = {}) => {
+ if (typeof url === 'string' && url.endsWith('dictionary/english-frequency.txt')) {
+  return new Response('hello 5000000\\nworld 4000000\\n', { status: 200 });
  }
- if (!/^[A-Z]+$/.test(text)) return Response.json({}, { status: 422 });
- return Response.json({ original: text, engine: 'symspellpy', suggestions: [{ text: 'HELLO', edits: 1, uncertain: false }] });
+ if (typeof url === 'string' && url.endsWith('dictionary/english-bigrams.txt')) {
+  throw new Error('Bigrams unavailable in fallback test');
+ }
+ if (url !== '/api/recognition/nlp/sentence' || options.method !== 'POST' || options.credentials !== 'same-origin') throw new Error('Invalid NLP transport');
+ const { text, fallback } = JSON.parse(options.body);
+ if (text !== 'HE L LO THERE' || fallback !== 'HE I LO THERE') throw new Error('Sentence request must preserve raw letters and provisional words');
+ return Response.json({ original: text, engine: 'symspellpy', suggestions: [{ text: 'HELLO THERE', edits: 0, uncertain: false }] });
 };
 await import(${JSON.stringify(new URL(file, assets).href)});
 parentPort.on('message', data => self.onmessage({ data }));`
@@ -28,21 +30,28 @@ try {
  const [message] = await resultPromise
  assert.equal(message.id, 7)
  assert.equal(message.result.original, 'HXLLO')
+ assert.equal(message.result.engine, 'browser-dictionary')
  assert.equal(message.result.suggestions[0].text, 'HELLO')
- const errorPromise = once(worker, 'message', { signal: AbortSignal.timeout(10000) })
+ const invalidPromise = once(worker, 'message', { signal: AbortSignal.timeout(10000) })
  worker.postMessage({ id: 8, text: '<invalid>' })
- const [invalid] = await errorPromise
+ const [invalid] = await invalidPromise
  assert.equal(invalid.id, 8)
- assert.ok(invalid.error)
+ assert.deepEqual(invalid.result.suggestions, [])
  const livePromise = once(worker, 'message', { signal: AbortSignal.timeout(10000) })
  worker.postMessage({ id: 9, text: 'HELL', mode: 'word' })
  const [live] = await livePromise
  assert.equal(live.id, 9)
- assert.equal(live.result.engine, 'symspellpy')
+ assert.equal(live.result.engine, 'browser-dictionary')
+ assert.equal(live.result.suggestions[0].text, 'HELLO')
  const sentencePromise = once(worker, 'message', { signal: AbortSignal.timeout(10000) })
  worker.postMessage({ id: 10, mode: 'sentence', text: 'HE L LO THERE', fallback: 'HE I LO THERE' })
  const [sentence] = await sentencePromise
  assert.equal(sentence.id, 10)
  assert.equal(sentence.result.suggestions[0].text, 'HELLO THERE')
- console.log('PASS production worker transport, request IDs and backend failure handling')
+ const preservedPromise = once(worker, 'message', { signal: AbortSignal.timeout(10000) })
+ worker.postMessage({ id: 11, mode: 'sentence', text: 'SUM THANK YOU', fallback: 'SUM THANK YOU', preserveSigns: true })
+ const [preserved] = await preservedPromise
+ assert.equal(preserved.id, 11)
+ assert.deepEqual(preserved.result.suggestions, [])
+ console.log('PASS production worker transport, browser fallback, preserveSigns guard, and request IDs')
 } finally { await worker.terminate() }

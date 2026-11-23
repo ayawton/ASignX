@@ -132,3 +132,121 @@ for (const interval of [1000 / 15, 140]) {
  assert.deepEqual(emissions.map(item => item.label), ['THANK YOU'])
 }
 console.log('PASS extended input layout, tracking gaps and whole-sign emission')
+
+// Brief 3-frame whole-sign flicker during static transitions must not emit THANK YOU
+let flickerCount = 0
+const transitionEngine = createRecognitionEngine(async kind => {
+ if (kind === 'allSigns') return flickerCount++ < 3 ? ['THANK YOU', .93] : [null, 0]
+ return ['M', .95]
+}, null, 15, true)
+const transitionEmissions = []
+for (let i = 0; i < 30; i++) {
+ const points = hand.map(([x, y, z]) => [x + (i < 13 ? .2 * Math.sin(i) : 0), y, z])
+ const result = await transitionEngine.process({ Left: points }, i * (1000 / 15), body)
+ transitionEmissions.push(...result.emissions.map(item => item.label))
+}
+assert.equal(transitionEmissions.includes('THANK YOU'), false, 'Brief transition flickers must not emit whole signs')
+assert.equal(transitionEmissions.includes('M'), true, 'Static letter still emits after transition')
+console.log('PASS automatic suppression of brief dynamic transition flickers during static signing')
+
+// Static hold before a dynamic gesture must trim stale pre-roll instead of keeping 2s of stillness
+let sawTrimmedMotion = false
+const prerollEngine = createRecognitionEngine(async (kind, input) => {
+ if (kind === 'allSigns') {
+  const firstStep = input.slice(0, 180)
+  const lastStep = input.slice(29 * 180, 30 * 180)
+  const wristShift = Math.hypot(lastStep[144] - firstStep[144], lastStep[145] - firstStep[145])
+  if (wristShift > 0.5 && firstStep[144] > 0) sawTrimmedMotion = true
+  return ['THANK YOU', .95]
+ }
+ return ['M', .95]
+}, null, 15, true)
+const staleHand = hand.map(([x, y, z]) => [x - 0.35, y, z])
+for (let i = 0; i < 24; i++) {
+ await prerollEngine.process({ Left: i < 10 ? staleHand : hand }, i * (1000 / 15), body)
+}
+const prerollEmissions = []
+for (let i = 24; i < 40; i++) {
+ const moved = hand.map(([x, y, z]) => [x, y + 0.07 * (i - 24), z])
+ const result = await prerollEngine.process({ Left: moved }, i * (1000 / 15), body)
+ prerollEmissions.push(...result.emissions.map(item => item.label))
+}
+assert.equal(sawTrimmedMotion, true, 'Dynamic window trims stale static pre-roll so movement spans the 30 steps')
+assert.equal(prerollEmissions.includes('THANK YOU'), true, 'Dynamic gesture emits cleanly after a static hold')
+console.log('PASS active-motion pre-roll trimming for dynamic gestures')
+
+// Completed-take evaluation emits a crisp gesture once the hand settles, even without 4 mid-gesture frames >= 0.8
+let sawCompletedTake = false
+const completedEngine = createRecognitionEngine(async (kind, input) => {
+ if (kind === 'allSigns') {
+  const firstY = input[145]
+  const lastY = input[29 * 180 + 145]
+  if (lastY - firstY > 0.8) {
+   sawCompletedTake = true
+   return ['THANK YOU', .91]
+  }
+  return [null, 0]
+ }
+ return [null, 0]
+}, null, 15, true)
+const completedEmissions = []
+for (let i = 0; i < 12; i++) {
+ const moved = hand.map(([x, y, z]) => [x, y + 0.05 * i, z])
+ const r = await completedEngine.process({ Left: moved }, i * (1000 / 15), body)
+ completedEmissions.push(...r.emissions.map(e => e.label))
+}
+const endPose = hand.map(([x, y, z]) => [x, y + 0.05 * 11, z])
+for (let i = 12; i < 18; i++) {
+ const r = await completedEngine.process({ Left: endPose }, i * (1000 / 15), body)
+ completedEmissions.push(...r.emissions.map(e => e.label))
+}
+assert.equal(sawCompletedTake, true)
+assert.deepEqual(completedEmissions, ['THANK YOU'], 'Completed-take evaluation emits once on settle')
+console.log('PASS completed-take dynamic emission and MotionAcceptance')
+
+// Post-whole-sign static cooldown prevents HELP from emitting trailing A while settling
+const helpCooldownEngine = createRecognitionEngine(async kind => {
+ if (kind === 'allSigns') return ['HELP', .96]
+ return ['A', .95]
+}, null, 15, true)
+const helpEmissions = []
+for (let i = 0; i < 12; i++) {
+ const moved = hand.map(([x, y, z]) => [x, y + 0.05 * i, z])
+ const r = await helpCooldownEngine.process({ Left: moved }, i * (1000 / 15), body)
+ helpEmissions.push(...r.emissions.map(e => e.label))
+}
+const helpEndPose = hand.map(([x, y, z]) => [x, y + 0.05 * 11, z])
+for (let i = 12; i < 20; i++) {
+ const r = await helpCooldownEngine.process({ Left: helpEndPose }, i * (1000 / 15), body)
+ helpEmissions.push(...r.emissions.map(e => e.label))
+}
+assert.deepEqual(helpEmissions, ['HELP'], 'Trailing A-fist settle right after HELP must not emit A')
+for (let i = 20; i < 35; i++) {
+ const r = await helpCooldownEngine.process({ Left: helpEndPose }, i * (1000 / 15), body)
+ helpEmissions.push(...r.emissions.map(e => e.label))
+}
+assert.deepEqual(helpEmissions, ['HELP', 'A'], 'Intentional static letter emits normally after cooldown')
+console.log('PASS post-whole-sign static cooldown suppresses trailing handshape artifacts')
+
+// Recognition engine preserves per-letter confidence and runner-up alternatives on static readings & emissions
+let staticFrames = 0
+const altEngine = createRecognitionEngine(async kind => {
+ if (kind === 'static') {
+  staticFrames++
+  return ['A', 0.62, [{ label: 'S', confidence: 0.34 }]]
+ }
+ return [null, 0]
+}, null, 15, false)
+let altEmission = null
+let altReading = null
+for (let i = 0; i < 10; i++) {
+ const r = await altEngine.process({ Left: hand }, i * (1000 / 15), body)
+ if (!altReading && r.readings.length) altReading = r.readings[0]
+ if (r.emissions.length) altEmission = r.emissions[0]
+}
+assert.ok(staticFrames >= 4)
+assert.deepEqual(altReading?.alternatives, [{ label: 'S', confidence: 0.34 }])
+assert.equal(altEmission?.label, 'A')
+assert.equal(altEmission?.confidence, 0.62)
+assert.deepEqual(altEmission?.alternatives, [{ label: 'S', confidence: 0.34 }])
+console.log('PASS recognition engine forwards static letter alternatives and confidence')

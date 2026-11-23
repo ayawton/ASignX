@@ -35,13 +35,19 @@
     "cosine_head": true,
     "use_motion_deltas": true
   },
-  "source_sha256": "cdb8b1eabba373dcf47f2a453104a8bff8067b9f05a01a89c222cc5471ed65bf",
-  "onnx_sha256": "d0e1ba9215a95f320fb52a8906a764d884cd2c194314d869325318a701d47f23",
+  "onnx_sha256": "4628706e171a01bc0361e0de9a33acec1517b35793b0c365d52824adc826a214",
   "opset": 17,
   "use_kinematic_features": false,
   "use_cosine_head": true,
+  "use_motion_deltas": true,
   "sequence_length": 30,
   "sampling_fps": 15.0,
   "backbone": "tcn_attention",
-  "input_contract": "30 preprocessed frames with 180 features each, using hands_upper_body_temples_xy_v3."
+  "dtype": "float32",
+  "hand_slots": [
+    "Left",
+    "Right"
+  ],
+  "output_contract": "Softmax logits in labels order; reject BACKGROUND and confidence below 0.8",
+  "input_contract": "Externally construct hands_upper_body_temples_xy_v3 features and resample the complete gesture to 30 steps. Preprocessing is not embedded."
 }

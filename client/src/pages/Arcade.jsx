@@ -1,8 +1,9 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { Maximize, Minimize, Pause, Play } from 'lucide-react'
+import { Maximize, Minimize, Pause, Play, Volume2, VolumeX } from 'lucide-react'
 import Link from '../components/WorkspaceLink'
 import CameraPanel from '../components/CameraPanel'
-import { arcadeBestKey, defenseLine, GAME_MODES, PACES, gameReducer, initialGame, readArcadeBest } from '../data/arcade'
+import { arcadeBestKey, defenseLine, GAME_MODES, PACES, gameReducer, initialGame, readArcadeBest, tickMs } from '../data/arcade'
+import { playArcadeCues } from '../data/arcadeSound'
 import { createBrowserFrameStream } from '../recognition/browserFrameStream'
 import './Arcade.css'
 
@@ -23,14 +24,20 @@ export default function Arcade() {
   const [video, setVideo] = useState(null)
   const [recognition, setRecognition] = useState({ status: 'off', error: '' })
   const [fullscreen, setFullscreen] = useState(false)
+  const [muted, setMuted] = useState(() => {
+    try { return localStorage.getItem('asignx-arcade-muted') === 'true' } catch { return false }
+  })
   const arena = useRef(null)
   const stream = useRef(null)
+  const audio = useRef(null)
+  const audioId = useRef(null)
   const nativeFullscreen = useRef(false)
   const settings = PACES[game.pace]
   const playing = game.phase === 'playing'
   const paused = game.phase === 'paused'
   const complete = game.phase === 'complete'
-  const inRound = playing || paused
+  const counting = game.phase === 'countdown'
+  const inRound = playing || paused || counting
   const cameraReady = Boolean(video && recognition.status === 'ready')
   const canPlay = input === 'keyboard' || cameraReady
   const locked = game.targets.find(target => target.id === game.lockedId)
@@ -63,10 +70,18 @@ export default function Arcade() {
   }, [canPlay])
 
   useEffect(() => {
-    if (!playing) return
-    const timer = window.setInterval(() => dispatch({ type: 'TICK' }), 250)
+    if (!playing && !counting) return
+    const timer = window.setInterval(() => dispatch({ type: 'TICK' }), tickMs)
     return () => window.clearInterval(timer)
-  }, [playing])
+  }, [playing, counting])
+
+  useEffect(() => () => { void audio.current?.close().catch(() => {}); audio.current = null }, [])
+  useEffect(() => {
+    if (!game.audio || audioId.current === game.audio) return
+    audioId.current = game.audio
+    const context = audio.current
+    if (!muted && context && context.state !== 'closed') playArcadeCues(context, game.audio.cues)
+  }, [game.audio, muted])
 
   useEffect(() => {
     function onKey(event) {
@@ -120,8 +135,24 @@ export default function Arcade() {
 
   function play(type) {
     if (!canPlay) return
+    if (!muted) unlockAudio()
     stream.current?.clear()
-    dispatch({ type })
+    dispatch({ type, seed: type === 'START' ? Math.floor(Math.random() * 2 ** 32) : undefined })
+  }
+
+  function unlockAudio() {
+    try {
+      audio.current ??= new AudioContext()
+      void audio.current.resume().catch(() => {})
+    } catch { /* Sound is optional. */ }
+  }
+
+  function toggleMute() {
+    const next = !muted
+    setMuted(next)
+    if (!next) unlockAudio()
+    else void audio.current?.suspend().catch(() => {})
+    try { localStorage.setItem('asignx-arcade-muted', String(next)) } catch { /* Storage is optional. */ }
   }
 
   function stopCamera() {
@@ -137,28 +168,36 @@ export default function Arcade() {
       onKeyDown={event => { if (event.key === 'Escape' && fullscreen && !document.fullscreenElement) exitFullscreen() }}>
       <header className="strike-hud">
         <div className="strike-brand"><h1>ASign<span>Strike</span></h1><p>{GAME_MODES[game.mode].title}</p></div>
-        <dl className="strike-stats"><div><dt>Score</dt><dd>{game.score}</dd></div><div><dt>Time</dt><dd>{time}</dd></div><div><dt>Shields</dt><dd>{game.shields}</dd></div></dl>
+        <dl className="strike-stats"><div><dt>Score</dt><dd>{game.score}</dd></div><div><dt>{game.mode === 'endless' ? 'Wave' : 'Time'}</dt><dd>{game.mode === 'endless' ? game.wave : time}</dd></div><div><dt>Shields</dt><dd>{game.shields}</dd></div></dl>
         <div className="strike-actions">
           {inRound && <button type="button" disabled={paused && !canPlay} onClick={() => paused ? play('RESUME') : dispatch({ type: 'PAUSE' })}>{paused ? <Play size={16} /> : <Pause size={16} />}<span>{paused ? 'Resume' : 'Pause'}</span></button>}
+          <button type="button" aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'} onClick={toggleMute}>{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button>
           <button type="button" onClick={fullscreen ? exitFullscreen : enterFullscreen}>{fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}<span>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</span></button>
         </div>
       </header>
 
       <div className="strike-field">
-        {game.targets.map(target => <div key={target.id} className={`strike-enemy${target.id === game.lockedId ? ' is-locked' : ''}`} style={{ left: target.x + '%', top: target.y + '%' }}>
+        {game.targets.map(target => <div key={target.id} className={`strike-enemy${target.id === game.lockedId ? ' is-locked' : ''}`} style={{ left: target.x + '%', top: target.y + '%', '--dx': 50 - target.x, '--dy': 82 - target.y }}>
           <Ship enemy />
           <span className="strike-word">{target.word.split('').map((letter, index) => <span key={index} className={index < target.typed ? 'is-done' : target.id === game.lockedId && index === target.typed ? 'is-next' : undefined}>{letter}</span>)}</span>
         </div>)}
         {game.laser && <svg key={game.laser.id} className="strike-shot" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="87" x2={game.laser.x} y2={game.laser.y} vectorEffect="non-scaling-stroke" /></svg>}
         <div className="strike-defense" style={{ top: defenseLine + '%' }} />
-        <div className="strike-player"><Ship /><p className="strike-prompt" aria-live="polite">{locked ? `${input === 'camera' ? 'Sign' : 'Type'} ${locked.word[locked.typed]}` : input === 'camera' ? 'Sign a first letter' : 'Type a first letter'}</p></div>
-        {inRound && <p className={`strike-feedback is-${game.feedback.tone}`} role="status">{game.feedback.text}</p>}
+        <div className="strike-player"><Ship /><p className="strike-prompt" aria-live="polite">
+          {game.lastLetter && (input === 'camera' ? 'Detected ' : 'Typed ') + game.lastLetter + ' · '}
+          {locked ? `${input === 'camera' ? 'Sign' : 'Type'} ${locked.word[locked.typed]}` : input === 'camera' ? 'Sign a first letter' : 'Type a first letter'}
+        </p></div>
+        {inRound && game.feedback && <p className={`strike-feedback is-${game.feedback.tone}`} role="status">{game.feedback.text}</p>}
       </div>
 
       {input === 'camera' && <aside className="strike-camera">
-        <CameraPanel active={camera} onStart={() => setCamera(true)} onStop={stopCamera} onVideoReady={setVideo} />
+        <CameraPanel compact active={camera} onStart={() => setCamera(true)} onStop={stopCamera} onVideoReady={setVideo} />
         {camera && recognition.error && <p role="alert">{recognition.error}</p>}
       </aside>}
+
+      {counting && <div className="strike-overlay"><div className="strike-card strike-countdown" role="status">
+        <h2>{game.mode === 'endless' ? 'Wave ' + game.wave : 'Get ready'}</h2><strong>{Math.ceil(game.countdown)}</strong>
+      </div></div>}
 
       {game.phase === 'ready' && <div className="strike-overlay">
         <div className="strike-card">
@@ -183,6 +222,7 @@ export default function Arcade() {
 
       {complete && <div className="strike-overlay"><div className="strike-card"><h2>{game.shields ? 'Round complete' : 'Out of shields'}</h2>
         <p>{game.score} points · {game.cleared} ships cleared</p>
+        {game.mode === 'endless' && <p>Highest wave reached · {game.wave}</p>}
         <button className="strike-primary" type="button" disabled={!canPlay} onClick={() => play('START')}>Play again</button>
         <button className="strike-secondary" type="button" onClick={() => dispatch({ type: 'RESET' })}>Round settings</button>
       </div></div>}

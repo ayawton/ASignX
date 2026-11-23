@@ -55,6 +55,7 @@
 .strike-arena button:focus-visible, .strike-arena select:focus-visible { outline: 2px solid #98d1ff; outline-offset: 3px; }
 .strike-field {
   position: relative;
+  container-type: size;
   overflow: hidden;
   background-image: radial-gradient(circle, #7799ce88 1px, transparent 1.7px), radial-gradient(circle, #6a87ab66 1px, transparent 1.6px);
   background-size: 191px 143px, 277px 213px;
@@ -78,7 +79,15 @@
 .strike-arena.is-playing .strike-enemy { transition: top 250ms linear, left 250ms linear; }
 .strike-enemy:nth-child(even) { --hull: #443322; --edge: #e7aa55; --panel: #785737; --light: #ffe5a2; }
 .strike-enemy.is-locked { outline: 2px solid #469dff; outline-offset: 3px; border-radius: 10px; }
-.strike-enemy-art { display: block; height: 64%; max-width: 100%; transform: rotate(180deg); filter: drop-shadow(0 0 9px #f8a38045); }
+.strike-enemy-art {
+  display: block;
+  height: 64%;
+  max-width: 100%;
+  transform: rotate(180deg);
+  transform: rotate(calc(90deg + atan2(calc(var(--dy) * 1cqh), calc(var(--dx) * 1cqw))));
+  filter: drop-shadow(0 0 9px #f8a38045);
+}
+.strike-arena.is-playing .strike-enemy-art { transition: transform 250ms linear; }
 .strike-word {
   display: block;
   padding: 1px 8px;
@@ -101,10 +110,11 @@
 .strike-feedback { position: absolute; inset: auto auto 3% 3%; margin: 0; color: #a5d8ff; max-width: min(33%, 26ch); font-size: .8rem; }
 .strike-feedback.is-miss { color: #ffd3a3; }
 .strike-camera { position: absolute; right: 2%; bottom: 3%; width: clamp(118px, 19%, 265px); z-index: 4; }
-.strike-camera .studio-camera { height: auto; min-height: 0; border: 1px solid #46668d; border-radius: 10px; background: #0b1429; box-shadow: none; overflow: hidden; }
-.strike-camera .studio-camera video { display: block; width: 100%; min-height: 0; height: auto; aspect-ratio: 4 / 3; object-fit: contain; background: #040917; }
+.strike-camera .studio-camera { display: grid; align-items: stretch; height: auto; min-height: 0; border: 1px solid #46668d; border-radius: 10px; background: #0b1429; box-shadow: none; overflow: hidden; }
+.strike-camera .studio-camera video { position: static; display: block; width: 100%; min-height: 0; height: auto; aspect-ratio: 4 / 3; max-height: 26dvh; object-fit: contain; background: #040917; }
 .strike-camera .studio-camera video[hidden], .strike-camera .studio-camera-empty, .strike-camera .studio-camera-status > span:nth-child(2) { display: none; }
 .strike-camera .studio-camera-status, .strike-camera .studio-camera-controls { position: static; padding: 4px 6px; color: #c3d3ed; background: #0b1429; font-size: .7rem; }
+.strike-camera .studio-camera-status > span { border: 0; padding: 2px; background: transparent; color: inherit; }
 .strike-camera .studio-camera-controls .btn { padding: 4px 6px; min-height: 0; background: transparent; border-color: #46668d; color: #edf5ff; font-size: .72rem; }
 .strike-camera .studio-camera-controls svg { width: 13px; height: 13px; }
 .strike-camera > p { margin: 5px 0; font-size: .75rem; color: #ffd3a3; }
@@ -128,6 +138,8 @@
 .strike-settings select { width: 100%; padding: 5px; border: 1px solid #46668d; border-radius: 6px; background: #101f39; color: #edf5ff; font: inherit; }
 .strike-primary { background: #1562bd; border-color: #65b5ff; }
 .strike-card .strike-best { font-size: .75rem; }
+.strike-countdown { width: auto; min-width: 126px; justify-items: center; }
+.strike-countdown strong { font-size: clamp(36px, 8dvh, 80px); color: #65b5ff; }
 @media (max-width: 720px) {
   .strike-hud { flex-wrap: wrap; gap: 7px; }
   .strike-stats { order: 1; width: 100%; justify-content: center; font-size: .78rem; }
@@ -137,5 +149,5 @@
   .strike-camera { bottom: 1%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .strike-arena.is-playing .strike-enemy { transition: none; }
+  .strike-arena.is-playing :is(.strike-enemy, .strike-enemy-art) { transition: none; }
 }

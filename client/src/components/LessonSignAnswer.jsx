@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Camera, CameraOff, Hand, CheckCircle2, AlertCircle, LoaderCircle } from 'lucide-react'
 import { updateHearts } from '../data/hearts'
-import { supabase } from '../auth'
+import { accountHeaders } from '../auth'
 import { createFrameStream } from '../recognition/frameStream'
 
 export default function LessonSignAnswer({ lessonId, runId, exercise, onSolved, disabled, isSolved = false }) {
@@ -32,8 +32,7 @@ export default function LessonSignAnswer({ lessonId, runId, exercise, onSolved, 
     stop();setPhase('error');setError('Camera access ended. Start the camera again to retry.')
    }))
    const transport=async(url,options={})=>{
-    const {data}=await supabase.auth.getSession()
-    const headers=new Headers(options.headers);headers.set('Authorization',`Bearer ${data.session?.access_token||''}`)
+    const headers=await accountHeaders(options.headers)
     let path=url.replace('/api/recognition/sessions','/api/me/lesson-recognition')
     if(url==='/api/recognition/sessions'){path=`/api/me/lessons/${lessonId}/recognition`;headers.set('Content-Type','application/json');options={...options,body:JSON.stringify({exercise_id:exercise.id,run_id:runId})}}
     const response=await fetch(path,{...options,headers})

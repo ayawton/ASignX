@@ -2,12 +2,16 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { gamification, lessonAction, validUuid, activeRun } from './gamification.js';
 import { lessonRecognition } from './lessonRecognition.js';
-import { connection as sql } from './db/index.js';
+import { connection } from './db/index.js';
+import { guestConnection, learnerConnection } from './db/learnerConnection.js';
+const sql = learnerConnection(connection);
 
 export const personal = Router();
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
+    const guest = guestConnection.getStore();
+    if (guest) { res.locals.user = { id: guest.id, role: 'guest' }; next(); return; }
     const token = req.headers.authorization?.match(/^Bearer ([^\s]+)$/)?.[1];
-    if (!token) { res.status(401).json({ error: 'Please log in.' }); return; }
+    if (!token || token.startsWith('guest.')) { res.status(401).json({ error: 'Please log in.' }); return; }
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_PUBLISHABLE_KEY;
     if (!url || !key) { res.status(503).json({ error: 'Account service is not configured.' }); return; }
@@ -15,8 +19,8 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     try {
         const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
         if (!response.ok) { res.status(response.status >= 500 ? 503 : 401).json({ error: 'Unable to verify your session. Please log in again.' }); return; }
-        const user = await response.json() as { id?: string; email?: string; email_confirmed_at?: string };
-        if (!user.id || !user.email_confirmed_at) { res.status(401).json({ error: 'Confirm your email before continuing.' }); return; }
+        const user = await response.json() as { id?: string; email?: string; email_confirmed_at?: string; is_anonymous?: boolean };
+        if (!user.id || !user.email_confirmed_at || user.is_anonymous === true) { res.status(401).json({ error: 'Confirm your email before continuing.' }); return; }
         res.locals.authDuration = (performance.now()-authStarted).toFixed(1);
         res.locals.user = user;
         next();
@@ -82,7 +86,7 @@ personal.get('/courses/:id', async (req, res) => {
 async function readProfile(user: { id: string; email?: string }) {
  const [profile] = await sql`select id, display_name, role, timezone from profiles where id = ${user.id}`;
  if (!profile) throw new Error('Your account profile is not ready.');
- return { ...profile, email: user.email };
+ return { ...profile, role: guestConnection.getStore() ? 'guest' : profile.role, email: user.email };
 }
 async function readProgress(userId: string) {
     const [lessons, achievements, [streak]] = await Promise.all([
@@ -116,7 +120,7 @@ personal.get('/dashboard', async (_req,res) => {
 personal.get('/profile', async (_req, res) => {
     const [profile] = await sql`select id, display_name, role, timezone from profiles where id = ${res.locals.user.id}`;
     if (!profile) { res.status(503).json({ error: 'Your account profile is not ready. Contact the project administrator.' }); return; }
-    res.json({ ...profile, email: res.locals.user.email });
+    res.json({ ...profile, role: res.locals.user.role === 'guest' ? 'guest' : profile.role, email: res.locals.user.email });
 });
 personal.patch('/profile', async (req, res) => {
     const { display_name, timezone } = req.body;
@@ -124,7 +128,7 @@ personal.patch('/profile', async (req, res) => {
     try { new Intl.DateTimeFormat('en', { timeZone: timezone }); } catch { res.status(400).json({ error: 'Choose a valid IANA time zone.' }); return; }
     const [profile] = await sql`update profiles set display_name = ${display_name.trim()}, timezone = ${timezone}, updated_at = now() where id = ${res.locals.user.id} returning id, display_name, role, timezone`;
     if (!profile) { res.status(404).json({ error: 'Profile not found.' }); return; }
-    res.json({ ...profile, email: res.locals.user.email });
+    res.json({ ...profile, role: res.locals.user.role === 'guest' ? 'guest' : profile.role, email: res.locals.user.email });
 });
 personal.get('/progress', async (_req, res) => { res.json(await readProgress(res.locals.user.id)); });
 personal.get('/enrollments', async (_req, res) => {

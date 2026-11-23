@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import { createClient } from '@supabase/supabase-js'
-import { loginAccount, observeSession } from '../src/login.js'
+import { loginAccount, observeSession, verifiedSession } from '../src/login.js'
 
 const user = { id: 'learner-id', email: 'learner@example.com', email_confirmed_at: '2026-10-23T00:00:00Z' }
+const anonymous = { auth: { getUser: async () => ({ data: { user: { id: 'old-guest', is_anonymous: true } } }) } }
+assert.equal(await verifiedSession(anonymous, { access_token: 'old-token' }), null)
+
 const claims = Buffer.from(JSON.stringify({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url')
 const token = `${Buffer.from('{"alg":"HS256"}').toString('base64url')}.${claims}.test-signature`
 const stored = new Map()

@@ -131,9 +131,18 @@ Use the fresh connection string from Supabase Connect, percent-encode the passwo
 and require TLS. Verify certificate trust on the Linux image without disabling
 certificate validation. Pool size is five connections per API process.
 
+The guest link is `/guest`. It uses an opaque token stored in the browser tab
+and temporary learning records in API memory. It reads a published catalog
+snapshot from Postgres. Supabase anonymous sign-ins can stay disabled.
+Guest sessions end at logout, after one hour of inactivity, or on API restart.
+Keep guest traffic on one API replica unless routing guarantees API affinity.
+Smoke-test two independent guest sessions, logout, and admin denial.
+
 Provision `server/storage/learning-media.sql` separately using a trusted SQL
 connection. It creates a private bucket with a 20 MiB MP4 limit and admin upload,
-published playback and unreferenced-upload cleanup policies. Retain existing RLS,
+published playback and unreferenced-upload cleanup policies. Reapply it on
+existing environments to enable published demo playback for `/guest`. Verify
+a published sign with an attached MP4 plays in a guest session. Retain existing RLS,
 confirmed-user profile triggers, grading and role checks. Verify intended content
 and an admin account before launch; do not grant admin via signup metadata.
 

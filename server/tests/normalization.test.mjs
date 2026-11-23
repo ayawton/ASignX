@@ -11,8 +11,8 @@ test('normalization preserves populated XP, practice submissions and recognition
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated,service_role;`);
  const folders=(await readdir(new URL('../drizzle/',import.meta.url))).sort();
- const last=folders.pop();
- for(const folder of folders)await db.exec(await readFile(new URL(`../drizzle/${folder}/migration.sql`,import.meta.url),'utf8'));
+ const last=folders.find(folder=>folder.endsWith('_normalize_learning_records'));
+ for(const folder of folders.filter(folder=>folder<last))await db.exec(await readFile(new URL(`../drizzle/${folder}/migration.sql`,import.meta.url),'utf8'));
  await db.exec(`insert into auth.users(id,email_confirmed_at) values ('${id(1)}',now());
  insert into courses(id,title,is_published) values ('${id(2)}','Existing course',true);
  insert into lessons(id,course_id,title,sort_order) values ('${id(3)}','${id(2)}','Existing lesson',1);

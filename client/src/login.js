@@ -11,7 +11,8 @@ export async function verifiedSession(client, session) {
  if (!session?.access_token) return null
  const { data, error } = await client.auth.getUser(session.access_token)
  if (error) throw loginError(error)
- if (!data?.user?.email_confirmed_at) throw Object.assign(new Error('Confirm your email before logging in.'), { code: 'email_not_confirmed' })
+ if (data?.user?.is_anonymous === true) return null
+ if (!data?.user?.id || !data.user.email_confirmed_at) throw Object.assign(new Error('Confirm your email before logging in.'), { code: 'email_not_confirmed' })
  return { ...session, user: data.user }
 }
 

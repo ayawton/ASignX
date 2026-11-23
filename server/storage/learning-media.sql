@@ -12,9 +12,14 @@ WITH CHECK(bucket_id='learning-media'
 
 DROP POLICY IF EXISTS asignx_media_read ON storage.objects;
 CREATE POLICY asignx_media_read ON storage.objects FOR SELECT TO anon,authenticated
-USING(bucket_id='learning-media' AND (
- EXISTS(SELECT 1 FROM public.profiles WHERE id=auth.uid() AND role='admin')
- OR EXISTS(SELECT 1 FROM public.signs WHERE demo_path=name AND is_published)));
+USING(bucket_id='learning-media'
+ AND EXISTS(SELECT 1 FROM public.signs WHERE demo_path=name AND is_published));
+
+-- Guests use the anon role, which cannot read profiles.
+DROP POLICY IF EXISTS asignx_media_admin_read ON storage.objects;
+CREATE POLICY asignx_media_admin_read ON storage.objects FOR SELECT TO authenticated
+USING(bucket_id='learning-media'
+ AND EXISTS(SELECT 1 FROM public.profiles WHERE id=auth.uid() AND role='admin'));
 
 -- Only unreferenced uploads can be removed. Replacements use new object paths.
 DROP POLICY IF EXISTS asignx_media_cleanup ON storage.objects;

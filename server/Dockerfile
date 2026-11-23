@@ -20,5 +20,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
+COPY drizzle ./drizzle
 USER node
 CMD ["node", "dist/index.js"]

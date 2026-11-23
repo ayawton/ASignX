@@ -6,7 +6,9 @@ export class SpellingSyntaxEngine {
     [Symbol.dispose](): void;
     constructor(unigram_text: string, bigram_text: string);
     suggest_word(text: string, previous_json: string): string;
+    suggest_word_with_signals(text: string, previous_json: string, letters_json: string): string;
     syntax_sentence(text: string, fallback: string): string;
+    syntax_sentence_groups(groups_json: string, fallback: string): string;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -16,7 +18,9 @@ export interface InitOutput {
     readonly __wbg_spellingsyntaxengine_free: (a: number, b: number) => void;
     readonly spellingsyntaxengine_new: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly spellingsyntaxengine_suggest_word: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+    readonly spellingsyntaxengine_suggest_word_with_signals: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
     readonly spellingsyntaxengine_syntax_sentence: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+    readonly spellingsyntaxengine_syntax_sentence_groups: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

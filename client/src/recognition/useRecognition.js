@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { createBrowserFrameStream } from './browserFrameStream'
-import { initialWordState, wordComposer } from './wordComposer'
+import { initialWordState, shouldAcceptWholeSign, wordComposer } from './wordComposer'
 
 export default function useRecognition(video, sessionKey, onRecognized) {
  const [state, setState] = useState({ status: 'off', hands: [], readings: [], error: '' })
@@ -8,7 +8,11 @@ export default function useRecognition(video, sessionKey, onRecognized) {
  const [composition, dispatch] = useReducer(wordComposer, initialWordState)
  const streamRef = useRef(null)
  const soundRef = useRef(onRecognized)
+ const gateRef = useRef({ pending: '', lastLetterAt: null })
  useEffect(() => { soundRef.current = onRecognized }, [onRecognized])
+ useEffect(() => {
+  gateRef.current = { pending: composition.pending, lastLetterAt: composition.lastLetterAt }
+ }, [composition.pending, composition.lastLetterAt])
  useEffect(() => {
   if (!video) return
   const stream = createBrowserFrameStream(video, {
@@ -16,11 +20,29 @@ export default function useRecognition(video, sessionKey, onRecognized) {
    onResult: data => {
     setState({ ...data, status: 'ready', error: '' })
     if (data.emissions.length) {
-     soundRef.current?.()
+     const now = performance.now()
      const signs = data.emissions.map(item => ({ ...item, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }))
-     setHistory(previous => [...previous, ...signs].slice(-200))
+     const acceptedSigns = []
+     let { pending, lastLetterAt } = gateRef.current
      for (const sign of signs) {
-      dispatch(sign.label.length > 1 ? { type: 'sign', label: sign.label } : { type: 'letters', letters: [sign] })
+      if (sign.label.length > 1) {
+       if (!shouldAcceptWholeSign({ pending, lastLetterAt, confidence: sign.confidence, at: now })) {
+        continue
+       }
+       pending = ''
+       acceptedSigns.push(sign)
+       dispatch({ type: 'sign', label: sign.label, confidence: sign.confidence, at: now })
+      } else {
+       pending = (pending + sign.label).slice(0, 200)
+       lastLetterAt = now
+       acceptedSigns.push(sign)
+       dispatch({ type: 'letters', letters: [sign], at: now })
+      }
+     }
+     gateRef.current = { pending, lastLetterAt }
+     if (acceptedSigns.length) {
+      soundRef.current?.()
+      setHistory(previous => [...previous, ...acceptedSigns].slice(-200))
      }
     }
    },
@@ -29,6 +51,12 @@ export default function useRecognition(video, sessionKey, onRecognized) {
   void stream.start()
   return () => { stream.stop(); if (streamRef.current === stream) streamRef.current = null }
  }, [video, sessionKey])
- function clear() { dispatch({ type: 'clear' }); setHistory([]); setState(previous => ({ ...previous, readings: [], dynamic: null })); streamRef.current?.clear() }
- return { ...(video ? state : { status: 'off', hands: [], readings: [], error: '' }), history, pendingText: composition.pending, accepted: composition.accepted, sentenceWords: composition.sentenceWords, sentences: composition.sentences, revision: composition.revision, wordFull: composition.full, finishSentence: (text, revision = composition.revision) => dispatch({ type: 'sentence', text, revision }), finishWord: (text, revision = composition.revision, joinPrevious = 0) => dispatch({ type: 'finish', text, revision, joinPrevious }), clear }
+ function clear() {
+  gateRef.current = { pending: '', lastLetterAt: null }
+  dispatch({ type: 'clear' })
+  setHistory([])
+  setState(previous => ({ ...previous, readings: [], dynamic: null }))
+  streamRef.current?.clear()
+ }
+ return { ...(video ? state : { status: 'off', hands: [], readings: [], error: '' }), history, pendingText: composition.pending, pendingLetters: composition.pendingLetters, accepted: composition.accepted, sentenceWords: composition.sentenceWords, sentences: composition.sentences, revision: composition.revision, wordFull: composition.full, finishSentence: (text, revision = composition.revision) => dispatch({ type: 'sentence', text, revision }), finishWord: (text, revision = composition.revision, joinPrevious = 0) => dispatch({ type: 'finish', text, revision, joinPrevious }), clear }
 }

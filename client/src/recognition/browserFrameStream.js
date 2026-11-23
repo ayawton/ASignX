@@ -62,9 +62,27 @@ async function createBrowserRecognizer() {
    try {
     const logits = output.data
     const peak = Math.max(...logits)
-    const confidence = 1 / logits.reduce((sum, logit) => sum + Math.exp(logit - peak), 0)
-    const label = metadata.labels[logits.indexOf(peak)]
-    return [confidence >= .8 && label !== 'BACKGROUND' ? label?.replaceAll('_', ' ') : null, confidence]
+    let sum = 0
+    for (let i = 0; i < logits.length; i++) sum += Math.exp(logits[i] - peak)
+    const peakIndex = logits.indexOf(peak)
+    const confidence = 1 / sum
+    const rawLabel = metadata.labels[peakIndex]
+    const label = confidence >= .8 && rawLabel !== 'BACKGROUND' ? rawLabel?.replaceAll('_', ' ') : null
+    let alternatives
+    if (kind === 'static' && label) {
+     let runnerUp = null
+     let runnerProb = 0
+     for (let i = 0; i < logits.length; i++) {
+      if (i === peakIndex) continue
+      const prob = Math.exp(logits[i] - peak) / sum
+      if (prob > runnerProb) {
+       runnerProb = prob
+       runnerUp = metadata.labels[i]
+      }
+     }
+     alternatives = runnerUp && runnerProb >= .03 ? [{ label: runnerUp, confidence: runnerProb }] : []
+    }
+    return [label, confidence, alternatives]
    } finally { output.dispose() }
   } finally { input.dispose() }
  }

@@ -52,7 +52,7 @@ self.onmessage = async ({ data }) => {
   if (data.mode !== 'sentence') {
    try {
     const engine = await loadSyntaxEngine()
-    self.postMessage({ id: data.id, result: engine.suggestWord(data.text, data.previous) })
+    self.postMessage({ id: data.id, result: engine.suggestWord(data.text, data.previous, data.letters) })
     return
    } catch {
     const suggest = await loadFallbackLookup()
@@ -62,9 +62,13 @@ self.onmessage = async ({ data }) => {
   }
   try {
    const engine = await loadSyntaxEngine()
-   self.postMessage({ id: data.id, result: engine.syntaxSentence(data.text, data.fallback) })
+   self.postMessage({ id: data.id, result: engine.syntaxSentence(data.text, data.fallback, data.groups) })
    return
   } catch {
+   if (data.preserveSigns) {
+    self.postMessage({ id: data.id, result: { suggestions: [] } })
+    return
+   }
    self.postMessage({ id: data.id, result: await fallbackSentence(data) })
   }
  } catch {

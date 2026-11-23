@@ -31,6 +31,108 @@ pub struct PreviousGroup {
     pub detected: String,
     #[serde(default)]
     pub text: String,
+    #[serde(default, rename = "wholeSign")]
+    pub whole_sign: bool,
+    #[serde(default)]
+    pub confidence: Option<f64>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct LetterAlternative {
+    #[serde(default)]
+    pub label: String,
+    #[serde(default)]
+    pub confidence: f64,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct LetterSignal {
+    #[serde(default)]
+    pub label: String,
+    #[serde(default)]
+    pub confidence: Option<f64>,
+    #[serde(default)]
+    pub alternatives: Vec<LetterAlternative>,
+    #[serde(default, rename = "fromMotion")]
+    pub from_motion: bool,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct SentenceGroup {
+    #[serde(default)]
+    pub detected: String,
+    #[serde(default)]
+    pub text: String,
+    #[serde(default, rename = "wholeSign")]
+    pub whole_sign: bool,
+    #[serde(default)]
+    pub confidence: Option<f64>,
+    #[serde(default)]
+    pub letters: Vec<LetterSignal>,
+}
+
+fn cap_repeats_with_opt_signals(
+    text: &str,
+    signals: Option<&[Option<LetterSignal>]>,
+) -> (String, Vec<Option<LetterSignal>>) {
+    let mut out = String::with_capacity(text.len());
+    let mut out_sigs = Vec::with_capacity(text.len());
+    let mut prev: Option<char> = None;
+    let mut run = 0usize;
+    let aligned = signals.filter(|s| s.len() == text.chars().count());
+    for (idx, ch) in text.chars().enumerate() {
+        let sig = aligned.and_then(|s| s[idx].clone());
+        if Some(ch) == prev {
+            run += 1;
+            if run <= 2 {
+                out.push(ch);
+                out_sigs.push(sig);
+            }
+        } else {
+            prev = Some(ch);
+            run = 1;
+            out.push(ch);
+            out_sigs.push(sig);
+        }
+    }
+    (out, out_sigs)
+}
+
+fn cap_repeats_with_signals(
+    text: &str,
+    letters: &[LetterSignal],
+) -> (String, Vec<Option<LetterSignal>>) {
+    let wrapped: Vec<Option<LetterSignal>> = if letters.len() == text.chars().count() {
+        letters.iter().cloned().map(Some).collect()
+    } else {
+        Vec::new()
+    };
+    let sig_opt = if wrapped.is_empty() {
+        None
+    } else {
+        Some(wrapped.as_slice())
+    };
+    cap_repeats_with_opt_signals(text, sig_opt)
+}
+
+fn squeeze_repeats_with_signals(
+    text: &str,
+    signals: Option<&[Option<LetterSignal>]>,
+) -> (String, usize, Vec<Option<LetterSignal>>) {
+    let mut out = String::with_capacity(text.len());
+    let mut out_sigs = Vec::with_capacity(text.len());
+    let mut prev: Option<char> = None;
+    let mut collapsed = 0usize;
+    for (idx, ch) in text.chars().enumerate() {
+        if Some(ch) == prev {
+            collapsed += 1;
+        } else {
+            prev = Some(ch);
+            out.push(ch);
+            out_sigs.push(signals.and_then(|s| s.get(idx).cloned()).flatten());
+        }
+    }
+    (out, collapsed, out_sigs)
 }
 
 pub fn cap_repeats(text: &str) -> String {
@@ -98,30 +200,78 @@ fn same_handshape_group(a: char, b: char) -> bool {
         .any(|group| group.contains(a) && group.contains(b))
 }
 
-pub fn weighted_distance(source: &str, target: &str) -> f64 {
+fn signal_sub_cost(a: char, b: char, sig: Option<&LetterSignal>) -> f64 {
+    if a == b {
+        return 0.0;
+    }
+    let base_cost: f64 = if same_handshape_group(a, b) {
+        0.2
+    } else if let Some(s) = sig {
+        match s.confidence {
+            Some(c) if c >= 0.97 => 1.15,
+            Some(c) if c < 0.88 => 0.85,
+            _ => 1.0,
+        }
+    } else {
+        1.0
+    };
+    if let Some(s) = sig {
+        let mut best_alt: Option<f64> = None;
+        for alt in &s.alternatives {
+            if alt.label.eq_ignore_ascii_case(&b.to_string()) && alt.confidence > 0.0 {
+                let alt_cost = (0.5 - alt.confidence.min(0.45)).clamp(0.08, 0.35);
+                best_alt = Some(best_alt.map(|prev| prev.min(alt_cost)).unwrap_or(alt_cost));
+            }
+        }
+        if let Some(alt_cost) = best_alt {
+            return base_cost.min(alt_cost);
+        }
+    }
+    base_cost
+}
+
+fn signal_del_cost(sig: Option<&LetterSignal>) -> f64 {
+    let Some(s) = sig else {
+        return 1.0;
+    };
+    let conf = s.confidence.unwrap_or(0.92);
+    if s.from_motion && conf < 0.90 {
+        0.70
+    } else if conf < 0.88 {
+        0.85
+    } else if conf >= 0.97 {
+        1.10
+    } else {
+        1.0
+    }
+}
+
+pub fn weighted_distance_with_signals(
+    source: &str,
+    target: &str,
+    signals: Option<&[Option<LetterSignal>]>,
+) -> f64 {
     let s: Vec<char> = source.chars().collect();
     let t: Vec<char> = target.chars().collect();
     let n = s.len();
     let m = t.len();
+    let sig_aligned = signals.filter(|sigs| sigs.len() == n);
     let mut dp = vec![vec![0.0_f64; m + 1]; n + 1];
-    for i in 0..=n {
-        dp[i][0] = i as f64;
+    for i in 1..=n {
+        let sig = sig_aligned.and_then(|sigs| sigs[i - 1].as_ref());
+        dp[i][0] = dp[i - 1][0] + signal_del_cost(sig);
     }
     for j in 0..=m {
         dp[0][j] = j as f64;
     }
     for i in 1..=n {
+        let sig = sig_aligned.and_then(|sigs| sigs[i - 1].as_ref());
+        let del_cost = signal_del_cost(sig);
         for j in 1..=m {
             let a = s[i - 1];
             let b = t[j - 1];
-            let sub_cost = if a == b {
-                0.0
-            } else if same_handshape_group(a, b) {
-                0.2
-            } else {
-                1.0
-            };
-            let mut best = (dp[i - 1][j] + 1.0)
+            let sub_cost = signal_sub_cost(a, b, sig);
+            let mut best = (dp[i - 1][j] + del_cost)
                 .min(dp[i][j - 1] + 1.0)
                 .min(dp[i - 1][j - 1] + sub_cost);
             if i > 1 && j > 1 && a == t[j - 2] && b == s[i - 2] {
@@ -131,6 +281,10 @@ pub fn weighted_distance(source: &str, target: &str) -> f64 {
         }
     }
     dp[n][m]
+}
+
+pub fn weighted_distance(source: &str, target: &str) -> f64 {
+    weighted_distance_with_signals(source, target, None)
 }
 
 fn damerau_levenshtein(a: &str, b: &str) -> usize {
@@ -315,6 +469,7 @@ impl CoreEngine {
         max_edits: usize,
         max_weighted_cost: f64,
         limit: usize,
+        signals: Option<&[Option<LetterSignal>]>,
     ) -> Vec<WordCandidate> {
         if query.is_empty() {
             return Vec::new();
@@ -356,7 +511,7 @@ impl CoreEngine {
                     if edits == 0 || edits > clamped {
                         continue;
                     }
-                    let w_cost = weighted_distance(query, candidate);
+                    let w_cost = weighted_distance_with_signals(query, candidate, signals);
                     if w_cost <= max_weighted_cost {
                         results.push(WordCandidate {
                             word: candidate.clone(),
@@ -390,9 +545,23 @@ impl CoreEngine {
     }
 
     pub fn suggest_word(&self, original: &str, previous: &[PreviousGroup]) -> NlpResponse {
+        self.suggest_word_with_signals(original, previous, &[])
+    }
+
+    pub fn suggest_word_with_signals(
+        &self,
+        original: &str,
+        previous: &[PreviousGroup],
+        letters: &[LetterSignal],
+    ) -> NlpResponse {
         let trimmed = original.trim();
         let lower = trimmed.to_ascii_lowercase();
-        let word = cap_repeats(&lower);
+        let (word, word_sigs) = cap_repeats_with_signals(&lower, letters);
+        let word_sigs_opt = if !letters.is_empty() && letters.len() == lower.chars().count() {
+            Some(word_sigs.as_slice())
+        } else {
+            None
+        };
         let mut suggestions = Vec::new();
 
         // Test suffixes of the open sentence, matching wordLookup.js fragment joining.
@@ -406,6 +575,9 @@ impl CoreEngine {
             let mut joined = word.clone();
             let mut has_fragment = looks_like_fragment(&word);
             for (offset, group) in previous.iter().rev().enumerate() {
+                if group.whole_sign {
+                    break;
+                }
                 let raw_prev = if !group.detected.is_empty() {
                     &group.detected
                 } else {
@@ -450,7 +622,7 @@ impl CoreEngine {
         } else if is_ascii_alpha_word(&word) && word.len() >= 4 && word.len() <= 32 {
             let max_edits = if word.len() >= 6 { 2 } else { 2 };
             let max_w_cost = if word.len() >= 6 { 2.0 } else { 1.25 };
-            let ranked = self.lookup_candidates(&word, max_edits, max_w_cost, 10);
+            let ranked = self.lookup_candidates(&word, max_edits, max_w_cost, 10, word_sigs_opt);
             if !ranked.is_empty() {
                 let best = &ranked[0];
                 let runner_up = ranked.get(1);
@@ -467,10 +639,13 @@ impl CoreEngine {
                     });
                 }
             } else {
-                let (squeezed, collapsed) = squeeze_repeats(&word);
+                let (squeezed, collapsed, sq_sigs) =
+                    squeeze_repeats_with_signals(&word, word_sigs_opt);
                 if collapsed > 0 && squeezed.len() >= 2 {
                     let sq_max_edits = if squeezed.len() >= 3 { 1 } else { 0 };
-                    let mut sq_ranked = self.lookup_candidates(&squeezed, sq_max_edits, 1.05, 24);
+                    let sq_sigs_opt = word_sigs_opt.map(|_| sq_sigs.as_slice());
+                    let mut sq_ranked =
+                        self.lookup_candidates(&squeezed, sq_max_edits, 1.05, 24, sq_sigs_opt);
                     sq_ranked.retain(|item| {
                         squeezed.len() >= 4
                             || item.edits == 0
@@ -557,12 +732,20 @@ impl CoreEngine {
     fn candidates_for_span(
         &self,
         raw_span: &str,
+        span_signals: Option<&[Option<LetterSignal>]>,
         pos: usize,
         end: usize,
         group_spans: &HashMap<(usize, usize), usize>,
         provisional: &[String],
     ) -> Vec<WordCandidate> {
-        let span = cap_repeats(raw_span);
+        let (span, capped_sigs) = cap_repeats_with_opt_signals(raw_span, span_signals);
+        let span_sigs_opt = span_signals.and_then(|s| {
+            if s.len() == raw_span.chars().count() {
+                Some(capped_sigs.as_slice())
+            } else {
+                None
+            }
+        });
         let repeat_penalty = if span != raw_span { 0.05 } else { 0.0 };
         let len = span.len();
         let mut out = Vec::new();
@@ -598,8 +781,8 @@ impl CoreEngine {
                 }
             }
         } else if len == 3 {
-            let mut found = self.lookup_candidates(&span, 1, 1.05, 4);
-            found.retain(|c| c.edits == 0 || c.count >= 10_000_000);
+            let mut found = self.lookup_candidates(&span, 1, 1.05, 4, span_sigs_opt);
+            found.retain(|c| c.edits == 0 || (c.weighted_cost <= 0.25 && c.count >= 10_000_000));
             for mut c in found {
                 if is_valid_sentence_word(&c.word) {
                     c.weighted_cost += repeat_penalty;
@@ -609,7 +792,7 @@ impl CoreEngine {
         } else {
             let max_edits = 2;
             let max_w_cost = if len >= 6 { 2.05 } else { 1.25 };
-            let found = self.lookup_candidates(&span, max_edits, max_w_cost, 6);
+            let found = self.lookup_candidates(&span, max_edits, max_w_cost, 6, span_sigs_opt);
             for mut c in found {
                 if is_valid_sentence_word(&c.word) {
                     c.weighted_cost += repeat_penalty;
@@ -620,10 +803,11 @@ impl CoreEngine {
 
         // Also check repeat-squeezed form (e.g. WOORRLLDD -> WORLD) when camera
         // recognition emits accidental double letters across a word.
-        let (squeezed, collapsed) = squeeze_repeats(&span);
+        let (squeezed, collapsed, sq_sigs) = squeeze_repeats_with_signals(&span, span_sigs_opt);
         if collapsed > 0 && squeezed.len() >= 2 && !self.word_to_id.contains_key(&span) {
             let sq_max_edits = if squeezed.len() >= 3 { 1 } else { 0 };
-            let sq_found = self.lookup_candidates(&squeezed, sq_max_edits, 1.05, 24);
+            let sq_sigs_opt = span_sigs_opt.map(|_| sq_sigs.as_slice());
+            let sq_found = self.lookup_candidates(&squeezed, sq_max_edits, 1.05, 24, sq_sigs_opt);
             for mut c in sq_found {
                 if squeezed.len() == 3
                     && c.edits > 0
@@ -660,7 +844,9 @@ impl CoreEngine {
                     && self.word_to_id.contains_key(&prov_lower)
                 {
                     let id = self.word_to_id[&prov_lower];
-                    let w_cost = weighted_distance(&span, &prov_lower).min(1.5) + repeat_penalty;
+                    let w_cost =
+                        weighted_distance_with_signals(&span, &prov_lower, span_sigs_opt).min(1.5)
+                            + repeat_penalty;
                     out.push(WordCandidate {
                         word: prov_lower,
                         word_id: Some(id),
@@ -688,30 +874,76 @@ impl CoreEngine {
         out
     }
 
-    pub fn syntax_sentence(&self, text: &str, fallback: &str) -> NlpResponse {
-        let raw_groups: Vec<String> = text
-            .split_whitespace()
-            .map(|g| cap_repeats(&g.to_ascii_lowercase()))
-            .filter(|g| !g.is_empty())
-            .collect();
-        let provisional: Vec<String> = fallback
-            .split_whitespace()
-            .map(|w| w.to_ascii_uppercase())
-            .collect();
+    fn run_fingerspelling_segment(
+        &self,
+        start_hyps: Vec<BeamHypothesis>,
+        segment: &[&SentenceGroup],
+        bridge_rule: Option<(usize, f64)>,
+    ) -> Vec<BeamHypothesis> {
+        let mut raw_groups = Vec::new();
+        let mut group_signals: Vec<Vec<Option<LetterSignal>>> = Vec::new();
+        let mut provisional = Vec::new();
+        let mut has_all_provisional = true;
+        let mut bridge_group_idx: Option<usize> = None;
+        for (g_idx, g) in segment.iter().enumerate() {
+            if let Some((left_count, _)) = bridge_rule {
+                if g_idx == left_count {
+                    bridge_group_idx = Some(raw_groups.len());
+                }
+            }
+            let src = if !g.detected.is_empty() {
+                &g.detected
+            } else {
+                &g.text
+            };
+            let trimmed = src.trim();
+            let parts: Vec<String> = trimmed
+                .split_whitespace()
+                .map(|p| cap_repeats(&p.to_ascii_lowercase()))
+                .filter(|p| !p.is_empty())
+                .collect();
+            if parts.len() == 1 {
+                if !g.letters.is_empty() && g.letters.len() == trimmed.chars().count() {
+                    let (capped, sigs) =
+                        cap_repeats_with_signals(&trimmed.to_ascii_lowercase(), &g.letters);
+                    raw_groups.push(capped);
+                    group_signals.push(sigs);
+                } else {
+                    let part = parts.into_iter().next().unwrap();
+                    let len = part.chars().count();
+                    raw_groups.push(part);
+                    group_signals.push(vec![None; len]);
+                }
+                let prov = g.text.trim().to_ascii_uppercase();
+                if prov.is_empty() {
+                    has_all_provisional = false;
+                }
+                provisional.push(prov);
+            } else {
+                has_all_provisional = false;
+                for part in parts {
+                    let len = part.chars().count();
+                    raw_groups.push(part);
+                    group_signals.push(vec![None; len]);
+                }
+            }
+        }
 
         if raw_groups.is_empty() {
-            return NlpResponse {
-                original: text.to_string(),
-                suggestions: Vec::new(),
-                engine: "symspell-wasm",
+            return if bridge_rule.is_some() {
+                Vec::new()
+            } else {
+                start_hyps
             };
         }
 
-        let aligned = raw_groups.len() == provisional.len();
+        let aligned = has_all_provisional && raw_groups.len() == provisional.len();
         let mut stream = String::new();
+        let mut stream_signals: Vec<Option<LetterSignal>> = Vec::new();
         let mut boundaries = HashSet::new();
         let mut strong_boundaries = HashSet::new();
         let mut group_spans = HashMap::new();
+        let mut bridge_char_offset: Option<usize> = None;
         boundaries.insert(0usize);
 
         let is_known_left = |w: &str| {
@@ -726,22 +958,26 @@ impl CoreEngine {
 
         for (idx, group) in raw_groups.iter().enumerate() {
             let start = stream.len();
+            if bridge_group_idx == Some(idx) {
+                bridge_char_offset = Some(start);
+            }
             if idx > 0 && is_known_left(&raw_groups[idx - 1]) && is_known_right(group) {
                 strong_boundaries.insert(start);
             }
             stream.push_str(group);
+            stream_signals.extend(group_signals[idx].iter().cloned());
             let end = stream.len();
             boundaries.insert(end);
             group_spans.insert((start, end), idx);
         }
 
+        if bridge_rule.is_some() && bridge_char_offset.is_none() {
+            return Vec::new();
+        }
+
         let n = stream.len();
-        let mut beam: Vec<Vec<BeamHypothesis>> = vec![Vec::new(); n + 1];
-        beam[0].push(BeamHypothesis {
-            score: 0.0,
-            total_edits: 0,
-            words: Vec::new(),
-        });
+        let mut beam: Vec<Vec<(BeamHypothesis, bool)>> = vec![Vec::new(); n + 1];
+        beam[0] = start_hyps.into_iter().map(|h| (h, false)).collect();
 
         let prov_slice: &[String] = if aligned { &provisional } else { &[] };
 
@@ -754,19 +990,45 @@ impl CoreEngine {
 
             for end in (pos + 1)..=max_end {
                 let raw_span = &stream[pos..end];
-                let candidates =
-                    self.candidates_for_span(raw_span, pos, end, &group_spans, prov_slice);
+                let span_signals = if stream_signals.len() == stream.len() {
+                    Some(&stream_signals[pos..end])
+                } else {
+                    None
+                };
+                let candidates = self.candidates_for_span(
+                    raw_span,
+                    span_signals,
+                    pos,
+                    end,
+                    &group_spans,
+                    prov_slice,
+                );
                 if candidates.is_empty() {
                     continue;
                 }
 
+                let bytes = stream.as_bytes();
                 let start_at_pause = boundaries.contains(&pos);
                 let end_at_pause = boundaries.contains(&end);
                 let crosses_pause = ((pos + 1)..end).any(|mid| boundaries.contains(&mid));
                 let crosses_strong_pause =
                     ((pos + 1)..end).any(|mid| strong_boundaries.contains(&mid));
+                // Pauses triggered while lowering the hand between identical letters (e.g. O | ON
+                // in NOON) are mid-word repeat splits unless both sides are valid words.
+                let weak_double_letter_split = (pos > 0
+                    && start_at_pause
+                    && !strong_boundaries.contains(&pos)
+                    && bytes[pos - 1] == bytes[pos])
+                    || (end < n
+                        && end_at_pause
+                        && !strong_boundaries.contains(&end)
+                        && bytes[end - 1] == bytes[end]);
                 let pause_bonus = if start_at_pause && end_at_pause && !crosses_pause {
-                    2.6
+                    if weak_double_letter_split {
+                        0.0
+                    } else {
+                        2.6
+                    }
                 } else if crosses_strong_pause {
                     -6.5
                 } else if crosses_pause {
@@ -780,13 +1042,30 @@ impl CoreEngine {
                     && raw_span.len() >= 4
                     && self.word_to_id.contains_key(raw_span);
 
-                for hyp in &current_hyps {
+                for (hyp, hyp_bridged) in &current_hyps {
                     let prev_word = hyp
                         .words
                         .last()
                         .and_then(|(_, id, count)| id.map(|wid| (wid, *count)));
 
                     for cand in &candidates {
+                        if bridge_char_offset.is_some_and(|offset| {
+                            pos < offset
+                                && end > offset
+                                && cand.edits > 0
+                                && (end == offset + 1 || cand.word == &stream[pos..offset])
+                        }) {
+                            continue;
+                        }
+                        let crosses_bridge = bridge_char_offset
+                            .map(|offset| pos < offset && end > offset && !cand.is_unknown)
+                            .unwrap_or(false);
+                        let next_bridged = *hyp_bridged || crosses_bridge;
+                        if let Some(offset) = bridge_char_offset {
+                            if !next_bridged && end >= offset {
+                                continue;
+                            }
+                        }
                         let lm_score = if cand.is_unknown {
                             -26.0
                         } else {
@@ -806,11 +1085,14 @@ impl CoreEngine {
                         let mut new_words = hyp.words.clone();
                         new_words.push((cand.word.clone(), cand.word_id, cand.count));
 
-                        beam[end].push(BeamHypothesis {
-                            score: new_score,
-                            total_edits: hyp.total_edits + cand.edits,
-                            words: new_words,
-                        });
+                        beam[end].push((
+                            BeamHypothesis {
+                                score: new_score,
+                                total_edits: hyp.total_edits + cand.edits,
+                                words: new_words,
+                            },
+                            next_bridged,
+                        ));
                     }
                 }
             }
@@ -818,16 +1100,207 @@ impl CoreEngine {
             // Prune reachable future buckets gently only when needed, or keep top BEAM_WIDTH when reached.
             if pos + 1 <= n && beam[pos + 1].len() > BEAM_WIDTH {
                 beam[pos + 1].sort_by(|a, b| {
-                    b.score
-                        .partial_cmp(&a.score)
+                    b.0.score
+                        .partial_cmp(&a.0.score)
                         .unwrap_or(std::cmp::Ordering::Equal)
                 });
-                dedup_hypotheses(&mut beam[pos + 1]);
+                let mut seen = HashSet::new();
+                beam[pos + 1].retain(|(h, bridged)| {
+                    let key = (
+                        h.words
+                            .iter()
+                            .map(|(w, _, _)| w.as_str())
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                        *bridged,
+                    );
+                    seen.insert(key)
+                });
                 beam[pos + 1].truncate(BEAM_WIDTH);
             }
         }
 
-        let mut finals = std::mem::take(&mut beam[n]);
+        let mut finals: Vec<BeamHypothesis> = std::mem::take(&mut beam[n])
+            .into_iter()
+            .filter_map(|(mut hyp, bridged)| {
+                if let Some((_, skip_penalty)) = bridge_rule {
+                    if !bridged {
+                        return None;
+                    }
+                    hyp.score -= skip_penalty;
+                }
+                Some(hyp)
+            })
+            .collect();
+        finals.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        dedup_hypotheses(&mut finals);
+        finals.truncate(BEAM_WIDTH);
+        finals
+    }
+
+    fn step_whole_sign(&self, hyps: Vec<BeamHypothesis>, group: &SentenceGroup) -> Vec<BeamHypothesis> {
+        let label = if !group.text.trim().is_empty() {
+            &group.text
+        } else {
+            &group.detected
+        };
+        let tokens: Vec<String> = label
+            .split_whitespace()
+            .map(|w| w.to_ascii_lowercase())
+            .filter(|w| !w.is_empty())
+            .collect();
+        if tokens.is_empty() {
+            return hyps;
+        }
+
+        let mut next = Vec::with_capacity(hyps.len());
+        for hyp in hyps {
+            let mut words = hyp.words;
+            let mut score = hyp.score;
+            for token in &tokens {
+                let word_id = self.word_to_id.get(token).copied();
+                let count = word_id.map(|id| self.counts[id as usize]).unwrap_or(1);
+                let prev_word = words
+                    .last()
+                    .and_then(|(_, id, c)| id.map(|wid| (wid, *c)));
+                let lm_score = self.transition_log_prob(prev_word, word_id, count);
+                score += lm_score + 2.6 - 2.2;
+                words.push((token.clone(), word_id, count));
+            }
+            next.push(BeamHypothesis {
+                score,
+                total_edits: hyp.total_edits,
+                words,
+            });
+        }
+        next.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        dedup_hypotheses(&mut next);
+        next.truncate(BEAM_WIDTH);
+        next
+    }
+
+    pub fn syntax_sentence_with_groups(&self, groups: &[SentenceGroup], fallback: &str) -> NlpResponse {
+        let original = groups
+            .iter()
+            .map(|g| {
+                if !g.detected.is_empty() {
+                    g.detected.as_str()
+                } else {
+                    g.text.as_str()
+                }
+            })
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        if groups.is_empty() || original.is_empty() {
+            return NlpResponse {
+                original,
+                suggestions: Vec::new(),
+                engine: "symspell-wasm",
+            };
+        }
+
+        let mut hyps = vec![BeamHypothesis {
+            score: 0.0,
+            total_edits: 0,
+            words: Vec::new(),
+        }];
+        let mut prev_segment: Option<(usize, usize, Vec<BeamHypothesis>)> = None;
+
+        let mut idx = 0usize;
+        while idx < groups.len() {
+            if groups[idx].whole_sign {
+                hyps = self.step_whole_sign(hyps, &groups[idx]);
+                if let Some((_, prev_end, _)) = &prev_segment {
+                    if *prev_end != idx {
+                        prev_segment = None;
+                    }
+                }
+                idx += 1;
+            } else {
+                let start = idx;
+                while idx < groups.len() && !groups[idx].whole_sign {
+                    idx += 1;
+                }
+                let pre_hyps = hyps.clone();
+                let segment: Vec<&SentenceGroup> = groups[start..idx].iter().collect();
+                hyps = self.run_fingerspelling_segment(hyps, &segment, None);
+
+                // Drop isolated 1-letter motion blips (dynamic J/Z) adjacent to a whole sign,
+                // since starting or ending a dynamic sign can briefly emit a stray J/Z.
+                let adjacent_whole_sign = (start > 0 && groups[start - 1].whole_sign)
+                    || (idx < groups.len() && groups[idx].whole_sign);
+                if start + 1 == idx
+                    && adjacent_whole_sign
+                    && groups[start].letters.len() == 1
+                    && groups[start].letters[0].from_motion
+                {
+                    let conf = groups[start].letters[0]
+                        .confidence
+                        .unwrap_or(0.85)
+                        .clamp(0.5, 1.0);
+                    let skip_penalty = 6.0 + conf * 4.0;
+                    for mut hyp in pre_hyps.clone() {
+                        hyp.score -= skip_penalty;
+                        hyps.push(hyp);
+                    }
+                    hyps.sort_by(|a, b| {
+                        b.score
+                            .partial_cmp(&a.score)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                    dedup_hypotheses(&mut hyps);
+                    hyps.truncate(BEAM_WIDTH);
+                }
+
+                if start >= 2 && groups[start - 1].whole_sign {
+                    if let Some((prev_start, prev_end, prev_pre_hyps)) = prev_segment.take() {
+                        if prev_end == start - 1 {
+                            let left_count = prev_end - prev_start;
+                            let mut merged: Vec<&SentenceGroup> =
+                                groups[prev_start..prev_end].iter().collect();
+                            merged.extend(groups[start..idx].iter());
+                            let conf = groups[start - 1]
+                                .confidence
+                                .unwrap_or(0.90)
+                                .clamp(0.5, 1.0);
+                            let skip_penalty = 8.0 + conf * 4.0;
+                            let bridged = self.run_fingerspelling_segment(
+                                prev_pre_hyps,
+                                &merged,
+                                Some((left_count, skip_penalty)),
+                            );
+                            if !bridged.is_empty() {
+                                hyps.extend(bridged);
+                                hyps.sort_by(|a, b| {
+                                    b.score
+                                        .partial_cmp(&a.score)
+                                        .unwrap_or(std::cmp::Ordering::Equal)
+                                });
+                                dedup_hypotheses(&mut hyps);
+                                hyps.truncate(BEAM_WIDTH);
+                            }
+                        }
+                    }
+                }
+
+                prev_segment = Some((start, idx, pre_hyps));
+                if hyps.is_empty() {
+                    break;
+                }
+            }
+        }
+
+        let mut finals = hyps;
         finals.sort_by(|a, b| {
             b.score
                 .partial_cmp(&a.score)
@@ -837,7 +1310,7 @@ impl CoreEngine {
 
         if finals.is_empty() {
             return NlpResponse {
-                original: text.to_string(),
+                original,
                 suggestions: vec![Suggestion {
                     text: fallback.to_string(),
                     edits: 0,
@@ -849,10 +1322,13 @@ impl CoreEngine {
         }
 
         let top1_score = finals[0].score;
-        let uncertain = finals
-            .get(1)
-            .map(|second| (top1_score - second.score) < 1.5)
-            .unwrap_or(false);
+        let top1_is_exact_known =
+            finals[0].total_edits == 0 && finals[0].words.iter().all(|(_, id, _)| id.is_some());
+        let uncertain = !top1_is_exact_known
+            && finals
+                .get(1)
+                .map(|second| (top1_score - second.score) < 1.5)
+                .unwrap_or(false);
 
         let suggestions = finals
             .into_iter()
@@ -874,10 +1350,43 @@ impl CoreEngine {
             .collect();
 
         NlpResponse {
-            original: text.to_string(),
+            original,
             suggestions,
             engine: "symspell-wasm",
         }
+    }
+
+    pub fn syntax_sentence(&self, text: &str, fallback: &str) -> NlpResponse {
+        let raw_groups: Vec<String> = text
+            .split_whitespace()
+            .map(|g| g.to_string())
+            .filter(|g| !g.is_empty())
+            .collect();
+        let provisional: Vec<String> = fallback
+            .split_whitespace()
+            .map(|w| w.to_ascii_uppercase())
+            .collect();
+        let aligned = raw_groups.len() == provisional.len();
+
+        let groups: Vec<SentenceGroup> = raw_groups
+            .into_iter()
+            .enumerate()
+            .map(|(idx, detected)| SentenceGroup {
+                detected,
+                text: if aligned {
+                    provisional[idx].clone()
+                } else {
+                    String::new()
+                },
+                whole_sign: false,
+                confidence: None,
+                letters: Vec::new(),
+            })
+            .collect();
+
+        let mut response = self.syntax_sentence_with_groups(&groups, fallback);
+        response.original = text.to_string();
+        response
     }
 }
 
@@ -909,9 +1418,21 @@ impl SpellingSyntaxEngine {
     }
 
     pub fn suggest_word(&self, text: &str, previous_json: &str) -> String {
+        self.suggest_word_with_signals(text, previous_json, "[]")
+    }
+
+    pub fn suggest_word_with_signals(
+        &self,
+        text: &str,
+        previous_json: &str,
+        letters_json: &str,
+    ) -> String {
         let previous: Vec<PreviousGroup> =
             serde_json::from_str(previous_json).unwrap_or_default();
-        let response = self.core.suggest_word(text, &previous);
+        let letters: Vec<LetterSignal> = serde_json::from_str(letters_json).unwrap_or_default();
+        let response = self
+            .core
+            .suggest_word_with_signals(text, &previous, &letters);
         serde_json::to_string(&response).unwrap_or_else(|_| {
             format!(
                 "{{\"original\":{},\"suggestions\":[],\"engine\":\"symspell-wasm\"}}",
@@ -926,6 +1447,17 @@ impl SpellingSyntaxEngine {
             format!(
                 "{{\"original\":{},\"suggestions\":[],\"engine\":\"symspell-wasm\"}}",
                 serde_json::to_string(text).unwrap_or_else(|_| "\"\"".to_string())
+            )
+        })
+    }
+
+    pub fn syntax_sentence_groups(&self, groups_json: &str, fallback: &str) -> String {
+        let groups: Vec<SentenceGroup> = serde_json::from_str(groups_json).unwrap_or_default();
+        let response = self.core.syntax_sentence_with_groups(&groups, fallback);
+        serde_json::to_string(&response).unwrap_or_else(|_| {
+            format!(
+                "{{\"original\":{},\"suggestions\":[],\"engine\":\"symspell-wasm\"}}",
+                serde_json::to_string(fallback).unwrap_or_else(|_| "\"\"".to_string())
             )
         })
     }
@@ -958,6 +1490,8 @@ mod tests {
             .map(|w| PreviousGroup {
                 detected: (*w).to_string(),
                 text: (*w).to_string(),
+                whole_sign: false,
+                confidence: None,
             })
             .collect()
     }
@@ -1052,5 +1586,428 @@ mod tests {
         let res = engine.suggest_word("BXD", &[]);
         // 3-letter words without context shouldn't force a random guess if uncertain or empty.
         assert!(res.suggestions.is_empty() || res.suggestions[0].uncertain);
+    }
+
+    #[test]
+    fn whole_signs_stay_atomic_in_word_and_sentence_stages() {
+        let engine = load_engine();
+        // Single-word whole sign like HELP must block backward fragment joining in suggest_word.
+        let whole_prev = vec![
+            PreviousGroup {
+                detected: "HEL".to_string(),
+                text: "HEL".to_string(),
+                whole_sign: false,
+                confidence: None,
+            },
+            PreviousGroup {
+                detected: "HELP".to_string(),
+                text: "HELP".to_string(),
+                whole_sign: true,
+                confidence: Some(0.95),
+            },
+        ];
+        assert!(
+            engine
+                .suggest_word("LO", &whole_prev)
+                .suggestions
+                .iter()
+                .all(|s| s.join_previous.is_none())
+        );
+
+        // Multi-word whole sign THANK YOU stays atomic between fingerspelled segments.
+        let groups = vec![
+            SentenceGroup {
+                detected: "HXLLO".to_string(),
+                text: "HELLO".to_string(),
+                whole_sign: false,
+                confidence: None,
+                letters: Vec::new(),
+            },
+            SentenceGroup {
+                detected: "THANK YOU".to_string(),
+                text: "THANK YOU".to_string(),
+                whole_sign: true,
+                confidence: Some(0.96),
+                letters: Vec::new(),
+            },
+            SentenceGroup {
+                detected: "FRMO".to_string(),
+                text: "FROM".to_string(),
+                whole_sign: false,
+                confidence: None,
+                letters: Vec::new(),
+            },
+            SentenceGroup {
+                detected: "WORK".to_string(),
+                text: "WORK".to_string(),
+                whole_sign: false,
+                confidence: None,
+                letters: Vec::new(),
+            },
+        ];
+        let res = engine.syntax_sentence_with_groups(&groups, "HELLO THANK YOU FROM WORK");
+        assert_eq!(res.suggestions[0].text, "HELLO THANK YOU FROM WORK");
+
+        // A whole sign with no merging continuation (HEL | THANK YOU) keeps both intact.
+        let unbridged = vec![
+            SentenceGroup {
+                detected: "HEL".to_string(),
+                text: "HEL".to_string(),
+                whole_sign: false,
+                confidence: None,
+                letters: Vec::new(),
+            },
+            SentenceGroup {
+                detected: "THANK YOU".to_string(),
+                text: "THANK YOU".to_string(),
+                whole_sign: true,
+                confidence: Some(0.97),
+                letters: Vec::new(),
+            },
+        ];
+        let unbridged_res = engine.syntax_sentence_with_groups(&unbridged, "HEL THANK YOU");
+        assert_eq!(unbridged_res.suggestions[0].text, "HEL THANK YOU");
+    }
+
+    #[test]
+    fn bridges_split_fragments_across_suspect_whole_signs_without_dropping_intentional_signs() {
+        let engine = load_engine();
+        let fs = |s: &str| SentenceGroup {
+            detected: s.to_string(),
+            text: s.to_string(),
+            whole_sign: false,
+            confidence: None,
+            letters: Vec::new(),
+        };
+        let ws = |s: &str, conf: f64| SentenceGroup {
+            detected: s.to_string(),
+            text: s.to_string(),
+            whole_sign: true,
+            confidence: Some(conf),
+            letters: Vec::new(),
+        };
+
+        // User's reported case: SUM | THANK YOU | ME | R -> SUMMER
+        let summer_split = vec![fs("SUM"), ws("THANK YOU", 0.95), fs("ME"), fs("R")];
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&summer_split, "SUM THANK YOU ME R")
+                .suggestions[0]
+                .text,
+            "SUMMER"
+        );
+
+        // Variant without trailing pause: SUM | THANK YOU | MER -> SUMMER
+        let summer_mer = vec![fs("SUM"), ws("THANK YOU", 0.95), fs("MER")];
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&summer_mer, "SUM THANK YOU MER")
+                .suggestions[0]
+                .text,
+            "SUMMER"
+        );
+
+        // Preceding words + split word + following whole sign: GOOD | HEL | THANK YOU | LO | PLEASE -> GOOD HELLO PLEASE
+        let multi = vec![
+            fs("GOOD"),
+            fs("HEL"),
+            ws("THANK YOU", 0.94),
+            fs("LO"),
+            ws("PLEASE", 0.96),
+        ];
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&multi, "GOOD HEL THANK YOU LO PLEASE")
+                .suggestions[0]
+                .text,
+            "GOOD HELLO PLEASE"
+        );
+
+        // Intentional whole signs between real words must NOT be dropped even when flanking words can concatenate:
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&[fs("THE"), ws("HELP", 0.97), fs("ME")], "THE HELP ME")
+                .suggestions[0]
+                .text,
+            "THE HELP ME"
+        );
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&[fs("IN"), ws("HELP", 0.97), fs("SIDE")], "IN HELP SIDE")
+                .suggestions[0]
+                .text,
+            "IN HELP SIDE"
+        );
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&[fs("I"), ws("HELP", 0.95), fs("YOU")], "I HELP YOU")
+                .suggestions[0]
+                .text,
+            "I HELP YOU"
+        );
+    }
+
+    #[test]
+    fn letter_confidence_and_alternatives_guide_corrections() {
+        let engine = load_engine();
+
+        // Runner-up alternative overrides static handshape defaults.
+        let custom =
+            CoreEngine::from_dictionaries("bold 4000000\nsold 8000000\nmold 7000000", "")
+                .expect("custom dict failed");
+        // Without runner-up signals on 'A', A<->S handshape group picks SOLD.
+        assert_eq!(custom.suggest_word("AOLD", &[]).suggestions[0].text, "SOLD");
+        // With strong runner-up alternative 'B' on index 0, BOLD wins over SOLD.
+        let bold_signals = vec![
+            LetterSignal {
+                label: "A".to_string(),
+                confidence: Some(0.55),
+                alternatives: vec![LetterAlternative {
+                    label: "B".to_string(),
+                    confidence: 0.42,
+                }],
+                from_motion: false,
+            },
+            LetterSignal {
+                label: "O".to_string(),
+                confidence: Some(0.98),
+                alternatives: Vec::new(),
+                from_motion: false,
+            },
+            LetterSignal {
+                label: "L".to_string(),
+                confidence: Some(0.98),
+                alternatives: Vec::new(),
+                from_motion: false,
+            },
+            LetterSignal {
+                label: "D".to_string(),
+                confidence: Some(0.98),
+                alternatives: Vec::new(),
+                from_motion: false,
+            },
+        ];
+        assert_eq!(
+            custom
+                .suggest_word_with_signals("AOLD", &[], &bold_signals)
+                .suggestions[0]
+                .text,
+            "BOLD"
+        );
+        // Same signal works inside sentence beam search.
+        let sent_res = custom.syntax_sentence_with_groups(
+            &[SentenceGroup {
+                detected: "AOLD".to_string(),
+                text: "AOLD".to_string(),
+                whole_sign: false,
+                confidence: None,
+                letters: bold_signals,
+            }],
+            "AOLD",
+        );
+        assert_eq!(sent_res.suggestions[0].text, "BOLD");
+
+        // Confidence alone chooses whether to edit a low-confidence letter vs a high-confidence anchor.
+        let equal_freq =
+            CoreEngine::from_dictionaries("colt 4000000\nzold 4000000", "").expect("dict failed");
+        let sig = |lbl: &str, conf: f64| LetterSignal {
+            label: lbl.to_string(),
+            confidence: Some(conf),
+            alternatives: Vec::new(),
+            from_motion: false,
+        };
+        let z_uncertain = vec![
+            sig("Z", 0.75),
+            sig("O", 0.98),
+            sig("L", 0.98),
+            sig("T", 0.99),
+        ];
+        assert_eq!(
+            equal_freq
+                .suggest_word_with_signals("ZOLT", &[], &z_uncertain)
+                .suggestions[0]
+                .text,
+            "COLT"
+        );
+        let t_uncertain = vec![
+            sig("Z", 0.99),
+            sig("O", 0.98),
+            sig("L", 0.98),
+            sig("T", 0.75),
+        ];
+        assert_eq!(
+            equal_freq
+                .suggest_word_with_signals("ZOLT", &[], &t_uncertain)
+                .suggestions[0]
+                .text,
+            "ZOLD"
+        );
+
+        // Motion Z before/after whole sign HELLO is dropped, while JAZZ stays intact.
+        let z_motion = SentenceGroup {
+            detected: "Z".to_string(),
+            text: "Z".to_string(),
+            whole_sign: false,
+            confidence: Some(0.78),
+            letters: vec![LetterSignal {
+                label: "Z".to_string(),
+                confidence: Some(0.78),
+                alternatives: Vec::new(),
+                from_motion: true,
+            }],
+        };
+        let hello_ws = SentenceGroup {
+            detected: "HELLO".to_string(),
+            text: "HELLO".to_string(),
+            whole_sign: true,
+            confidence: Some(0.96),
+            letters: Vec::new(),
+        };
+        let world_fs = SentenceGroup {
+            detected: "WORLD".to_string(),
+            text: "WORLD".to_string(),
+            whole_sign: false,
+            confidence: None,
+            letters: Vec::new(),
+        };
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(
+                    &[z_motion.clone(), hello_ws.clone(), world_fs.clone()],
+                    "Z HELLO WORLD",
+                )
+                .suggestions[0]
+                .text,
+            "HELLO WORLD"
+        );
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&[hello_ws.clone(), z_motion], "HELLO Z")
+                .suggestions[0]
+                .text,
+            "HELLO"
+        );
+
+        // Static isolated Z (not fromMotion) is not suppressed by the motion-blip rule,
+        // and J/Z letters inside real words like JAZZ remain intact.
+        let z_static = SentenceGroup {
+            detected: "Z".to_string(),
+            text: "Z".to_string(),
+            whole_sign: false,
+            confidence: Some(0.96),
+            letters: vec![sig("Z", 0.96)],
+        };
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(
+                    &[z_static, hello_ws.clone(), world_fs],
+                    "Z HELLO WORLD",
+                )
+                .suggestions[0]
+                .text,
+            "Z HELLO WORLD"
+        );
+        let jazz = SentenceGroup {
+            detected: "JAZZ".to_string(),
+            text: "JAZZ".to_string(),
+            whole_sign: false,
+            confidence: None,
+            letters: vec![
+                LetterSignal {
+                    label: "J".to_string(),
+                    confidence: Some(0.94),
+                    alternatives: Vec::new(),
+                    from_motion: true,
+                },
+                sig("A", 0.98),
+                LetterSignal {
+                    label: "Z".to_string(),
+                    confidence: Some(0.92),
+                    alternatives: Vec::new(),
+                    from_motion: true,
+                },
+                LetterSignal {
+                    label: "Z".to_string(),
+                    confidence: Some(0.92),
+                    alternatives: Vec::new(),
+                    from_motion: true,
+                },
+            ],
+        };
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&[jazz], "JAZZ")
+                .suggestions[0]
+                .text,
+            "JAZZ"
+        );
+
+        // Stray letter after whole sign HELLO must NOT bridge SAY+C -> SAY by deleting HELLO.
+        let fs = |s: &str| SentenceGroup {
+            detected: s.to_string(),
+            text: s.to_string(),
+            whole_sign: false,
+            confidence: None,
+            letters: Vec::new(),
+        };
+        let ws = |s: &str, conf: f64| SentenceGroup {
+            detected: s.to_string(),
+            text: s.to_string(),
+            whole_sign: true,
+            confidence: Some(conf),
+            letters: Vec::new(),
+        };
+        let say_hello_c = vec![
+            fs("I"),
+            fs("WANT"),
+            fs("TO"),
+            fs("SAY"),
+            ws("HELLO", 0.96),
+            fs("C"),
+            fs("TO"),
+            fs("YOUR"),
+            ws("HELP", 0.96),
+        ];
+        let bridge_res = engine.syntax_sentence_with_groups(
+            &say_hello_c,
+            "I WANT TO SAY HELLO C TO YOUR HELP",
+        );
+        assert!(
+            bridge_res.suggestions[0].text.contains("HELLO"),
+            "expected HELLO to be preserved, got {:?}",
+            bridge_res.suggestions
+        );
+
+        // Double-letter hand-drop pauses (e.g. A | TN | O | ON inside NOON) still assemble confidently.
+        let at_noon_split = vec![
+            fs("I"),
+            fs("NEED"),
+            ws("HELLO", 0.96),
+            fs("A"),
+            fs("TN"),
+            fs("O"),
+            fs("ON"),
+        ];
+        let at_noon_res =
+            engine.syntax_sentence_with_groups(&at_noon_split, "I NEED HELLO A TN O ON");
+        assert_eq!(at_noon_res.suggestions[0].text, "I NEED HELLO AT NOON");
+        assert!(!at_noon_res.suggestions[0].uncertain);
+
+        // Intentional boundaries between complete words (AT | NO | ON) remain preserved.
+        let intentional_no_on = vec![
+            fs("I"),
+            fs("NEED"),
+            ws("HELLO", 0.96),
+            fs("AT"),
+            fs("NO"),
+            fs("ON"),
+        ];
+        assert_eq!(
+            engine
+                .syntax_sentence_with_groups(&intentional_no_on, "I NEED HELLO AT NO ON")
+                .suggestions[0]
+                .text,
+            "I NEED HELLO AT NO ON"
+        );
     }
 }

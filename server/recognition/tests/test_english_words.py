@@ -30,6 +30,10 @@ class EnglishWordTests(unittest.TestCase):
             self.assertEqual(result['suggestions'][0]['edits'], 0)
     def test_exact_segmentation_without_manual_spaces(self):
         self.assertEqual(self.words.suggest('HELLOWORLD')['suggestions'][0]['text'], 'HELLO WORLD')
+    def test_repeat_cleanup_and_continuous_sentence(self):
+        self.assertEqual(self.words.suggest('HELLLO')['suggestions'][0]['text'], 'HELLO')
+        self.assertEqual(self.words.sentence('HELLOWORLD', 'HELLOWORLD')['suggestions'][0]['text'], 'HELLO WORLD')
+
     def test_unknown_and_validation(self):
         self.assertEqual(self.words.suggest('QZXQ')['suggestions'], [])
         for invalid in ['', '<script>', 'A'*201, None, 'HELLO WORLD']:

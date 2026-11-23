@@ -21,6 +21,10 @@ test('backend verifies identity with Supabase and fails closed', async () => {
   const valid = response(); let next = false;
   await authenticate({ headers: { authorization: 'Bearer valid' }, body: { user_id: 'victim' } }, valid, () => { next = true; });
   assert.equal(next, true); assert.equal(valid.locals.user.id, 'verified-user');
+  globalThis.fetch = async () => Response.json({ id: 'guest-user', is_anonymous: true });
+  const guest = response();
+  await authenticate({ headers: { authorization: 'Bearer guest' } }, guest, () => assert.fail('legacy Supabase guest'));
+  assert.equal(guest.code, 401);
   delete process.env.SUPABASE_URL;
   const missing = response(); await authenticate({ headers: { authorization: 'Bearer valid' } }, missing, () => assert.fail('missing configuration'));
   assert.equal(missing.code, 503);

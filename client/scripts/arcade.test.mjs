@@ -20,6 +20,8 @@ assert.equal(game.lockedId, 1, 'STAR is closer than SUN')
 assert.equal(game.targets.find(target => target.id === 1).typed, 1)
 game = sign(game, 'U')
 assert.equal(game.lockedId, 1, 'A wrong letter preserves the lock')
+assert.equal(game.feedback.targetId, 1, 'Only the locked ship receives wrong-letter feedback')
+assert.equal(sign(start(), 'X').feedback.targetId, undefined, 'An unmatched letter has no ship to flash')
 assert.equal(game.targets.find(target => target.id === 1).typed, 1)
 for (const letter of 'TAR') game = sign(game, letter)
 assert.equal(game.lockedId, null)
@@ -91,6 +93,28 @@ for (let frame = 0; frame < 2800 && endless.wave < 12; frame++) {
 }
 assert.equal(endless.wave, 12)
 assert.ok([...seen].some(word => word.length >= 6))
+
+const carrierWave = tick({
+  ...initialGame({ mode: 'endless' }), phase: 'countdown', countdown: .25, wave: 5, remaining: 1,
+})
+const carrier = carrierWave.targets[0]
+assert.ok(carrier.carrier)
+assert.match(carrier.word, /^[A-IK-Y]{6,8}$/)
+let deployment = carrierWave
+for (let frame = 0; frame < 200 && deployment.targets.length < 3; frame++) deployment = tick(deployment)
+assert.equal(deployment.targets.length, 3)
+assert.equal(deployment.targets[0].scoutsLaunched, 2)
+for (const scout of deployment.targets.slice(1)) {
+  assert.equal(scout.carrier, false)
+  assert.match(scout.word, /^[A-IK-Y]{3,4}$/)
+}
+assert.notEqual(deployment.targets[1].word, deployment.targets[2].word)
+const clearedCarrier = tick(clearShips(carrierWave))
+assert.equal(clearedCarrier.wave, 6)
+assert.equal(clearedCarrier.targets.length, 0, 'A destroyed carrier cannot deploy further scouts')
+const timedCarrier = tick({ ...launch(), elapsed: 20, targets: [] })
+assert.ok(timedCarrier.targets[0].carrier)
+
 assert.equal(tick({ ...launch(initialGame({ mode: 'endless' })), elapsed: 60 }).phase, 'playing')
 assert.equal(tick({ ...launch(), elapsed: 59.75 }).phase, 'complete')
 const finalImpact = tick({ ...endless, phase: 'playing', shields: 1, targets: [makeTarget(1, 'STAR', defenseLine - .1)] })

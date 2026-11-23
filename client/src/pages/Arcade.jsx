@@ -7,8 +7,12 @@ import { playArcadeCues } from '../data/arcadeSound'
 import { createBrowserFrameStream } from '../recognition/browserFrameStream'
 import './Arcade.css'
 
-function Ship({ enemy = false }) {
+function Ship({ enemy = false, carrier = false }) {
   return <svg className={enemy ? 'strike-enemy-art' : 'strike-player-art'} viewBox="0 0 100 68" fill="none" aria-hidden="true">
+    {carrier && <g fill="var(--hull)" stroke="var(--edge)" strokeWidth="1.6" strokeLinejoin="round">
+      <path d="M22 13 36 24 34 58 5 58 10 29Z M78 13 64 24 66 58 95 58 90 29Z" />
+      <path d="M15 34H28V48H15Z M72 34H85V48H72Z" fill="var(--panel)" />
+    </g>}
     <path d="M50 3 64 23 93 49 94 59 63 50 57 57H43L37 50 6 59 7 49 36 23Z" fill="var(--hull)" stroke="var(--edge)" strokeWidth="1.6" strokeLinejoin="round" />
     <path d="M50 3 62 41 57 55H43L38 41Z" fill="var(--panel)" stroke="var(--edge)" strokeWidth="1.2" />
     <path d="m13 51 24-13m26 0 24 13" stroke="var(--edge)" strokeWidth="2" />
@@ -177,9 +181,12 @@ export default function Arcade() {
       </header>
 
       <div className="strike-field">
-        {game.targets.map(target => <div key={target.id} className={`strike-enemy${target.id === game.lockedId ? ' is-locked' : ''}`} style={{ left: target.x + '%', top: target.y + '%', '--dx': 50 - target.x, '--dy': 82 - target.y }}>
-          <Ship enemy />
-          <span className="strike-word">{target.word.split('').map((letter, index) => <span key={index} className={index < target.typed ? 'is-done' : target.id === game.lockedId && index === target.typed ? 'is-next' : undefined}>{letter}</span>)}</span>
+        {game.targets.map(target => <div key={target.id} className={`strike-enemy${target.carrier ? ' strike-carrier' : ''}${target.id === game.lockedId ? ' is-locked' : ''}`} style={{ left: target.x + '%', top: target.y + '%', '--dx': 50 - target.x, '--dy': 82 - target.y }}>
+          <div key={game.feedback?.targetId === target.id ? game.shots : 'steady'}
+            className={game.feedback?.targetId === target.id ? 'strike-enemy-body is-wrong-letter' : 'strike-enemy-body'}>
+            <Ship enemy carrier={target.carrier} />
+            <span className="strike-word">{target.word.split('').map((letter, index) => <span key={index} className={index < target.typed ? 'is-done' : target.id === game.lockedId && index === target.typed ? 'is-next' : undefined}>{letter}</span>)}</span>
+          </div>
         </div>)}
         {game.laser && <svg key={game.laser.id} className="strike-shot" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="87" x2={game.laser.x} y2={game.laser.y} vectorEffect="non-scaling-stroke" /></svg>}
         <div className="strike-defense" style={{ top: defenseLine + '%' }} />

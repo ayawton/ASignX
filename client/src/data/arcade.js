@@ -31,8 +31,7 @@ export const defenseLine = 79
 export const tickMs = 250
 const countdownSeconds = 3
 
-export function makeTarget(id, word, y = spawnY) {
-  const lane = lanes[(id - 1) % lanes.length]
+export function makeTarget(id, word, y = spawnY, lane = lanes[(id - 1) % lanes.length]) {
   const x = lane + (50 - lane) * (y - spawnY) / (defenseLine - spawnY)
   return { id, word, typed: 0, x, lane, y }
 }
@@ -47,15 +46,10 @@ function shuffleWords(pool, seed) {
   return { bag, seed }
 }
 
-function wordRange(mode, pace, wave) {
-  if (mode === 'letters') return [1, 1]
-  if (mode === 'words') return pace === 'relaxed' ? [3, 4] : [4, 6]
-  const min = Math.min(6, 3 + Math.floor((wave - 1) / 3))
-  return [min, Math.min(8, 3 + wave - 1 + Number(pace === 'challenge'))]
-}
-
-function spawn(state, y) {
-  const [min, max] = wordRange(state.mode, state.pace, state.wave)
+function spawn(state, { y, lane, carrier = false, deployed = false } = {}) {
+  const [min, max] = state.mode === 'letters' ? [1, 1]
+    : carrier ? [state.wave >= 10 || state.pace === 'challenge' ? 7 : 6, 8]
+      : [3, state.mode === 'endless' && state.wave === 1 ? 3 : 4]
   const eligible = word => word.length >= min && word.length <= max
   const taken = new Set([...state.targets.map(target => target.word), state.lastWord])
   let { bag, seed } = state
@@ -65,11 +59,13 @@ function spawn(state, y) {
     index = bag.findIndex(word => eligible(word) && !taken.has(word))
   }
   const word = bag[index]
-  const target = makeTarget(state.nextId, word, y)
+  const target = { ...makeTarget(state.nextId, word, y, lane), carrier, scoutsLaunched: 0 }
   return {
     ...state, bag: bag.filter((_, i) => i !== index), seed, lastWord: word,
     targets: [...state.targets, target], nextId: state.nextId + 1,
-    remaining: Math.max(0, state.remaining - 1), spawnClock: 0,
+    remaining: deployed ? state.remaining : Math.max(0, state.remaining - 1),
+    spawnClock: deployed ? state.spawnClock : 0,
+    carrierSent: state.carrierSent || carrier,
   }
 }
 
@@ -78,7 +74,7 @@ export function initialGame({ mode = 'words', pace = 'relaxed' } = {}) {
     phase: 'ready', mode, pace, targets: [], nextId: 1, elapsed: 0, spawnClock: 0,
     score: 0, combo: 0, bestCombo: 0, shots: 0, hits: 0, cleared: 0, shields: PACES[pace].shields,
     lockedId: null, laser: null, feedback: null, lastLetter: null, wave: 1, remaining: 0,
-    bag: [], seed: 0, lastWord: null, countdown: 0, audio: null,
+    bag: [], seed: 0, lastWord: null, countdown: 0, audio: null, carrierSent: false,
   }
 }
 
@@ -87,7 +83,8 @@ function sound(state, ...cues) {
 }
 
 function beginFlight(state) {
-  const first = spawn({ ...state, phase: 'playing', countdown: 0 }, 18)
+  const carrier = state.mode === 'endless' && state.wave % 5 === 0
+  const first = spawn({ ...state, phase: 'playing', countdown: 0 }, { y: 18, carrier })
   return sound(first, 'launch')
 }
 
@@ -100,7 +97,10 @@ function acceptLetter(state, letter) {
     .sort((a, b) => b.y - a.y || a.id - b.id)[0]
   const input = { ...state, lastLetter: letter, shots: state.shots + 1 }
   if (!target || target.word[target.typed] !== letter) {
-    return { ...input, combo: 0, feedback: { tone: 'miss', text: locked ? 'Wrong letter' : 'No matching ship' } }
+    return {
+      ...input, combo: 0,
+      feedback: { tone: 'miss', text: locked ? 'Wrong letter' : 'No matching ship', targetId: locked?.id },
+    }
   }
   const cleared = target.typed + 1 === target.word.length
   const combo = state.combo + Number(cleared)
@@ -133,9 +133,9 @@ function advanceFlight(state) {
   const targets = []
   let lost = 0
   for (const target of state.targets) {
-    const y = target.y + speed * dt
+    const y = target.y + speed * (target.carrier ? .65 : 1) * dt
     if (y >= defenseLine) lost++
-    else targets.push({ ...makeTarget(target.id, target.word, y), typed: target.typed })
+    else targets.push({ ...target, ...makeTarget(target.id, target.word, y, target.lane), typed: target.typed })
   }
   let next = {
     ...state, targets, elapsed, spawnClock: state.spawnClock + dt,
@@ -146,11 +146,22 @@ function advanceFlight(state) {
   if (!next.shields) return finish(next, 'impact')
   if (lost) next = sound({ ...next, feedback: { tone: 'miss', text: lost === 1 ? 'Shield hit' : lost + ' shield hits' } }, 'impact')
   if (endless && !targets.length && !next.remaining) {
-    return sound({ ...next, phase: 'countdown', wave: state.wave + 1, remaining: Math.min(8, state.wave + 1), countdown: countdownSeconds, laser: null, lastLetter: null, feedback: null }, ...(lost ? ['impact', 'countdown'] : ['countdown']))
+    return sound({ ...next, phase: 'countdown', wave: state.wave + 1, remaining: Math.min(8, state.wave + 1), countdown: countdownSeconds, laser: null, lastLetter: null, feedback: null, carrierSent: false }, ...(lost ? ['impact', 'countdown'] : ['countdown']))
+  }
+  const carrier = targets.find(target => target.carrier && target.scoutsLaunched < 2 &&
+    target.y >= 27 + target.scoutsLaunched * 11)
+  if (carrier && targets.length < settings.maxTargets) {
+    const side = carrier.scoutsLaunched === 0 ? -1 : 1
+    next = {
+      ...next,
+      targets: targets.map(target => target.id === carrier.id ? { ...target, scoutsLaunched: target.scoutsLaunched + 1 } : target),
+    }
+    return spawn(next, { y: carrier.y + 3, lane: Math.max(12, Math.min(88, carrier.lane + side * 16)), deployed: true })
   }
   const spawnEvery = endless ? Math.max(3.5, settings.spawnEvery - level * .35) : settings.spawnEvery
   if ((!endless || next.remaining > 0) && (!targets.length || (targets.length < settings.maxTargets && next.spawnClock >= spawnEvery))) {
-    return spawn(next)
+    const sendCarrier = state.mode === 'words' && !next.carrierSent && elapsed >= 20
+    return spawn(next, { carrier: sendCarrier })
   }
   return next
 }

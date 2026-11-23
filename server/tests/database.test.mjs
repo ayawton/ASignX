@@ -3,6 +3,10 @@ import { before, after, beforeEach, afterEach, test } from 'node:test';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { build } from 'esbuild';
+import express from 'express';
+import { createGuestAccess } from '../dist/guests.js';
+import { personal } from '../dist/personal.js';
+import { admin } from '../dist/admin.js';
 
 // Disposable PostgreSQL engine; never reads .env or connects to the user's database.
 const db = new PGlite();
@@ -14,6 +18,73 @@ const scalar = async sql => Object.values((await db.query(sql)).rows[0])[0];
 const attempt = (option = correct, claimed = false) => `INSERT INTO exercise_attempts
     (enrollment_id,exercise_id,selected_option_id,is_correct) VALUES ('${enrollment}','${exercise}','${option}',${claimed})`;
 const complete = () => `UPDATE lesson_progress SET completed_at=now() WHERE enrollment_id='${enrollment}'`;
+test('temporary guest sessions grade lessons independently and logout invalidates only that guest', async () => {
+    const sourceProfiles = await scalar('SELECT count(*)::int FROM profiles');
+    const sourceAttempts = await scalar('SELECT count(*)::int FROM exercise_attempts');
+    const catalog = {
+        async begin(mode, fn) {
+            assert.match(mode, /read only/i);
+            return fn(async ([query], ...args) => {
+                assert.equal(args.length, 0);
+                assert.match(query.trim(), /^SELECT /i);
+                return (await db.query(query)).rows;
+            });
+        },
+    };
+    const { guests, useGuestSession, close } = createGuestAccess(catalog);
+    const app = express();
+    app.use(express.json());
+    app.use('/guest', guests);
+    app.use('/me', useGuestSession, personal);
+    app.use('/admin', admin);
+    const server = await new Promise(resolve => {
+        const listener = app.listen(0, '127.0.0.1', () => resolve(listener));
+    });
+    async function request(path, method = 'GET', token, body) {
+        const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, {
+            method, headers: {
+                ...(token ? { Authorization: 'Bearer ' + token } : {}),
+                ...(body ? { 'Content-Type': 'application/json' } : {}),
+            }, body: body && JSON.stringify(body),
+        });
+        const data = response.status === 204 ? null : await response.json();
+        return { status: response.status, data };
+    }
+    try {
+        const a = await request('/guest', 'POST'), b = await request('/guest', 'POST');
+        assert.equal(a.status, 201);
+        assert.equal(b.status, 201);
+        assert.notEqual(a.data.user.id, b.data.user.id);
+        const first = a.data.token, second = b.data.token;
+        assert.equal((await request('/me/profile', 'GET', first)).data.role, 'guest');
+        assert.equal((await request('/me/enrollments', 'POST', first, { course_id: c1 })).status, 200);
+        const runId = uid(540);
+        assert.equal((await request('/me/lessons/' + l1 + '/start', 'POST', first, { start_id: runId })).status, 200);
+        const question = await request('/me/lessons/' + l1, 'GET', first);
+        assert.ok(question.data.exercises[0].options.every(option => !('is_correct' in option)));
+        const graded = await request('/me/lessons/' + l1 + '/attempt', 'POST', first, {
+            run_id: runId, attempt_id: uid(541), exercise_id: exercise, selected_option_id: correct,
+        });
+        assert.equal(graded.status, 200);
+        assert.equal(graded.data.correct, true);
+        assert.equal((await request('/me/progress', 'GET', first)).data.xp, 10);
+        assert.deepEqual((await request('/me/enrollments', 'GET', second)).data, []);
+        assert.equal((await request('/me/progress', 'GET', second)).data.xp, 0);
+        assert.equal((await request('/guest/session', 'GET', first)).data.id, a.data.user.id);
+        assert.equal((await request('/admin/overview', 'GET', first)).status, 401);
+        assert.equal((await request('/guest/session', 'DELETE', first)).status, 204);
+        assert.equal((await request('/me/progress', 'GET', first)).status, 401);
+        assert.equal((await request('/me/progress', 'GET', second)).status, 200);
+        const fresh = await request('/guest', 'POST');
+        assert.notEqual(fresh.data.user.id, a.data.user.id);
+        assert.equal((await request('/me/progress', 'GET', fresh.data.token)).data.xp, 0);
+        assert.equal(await scalar('SELECT count(*)::int FROM profiles'), sourceProfiles);
+        assert.equal(await scalar('SELECT count(*)::int FROM exercise_attempts'), sourceAttempts);
+    } finally {
+        await new Promise(resolve => server.close(resolve));
+        await close();
+    }
+});
 test('media policies restrict uploads to admins and expose only published linked videos',async()=>{
  await db.exec(`create schema storage;
   create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
@@ -31,11 +102,23 @@ test('media policies restrict uploads to admins and expose only published linked
  assert.equal(await scalar('select count(*) from storage.objects'),1);
  await db.exec('reset role');await asUser(u2);
  assert.equal(await scalar('select count(*) from storage.objects'),0,'Unattached media stays private');
+ await db.exec(`reset role; select set_config('request.jwt.claim.sub','',false); set role anon;`);
+ assert.equal(await scalar('select count(*) from storage.objects'),0,'Guests cannot read unattached media');
  await db.exec('reset role');await db.query('update signs set demo_path=$1 where id=$2',[path,sign]);await asUser(u2);
  assert.equal(await scalar('select count(*) from storage.objects'),1);
+ await db.exec(`reset role; select set_config('request.jwt.claim.sub','',false); set role anon;`);
+ assert.equal(await scalar('select count(*) from storage.objects'),1,'Guests can read published demonstrations');
  await db.exec('reset role');await asUser(u1);
  await db.exec('delete from storage.objects');
- assert.equal(await scalar('select count(*) from storage.objects'),1,'Referenced media cannot be removed');
+ assert.equal(await scalar('select count(*) from storage.objects'),1,'Published referenced media cannot be removed');
+ await db.exec('reset role');await db.query('update signs set is_published=false where id=$1',[sign]);
+ await db.exec(`select set_config('request.jwt.claim.sub','',false);`);
+ await db.exec('set role anon');
+ assert.equal(await scalar('select count(*) from storage.objects'),0,'Guests cannot read unpublished demonstrations');
+ await db.exec('reset role');await asUser(u2);
+ assert.equal(await scalar('select count(*) from storage.objects'),0,'Learners cannot read unpublished demonstrations');
+ await db.exec('reset role');await asUser(u1);
+ assert.equal(await scalar('select count(*) from storage.objects'),1,'Admins can preview unpublished demonstrations');
 });
 test('hearts, remaining question XP, perfect-run replays and heart practice are idempotent', async () => {
  let queries=0;globalThis.__lessonSql = async (parts,...values) => {queries++;return (await db.query(parts.reduce((s,p,i) => s+(i?`$${i}`:'')+p,''),values)).rows;};

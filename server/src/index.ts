@@ -2,11 +2,13 @@ import express from 'express';
 import { connection } from './db/index.js';
 import { applicationTables } from './db/tables.js';
 import { personal } from './personal.js';
+import { createGuestAccess } from './guests.js';
 import { admin } from './admin.js';
 import { createRecognitionRouter } from './recognition.js';
 import { recognitionCapabilities } from './recognitionTransport.js';
 import { configureProxyTrust } from './proxyTrust.js';
 const app = express();
+const { guests, useGuestSession, close: closeGuests } = createGuestAccess(connection);
 configureProxyTrust(app, process.env.TRUST_PROXY_CIDRS);
 const PORT = Number(process.env.PORT ?? 3000);
 app.disable('x-powered-by');
@@ -25,7 +27,8 @@ app.use('/api/admin', express.json({ limit: '256kb' }));
 app.use(express.json({ limit: '16kb' }));
 app.use('/api/recognition', createRecognitionRouter());
 app.use('/api/admin', admin);
-app.use('/api/me', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, personal);
+app.use('/api/guest', guests);
+app.use('/api/me', useGuestSession, personal);
 app.get('/', (_req, res) => { res.send('Welcome to the ASignX API'); });
 app.get('/api/courses', async (_req, res) => { res.json(await connection`select id, title, description, cover_text, cover_size, cover_angle, cover_density, cover_weight, cover_font, cover_style, cover_tone from courses where is_published order by title`); });
 // These three written introductions are guest practice, never account grades or XP.
@@ -53,4 +56,6 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
     res.status(error instanceof SyntaxError ? 400 : 503).json({ error: error instanceof SyntaxError ? 'Invalid request.' : 'Data service is temporarily unavailable.' });
 });
 const server = app.listen(PORT, () => { console.log(`Server is running at http://localhost:${PORT}`); });
-for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => server.close(() => { void connection.end({ timeout: 2 }); }));
+for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => server.close(() => {
+    void Promise.allSettled([closeGuests(), connection.end({ timeout: 2 })]);
+}));

@@ -1,12 +1,20 @@
 import express, { Router } from 'express';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { connection as sql } from './db/index.js';
+import { connection } from './db/index.js';
+import { learnerConnection } from './db/learnerConnection.js';
+const sql = learnerConnection(connection);
 import { recognitionRequest, recognitionCapabilities } from './recognitionTransport.js';
 
 import { heartState, recordRunAnswer } from './gamification.js';
 export const lessonRecognition=Router();
 type Session={run:string;result?:Record<string,any>;user:string;lesson:string;exercise:string;target:string;upstream:string;model:string;touched:number;created:number;busy:boolean;solved:boolean;attempts:number};
 const sessions=new Map<string,Session>();
+export async function closeLessonRecognitionForUser(user: string) {
+ await Promise.all([...sessions].filter(([, session]) => session.user === user).map(async ([id, session]) => {
+  sessions.delete(id);
+  await recognitionRequest(`/sessions/${session.upstream}`, { method: 'DELETE' }).catch(() => {});
+ }));
+}
 const validId=(v:unknown)=>typeof v==='string' && /^[0-9a-f-]{36}$/i.test(v);
 function prune(){for(const [id,s] of sessions)if(Date.now()-s.touched>60000 || Date.now()-s.created>300000){sessions.delete(id);void recognitionRequest(`/sessions/${s.upstream}`,{method:'DELETE'}).catch(()=>{});}}
 lessonRecognition.post('/lessons/:id/recognition',async(req,res)=>{

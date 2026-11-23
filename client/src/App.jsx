@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { ArrowUpRight, Menu, X } from 'lucide-react'
 import { AuthCallback, ForgotPassword, ResetPassword, Login, Register } from './pages/Auth'
+import Guest from './pages/Guest'
 import Lesson from './pages/Lesson'
 import Course from './pages/Course'
 import HeartPractice from './pages/HeartPractice'
@@ -62,6 +63,7 @@ export default function App() {
   <Route path="/progress" element={<Protected><Progress /></Protected>} />
   <Route path="/profile" element={<Protected><Profile /></Protected>} />
   <Route path="/login" element={<Login />} />
+  <Route path="/guest" element={<Guest />} />
   <Route path="/auth/callback" element={<AuthCallback />} />
   <Route path="/forgot-password" element={<ForgotPassword />} />
   <Route path="/reset-password" element={<ResetPassword />} />

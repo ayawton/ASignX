@@ -10,6 +10,7 @@ import { recognitionCapabilities } from './recognitionTransport.js';
 export const admin = Router();
 
 export async function requireAdmin(_req: Request, res: Response, next: NextFunction) {
+ if (res.locals.user.is_anonymous === true) { res.status(403).json({ error: 'Administrator access required.' }); return; }
  const [profile] = await sql`select role from profiles where id = ${res.locals.user.id}`;
  if (profile?.role !== 'admin') { res.status(403).json({ error: 'Administrator access required.' }); return; }
  next();

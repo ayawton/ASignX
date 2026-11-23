@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import type { TransactionSql } from 'postgres';
-import { connection as sql } from './db/index.js';
+import { connection } from './db/index.js';
+import { learnerConnection } from './db/learnerConnection.js';
+const sql = learnerConnection(connection);
 type Tx=TransactionSql<{}>;
 const HEART_REGEN_MS=5*60*1000;
 export const validUuid=(v:unknown):v is string=>typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);

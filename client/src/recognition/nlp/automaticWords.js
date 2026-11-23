@@ -5,7 +5,7 @@ export function createAutomaticWords({ onFinish, schedule = setTimeout, cancel =
   if (stopped || !current?.ready || (!failed && !current.response)) return
   const item = current; current = null
   const best = item.response?.result?.suggestions?.[0]
-  onFinish(best && !best.uncertain ? best.text : item.fallback, item.id)
+  onFinish(best && !best.uncertain ? best.text : item.fallback, item.id, best && !best.uncertain ? best.joinPrevious : undefined)
  }
  return {
   update(text, id, fallback = text) {

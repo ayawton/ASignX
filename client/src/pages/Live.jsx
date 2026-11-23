@@ -14,10 +14,10 @@ export default function Live() {
  const result = useRecognition(video, sessionKey, sound.play)
  const words = useWordSuggestions(result.pendingText, result.revision, result.finishWord, { previous: result.sentenceWords })
  const sentenceFallback = result.sentenceWords.map(item => item.text).join(' ')
+ const sentence = useWordSuggestions(result.sentenceWords.map(item => item.detected).join(' '), result.revision, result.finishSentence, { mode: 'sentence', pauseMs: 4000, fallback: sentenceFallback, preserveSigns: result.sentenceWords.some(item => item.wholeSign), enabled: !result.pendingText, canFinish: canFinishSentence({ active, status: result.status, hands: result.hands, pendingText: result.pendingText }) })
  const sentenceSuggestions = sentence.response?.result?.suggestions || []
  const sentenceUncertain = Boolean(sentenceSuggestions[0]?.uncertain)
  const sentencePreview = (!sentenceUncertain && sentenceSuggestions[0]?.text) || sentenceFallback
- const sentence = useWordSuggestions(result.sentenceWords.map(item => item.detected).join(' '), result.revision, result.finishSentence, { mode: 'sentence', pauseMs: 4000, fallback: sentenceFallback, preserveSigns: result.sentenceWords.some(item => item.wholeSign), enabled: !result.pendingText, canFinish: canFinishSentence({ active, status: result.status, hands: result.hands, pendingText: result.pendingText }) })
  const suggestions = words.response?.result?.suggestions || []
  const finalText = result.sentences.map(item => item.text).join(' ')
  const latest = result.history.at(-1)

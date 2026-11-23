@@ -131,6 +131,12 @@ Use the fresh connection string from Supabase Connect, percent-encode the passwo
 and require TLS. Verify certificate trust on the Linux image without disabling
 certificate validation. Pool size is five connections per API process.
 
+The guest link is `/guest`. Apply the guest profiles migration and deploy the
+updated API and frontend before enabling anonymous sign-ins in Supabase Auth.
+Each guest gets a separate learner profile. Confirm that a signed-out browser
+reaches the learner dashboard and that guest sessions receive a 403 from admin
+endpoints.
+
 Provision `server/storage/learning-media.sql` separately using a trusted SQL
 connection. It creates a private bucket with a 20 MiB MP4 limit and admin upload,
 published playback and unreferenced-upload cleanup policies. Retain existing RLS,

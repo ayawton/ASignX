@@ -15,8 +15,8 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     try {
         const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
         if (!response.ok) { res.status(response.status >= 500 ? 503 : 401).json({ error: 'Unable to verify your session. Please log in again.' }); return; }
-        const user = await response.json() as { id?: string; email?: string; email_confirmed_at?: string };
-        if (!user.id || !user.email_confirmed_at) { res.status(401).json({ error: 'Confirm your email before continuing.' }); return; }
+        const user = await response.json() as { id?: string; email?: string; email_confirmed_at?: string; is_anonymous?: boolean };
+        if (!user.id || (!user.email_confirmed_at && user.is_anonymous !== true)) { res.status(401).json({ error: 'Confirm your email before continuing.' }); return; }
         res.locals.authDuration = (performance.now()-authStarted).toFixed(1);
         res.locals.user = user;
         next();

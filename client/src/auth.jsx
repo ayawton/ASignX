@@ -27,7 +27,7 @@ export function Protected({ children }) {
   const { user, loading } = useAuth()
   const location = useLocation()
   if (loading) return <p className="container studio-section" role="status">Restoring your account…</p>
-  return user?.email_confirmed_at ? <Fragment key={user.id}>{children}</Fragment> : <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />
+  return user && (user.email_confirmed_at || user.is_anonymous === true) ? <Fragment key={user.id}>{children}</Fragment> : <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />
 }
 export async function api(path, options = {}) {
   const { data } = supabase ? await supabase.auth.getSession() : { data: {} }

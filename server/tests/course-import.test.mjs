@@ -26,7 +26,7 @@ test('malformed imports report source lines and reject ambiguous or unsupported 
 const db=new PGlite();let routes,admin,requireAdmin;
 before(async()=>{
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
- create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}',email_confirmed_at timestamptz);
+ create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}',email_confirmed_at timestamptz, is_anonymous boolean NOT NULL DEFAULT false);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated,service_role;`);
  for(const folder of (await readdir(new URL('../drizzle/',import.meta.url))).sort())await db.exec(await readFile(new URL(`../drizzle/${folder}/migration.sql`,import.meta.url),'utf8'));

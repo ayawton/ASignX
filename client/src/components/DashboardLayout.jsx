@@ -28,7 +28,7 @@ export default function DashboardLayout() {
   try { await logout(); navigate('/', { replace: true }) }
   catch (failure) { setError(failure.message); setBusy(false) }
  }
- const isAdmin = Boolean(user && adminId === user.id)
+ const isAdmin = Boolean(user && user.is_anonymous !== true && adminId === user.id)
  if (user && resolvedId !== user.id) return <section className="container studio-section">{profileError ? <><p role="alert">{profileError}</p><button className="btn" onClick={() => { setProfileError(''); setRetry(value => value+1) }}>Try again</button><button className="text-link" disabled={busy} onClick={leave}>Log out</button>{error && <p role="alert">{error}</p>}</> : <p role="status">Loading your workspace…</p>}</section>
  const destination = workspaceDestination(pathname, isAdmin)
  if (destination) return <Navigate to={destination} replace />
@@ -46,6 +46,7 @@ export default function DashboardLayout() {
      <NavLink to="/dashboard/profile"><UserRound size={18} /> My profile</NavLink>
      {isAdmin && <><NavLink to="/dashboard/admin" end><LayoutDashboard size={18} /> Overview</NavLink><NavLink to="/dashboard/admin/courses"><BookOpen size={18} /> Manage courses</NavLink><NavLink to="/dashboard/admin/signs"><Hand size={18} /> Sign library</NavLink></>}
     </nav>
+    {user?.is_anonymous === true && <p>Guest progress is tied to this browser session. Signing out or clearing browser data can end access.</p>}
     {error && <p role="alert">{error}</p>}
     <button type="button" onClick={leave} disabled={busy}><LogOut size={17} />{busy ? 'Logging out…' : 'Log out'}</button>
    </aside>}

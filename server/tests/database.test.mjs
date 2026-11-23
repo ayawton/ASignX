@@ -155,7 +155,7 @@ before(async () => {
     // Only the Supabase-managed prerequisites are stubbed in this local engine.
     await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
         CREATE SCHEMA auth;
-        CREATE TABLE auth.users (id uuid PRIMARY KEY, raw_user_meta_data jsonb DEFAULT '{}', email_confirmed_at timestamptz);
+        CREATE TABLE auth.users (id uuid PRIMARY KEY, raw_user_meta_data jsonb DEFAULT '{}', email_confirmed_at timestamptz, is_anonymous boolean NOT NULL DEFAULT false);
         CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
         $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
         GRANT USAGE ON SCHEMA auth TO anon,authenticated,service_role;
@@ -325,7 +325,7 @@ test('pending signup creates no profile; verification creates exactly one learne
     const pending = uid(300);
     await db.exec(`INSERT INTO auth.users(id,raw_user_meta_data) VALUES ('${pending}','{"display_name":"Pending learner","role":"admin"}')`);
     assert.equal(await scalar(`SELECT count(*)::int FROM profiles WHERE id='${pending}'`), 0);
-    await rejects(`INSERT INTO profiles(id,display_name) VALUES ('${pending}','Bypass attempt')`, /Email must be confirmed/);
+    await rejects(`INSERT INTO profiles(id,display_name) VALUES ('${pending}','Bypass attempt')`, /verified account or anonymous learner/);
     await db.exec(`UPDATE auth.users SET raw_user_meta_data='{"display_name":"Updated pending name","role":"admin"}' WHERE id='${pending}'`);
     assert.equal(await scalar(`SELECT count(*)::int FROM profiles WHERE id='${pending}'`), 0);
     await db.exec(`UPDATE auth.users SET email_confirmed_at=now() WHERE id='${pending}'`);
@@ -335,6 +335,21 @@ test('pending signup creates no profile; verification creates exactly one learne
     assert.equal(await scalar(`SELECT count(*)::int FROM profiles WHERE id='${pending}'`), 1);
     assert.equal(await scalar(`SELECT display_name FROM profiles WHERE id='${pending}'`), 'Saved profile name');
     assert.equal(await scalar(`SELECT timezone FROM profiles WHERE id='${pending}'`), 'Asia/Manila');
+});
+
+test('guest profiles are learners and each guest can only see their own enrollment', async () => {
+    const guestA = uid(302), guestB = uid(303);
+    await db.exec(`INSERT INTO auth.users(id, is_anonymous, raw_user_meta_data) VALUES
+        ('${guestA}', true, '{"role":"admin"}'), ('${guestB}', true, '{}');`);
+    assert.deepEqual((await db.query(`SELECT display_name, role FROM profiles WHERE id IN ('${guestA}', '${guestB}')`)).rows,
+        [{ display_name: 'Guest learner', role: 'learner' }, { display_name: 'Guest learner', role: 'learner' }]);
+    await rejects(`UPDATE profiles SET role='admin' WHERE id='${guestA}'`, /verified account or anonymous learner/);
+    await db.exec(`INSERT INTO enrollments(user_id, course_id) VALUES ('${guestA}', '${c1}'), ('${guestB}', '${c1}');`);
+    await asUser(guestA);
+    assert.deepEqual((await db.query('SELECT user_id FROM enrollments')).rows, [{ user_id: guestA }]);
+    await db.exec('RESET ROLE');
+    await asUser(guestB);
+    assert.deepEqual((await db.query('SELECT user_id FROM enrollments')).rows, [{ user_id: guestB }]);
 });
 
 test('pending signup can be deleted without ever creating a profile', async () => {
@@ -347,12 +362,12 @@ test('upgrade removes empty pending profiles, preserves confirmed profiles, and 
     const upgradeDb = new PGlite();
     try {
         await upgradeDb.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
-            CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY,raw_user_meta_data jsonb DEFAULT '{}',email_confirmed_at timestamptz);
+            CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY,raw_user_meta_data jsonb DEFAULT '{}',email_confirmed_at timestamptz, is_anonymous boolean NOT NULL DEFAULT false);
             CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
             GRANT USAGE ON SCHEMA auth TO anon,authenticated,service_role;
             GRANT EXECUTE ON FUNCTION auth.uid() TO anon,authenticated,service_role;`);
         const folders = (await readdir(new URL('../drizzle/', import.meta.url))).sort();
-        for (const folder of folders.filter(name => !name.endsWith('_confirmed_profiles'))) {
+        for (const folder of folders.filter(name => !name.endsWith('_confirmed_profiles') && !name.endsWith('_guest_profiles'))) {
             await upgradeDb.exec(await readFile(new URL(`../drizzle/${folder}/migration.sql`, import.meta.url), 'utf8'));
         }
         const pending = uid(310), confirmed = uid(311), activePending = uid(312);

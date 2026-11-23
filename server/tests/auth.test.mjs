@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { authenticate } from '../dist/personal.js';
+import { requireAdmin } from '../dist/admin.js';
 function response() { return { locals: {}, code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } }; }
 test('backend verifies identity with Supabase and fails closed', async () => {
  const previous = globalThis.fetch;
@@ -21,6 +22,12 @@ test('backend verifies identity with Supabase and fails closed', async () => {
   const valid = response(); let next = false;
   await authenticate({ headers: { authorization: 'Bearer valid' }, body: { user_id: 'victim' } }, valid, () => { next = true; });
   assert.equal(next, true); assert.equal(valid.locals.user.id, 'verified-user');
+  globalThis.fetch = async () => Response.json({ id: 'guest-user', is_anonymous: true });
+  const guest = response();
+  await authenticate({ headers: { authorization: 'Bearer guest' } }, guest, () => {});
+  assert.equal(guest.locals.user.id, 'guest-user');
+  await requireAdmin({}, guest, () => assert.fail('guest must never reach an admin endpoint'));
+  assert.equal(guest.code, 403);
   delete process.env.SUPABASE_URL;
   const missing = response(); await authenticate({ headers: { authorization: 'Bearer valid' } }, missing, () => assert.fail('missing configuration'));
   assert.equal(missing.code, 503);

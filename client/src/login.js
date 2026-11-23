@@ -11,8 +11,24 @@ export async function verifiedSession(client, session) {
  if (!session?.access_token) return null
  const { data, error } = await client.auth.getUser(session.access_token)
  if (error) throw loginError(error)
- if (!data?.user?.email_confirmed_at) throw Object.assign(new Error('Confirm your email before logging in.'), { code: 'email_not_confirmed' })
+ if (!data?.user?.id || (!data.user.email_confirmed_at && data.user.is_anonymous !== true)) throw Object.assign(new Error('Confirm your email before logging in.'), { code: 'email_not_confirmed' })
  return { ...session, user: data.user }
+}
+
+let guestRequest
+export function loginGuest(client) {
+ if (!client) return Promise.reject(new Error('Guest sign-in is unavailable. You can still explore ASignLearn.'))
+ guestRequest ??= (async () => {
+  const { data, error } = await client.auth.getSession()
+  if (error) throw loginError(error)
+  if (data.session) return verifiedSession(client, data.session)
+  const result = await client.auth.signInAnonymously()
+  if (result.error?.code === 'anonymous_provider_disabled') {
+   throw new Error('Guest sign-in is unavailable. You can still explore ASignLearn.')
+  }
+  if (result.error || !result.data?.session) throw loginError(result.error)
+ })().finally(() => { guestRequest = undefined })
+ return guestRequest
 }
 
 export async function loginAccount(client, values) {

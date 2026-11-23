@@ -18,7 +18,7 @@ export default function Login() {
  const [needsConfirmation, setNeedsConfirmation] = useState(false)
  const submitted = useRef(false)
  useEffect(() => {
-  if (!submitted.current && !loading && user?.email_confirmed_at) navigate(next, { replace: true })
+  if (!submitted.current && !loading && user?.email_confirmed_at && user.is_anonymous !== true) navigate(next, { replace: true })
  }, [loading, user, navigate, next])
  async function submit(e) {
   e.preventDefault()
@@ -45,7 +45,7 @@ export default function Login() {
    </form>
    {needsConfirmation && <ConfirmationResend key={email.trim()} email={email.trim()} next={next} />}
    <p className="studio-auth-switch">New around here? <Link to={`/register?next=${encodeURIComponent(next)}`}>Create an account</Link></p>
-   <Link to="/learn">Keep exploring as a guest</Link>
+   <Link to="/guest">Continue as guest</Link>
   </div>
  </section>
 }

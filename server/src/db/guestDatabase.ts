@@ -10,23 +10,39 @@ function tag(query: Query) {
     };
 }
 
-export async function createGuestDatabase(catalog: Sql) {
+async function initializeGuestSchema(database: PGlite) {
+    await database.exec(`
+        CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+        CREATE SCHEMA auth;
+        CREATE TABLE auth.users (
+            id uuid PRIMARY KEY, raw_user_meta_data jsonb DEFAULT '{}',
+            email_confirmed_at timestamptz, is_anonymous boolean NOT NULL DEFAULT false
+        );
+        CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
+        $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    `);
+    const root = new URL('../../drizzle/', import.meta.url);
+    for (const folder of (await readdir(root)).sort()) {
+        await database.exec(await readFile(new URL(folder + '/migration.sql', root), 'utf8'));
+    }
+}
+
+export async function createGuestTemplate() {
     const database = new PGlite();
     try {
-        await database.exec(`
-            CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
-            CREATE SCHEMA auth;
-            CREATE TABLE auth.users (
-                id uuid PRIMARY KEY, raw_user_meta_data jsonb DEFAULT '{}',
-                email_confirmed_at timestamptz, is_anonymous boolean NOT NULL DEFAULT false
-            );
-            CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
-            $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-        `);
-        const root = new URL('../../drizzle/', import.meta.url);
-        for (const folder of (await readdir(root)).sort()) {
-            await database.exec(await readFile(new URL(folder + '/migration.sql', root), 'utf8'));
-        }
+        await initializeGuestSchema(database);
+        return await database.dumpDataDir('gzip');
+    } finally {
+        await database.close();
+    }
+}
+
+export async function createGuestDatabase(catalog: Sql) {
+    const templatePath = process.env.ASIGNX_GUEST_TEMPLATE;
+    const template = templatePath ? new Blob([await readFile(templatePath)]) : undefined;
+    const database = new PGlite(template ? { loadDataDir: template } : {});
+    try {
+        if (!template) await initializeGuestSchema(database);
         const snapshot = await catalog.begin('isolation level repeatable read read only', async tx => ({
             courses: await tx`SELECT * FROM courses WHERE is_published`,
             signs: await tx`SELECT * FROM signs WHERE is_published`,

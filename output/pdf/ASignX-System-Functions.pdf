@@ -1,0 +1,520 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 5 /Kids [8 0 R 10 0 R 12 0 R 14 0 R 22 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Title (ASignX System Functions) /Subject (Implemented system functions for the manuscript) >>
+endobj
+7 0 obj
+<< /Length 7968 >>
+stream
+BT /F3 10 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 753 Tm (ASIGNX) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 421 753 Tm (FUNCTIONAL INVENTORY) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 744 m 563 744 l S
+0.82 0.85 0.88 RG 0.45 w 49 44 m 563 44 l S
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 49 26 Tm (Source audit  |  24 November 2026  |  Revision 64bd6057) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 532 26 Tm (1 / 5) Tj ET
+BT /F2 33 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 702 Tm (ASignX System Functions) Tj ET
+BT /F1 13 Tf 0.32 0.37 0.44 rg 1 0 0 1 49 679 Tm (Implemented features for the manuscript) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 652 Tm (The inventory is based on the application routes, backend endpoints, recognition models, and data rules in revision) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 638.8 Tm (64bd6057. The frontend test suite and all 42 server tests passed. Production guest sign-in, enrollment, refresh, and) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 625.6 Tm (logout were previously verified on Vercel.) Tj ET
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 591.4000000000001 Tm (1. Account access and user profiles) Tj ET
+0.1 0.18 0.3 rg 49 559.4000000000001 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 566.4000000000001 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 566.4000000000001 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 530.5000000000001 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 546.45 Tm (Learner registration) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 546.45 Tm (Creates a learner account with a display name, email address, and password.) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 534.85 Tm (Email confirmation is required before accessing the account workspace.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 530.5 m 563 530.5 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 517.5500000000001 Tm (Email confirmation and resend) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 517.5500000000001 Tm (Handles confirmation links, reports invalid or expired links, and lets users) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 505.95000000000005 Tm (request a replacement confirmation email.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 501.6000000000001 m 563 501.6000000000001 l S
+0.95 0.96 0.98 rg 49 472.7000000000001 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 488.6500000000001 Tm (Login and session restoration) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 488.6500000000001 Tm (Signs in confirmed users with email and password, restores valid sessions, and) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 477.05000000000007 Tm (returns users to an eligible page after login.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 472.7000000000001 m 563 472.7000000000001 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 459.7500000000001 Tm (Password recovery) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 459.7500000000001 Tm (Sends a password-reset link and lets the user set a new password through the) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 448.1500000000001 Tm (recovery flow.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 443.8000000000001 m 563 443.8000000000001 l S
+0.95 0.96 0.98 rg 49 414.90000000000015 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 430.85000000000014 Tm (Guest sign-in) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 430.85000000000014 Tm (Starts a temporary learner session through /guest or Continue as guest. Each) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 419.2500000000001 Tm (visitor gets an independent session without creating a permanent account.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 414.90000000000015 m 563 414.90000000000015 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 401.95000000000016 Tm (Guest session restoration and) Tj ET
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 390.35000000000014 Tm (cleanup) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 401.95000000000016 Tm (Keeps guest learning progress available when the same tab is refreshed. Guest) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 390.35000000000014 Tm (enrollments, graded answers, hearts, and XP stay in server memory and are) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 378.75000000000017 Tm (cleared at logout, after one hour of inactivity, or when the API restarts.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 374.40000000000015 m 563 374.40000000000015 l S
+0.95 0.96 0.98 rg 49 345.50000000000017 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 361.45000000000016 Tm (Role-based access) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 361.45000000000016 Tm (Gives learners and guests access to the learning workspace. Course) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 349.85000000000014 Tm (administration and the sign library are restricted to administrators.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 345.50000000000017 m 563 345.50000000000017 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 332.5500000000002 Tm (Profile viewing and editing) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 332.5500000000002 Tm (Displays profile details and allows users to edit their display name and time) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 320.95000000000016 Tm (zone. The email address is read-only.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 316.6000000000002 m 563 316.6000000000002 l S
+0.95 0.96 0.98 rg 49 299.3000000000002 514 17.3 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 303.6500000000002 Tm (Logout) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 303.6500000000002 Tm (Ends the current session and redirects the user out of the account workspace.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 299.3000000000002 m 563 299.3000000000002 l S
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 271.3000000000002 Tm (2. ASignLearn public browsing and sample lessons) Tj ET
+0.1 0.18 0.3 rg 49 239.30000000000018 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 246.30000000000018 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 246.30000000000018 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 210.40000000000018 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 226.35000000000014 Tm (Public site navigation) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 226.35000000000014 Tm (Provides a landing page, an About page, access to ASignLive and ASignLearn,) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 214.7500000000001 Tm (and a page for invalid links.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 210.4000000000002 m 563 210.4000000000002 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 197.45000000000016 Tm (Published course browsing and) Tj ET
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 185.85000000000014 Tm (search) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 197.45000000000016 Tm (Shows the published course catalog and filters courses by title or description.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 181.50000000000023 m 563 181.50000000000023 l S
+0.95 0.96 0.98 rg 49 152.60000000000022 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 168.55000000000018 Tm (Public sample lessons) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 168.55000000000018 Tm (Provides three written samples covering A, HELLO, and THANK YOU. The) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 156.95000000000016 Tm (public learning page highlights the letter A sample.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 152.60000000000025 m 563 152.60000000000025 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 139.6500000000002 Tm (Sample knowledge checks) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 139.6500000000002 Tm (Checks multiple-choice responses, gives feedback, and lets users review the) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 128.05000000000018 Tm (guide or repeat the sample. Sample completion is stored in the browser and) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 116.45000000000016 Tm (carries no account XP.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 112.10000000000025 m 563 112.10000000000025 l S
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 8743 >>
+stream
+BT /F3 10 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 753 Tm (ASIGNX) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 421 753 Tm (FUNCTIONAL INVENTORY) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 744 m 563 744 l S
+0.82 0.85 0.88 RG 0.45 w 49 44 m 563 44 l S
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 49 26 Tm (Source audit  |  24 November 2026  |  Revision 64bd6057) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 532 26 Tm (2 / 5) Tj ET
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 710 Tm (3. ASignLearn full courses and assessments) Tj ET
+0.1 0.18 0.3 rg 49 678 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 685 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 685 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 649.1 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 665.05 Tm (Course enrollment) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 665.05 Tm (Lets registered learners and temporary guests enroll in published courses. The) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 653.45 Tm (workspace displays enrolled and available courses.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 649.1 m 563 649.1 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 636.15 Tm (Course and lesson navigation) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 636.15 Tm (Shows lessons in course order with not started, in progress, or completed status.) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 624.55 Tm (Learners can start, continue, review, or open a specific lesson from the course) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 612.95 Tm (list.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 608.6 m 563 608.6 l S
+0.95 0.96 0.98 rg 49 579.7 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 595.65 Tm (Lesson study materials) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 595.65 Tm (Displays written content, linked signs, meanings, signing instructions, and) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 584.05 Tm (attached demonstration videos.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 579.7 m 563 579.7 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 566.75 Tm (Demonstration video playback) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 566.75 Tm (Plays attached MP4 clips through temporary signed links. Offers playback) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 555.15 Tm (controls and a retry option. Guests can view published clips.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 550.8 m 563 550.8 l S
+0.95 0.96 0.98 rg 49 521.9 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 537.85 Tm (Graded knowledge checks) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 537.85 Tm (Supports multiple-choice, true-or-false, and camera-based sign recognition) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 526.25 Tm (questions. Lessons can also contain study material alone.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 521.9 m 563 521.9 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 508.95 Tm (Camera-based answer grading) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 508.95 Tm (Opens a camera session for the current question. The server checks the) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 497.34999999999997 Tm (recognized sign against the expected target. A wrong camera reading gives) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 485.75 Tm (feedback and permits another try without deducting a heart.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 481.4 m 563 481.4 l S
+0.95 0.96 0.98 rg 49 452.5 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 468.45 Tm (Answer feedback and saving) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 468.45 Tm (Grades answers on the server, displays correctness feedback, records the result,) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 456.84999999999997 Tm (and advances through questions in order.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 452.5 m 563 452.5 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 439.55 Tm (Resume and review) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 439.55 Tm (Restores unfinished attempts, allows learners to revisit the study material, and) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 427.95 Tm (displays saved responses when reviewing a finished attempt.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 423.6 m 563 423.6 l S
+0.95 0.96 0.98 rg 49 394.70000000000005 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 410.65000000000003 Tm (Lesson completion and replay) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 410.65000000000003 Tm (Shows the score and XP earned for the run, identifies a perfect run, and lets) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 399.05 Tm (learners retry, practice again, or continue to the next lesson.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 394.70000000000005 m 563 394.70000000000005 l S
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 366.70000000000005 Tm (4. Learning progress and rewards) Tj ET
+0.1 0.18 0.3 rg 49 334.70000000000005 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 341.70000000000005 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 341.70000000000005 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 305.80000000000007 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 321.75000000000006 Tm (Learner dashboard) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 321.75000000000006 Tm (Shows enrolled courses, completed lessons, XP, day streak, achievements,) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 310.15000000000003 Tm (profile details, and shortcuts to ASignLive and Sign Strike.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 305.80000000000007 m 563 305.80000000000007 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 292.8500000000001 Tm (Personal learning record) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 292.8500000000001 Tm (Displays in-progress and completed lessons, verified XP, streak, and recorded) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 281.25000000000006 Tm (achievements. Registered learner records persist in the database.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 276.9000000000001 m 563 276.9000000000001 l S
+0.95 0.96 0.98 rg 49 236.4000000000001 514 40.5 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 263.95000000000005 Tm (XP awards) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 263.95000000000005 Tm (Awards first-time XP for correct answers and lets learners earn XP missed in) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 252.35000000000002 Tm (earlier runs. After a perfect run, replays award 25% of the value of correct) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 240.75 Tm (answers.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 236.4000000000001 m 563 236.4000000000001 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 223.45000000000005 Tm (Hearts and regeneration) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 223.45000000000005 Tm (Provides up to three hearts. An incorrect multiple-choice or true-or-false answer) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 211.85000000000002 Tm (costs one heart. One heart regenerates every five minutes until full. At zero) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 200.25 Tm (hearts, graded attempts pause and study materials remain available.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 195.9000000000001 m 563 195.9000000000001 l S
+0.95 0.96 0.98 rg 49 167.00000000000009 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 182.95000000000005 Tm (Heart recovery practice) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 182.95000000000005 Tm (Restores one heart after the user correctly answers three practice questions drawn) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 171.35000000000002 Tm (from previously answered multiple-choice or true-or-false questions.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 167.0000000000001 m 563 167.0000000000001 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 154.05000000000007 Tm (Learning streak) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 154.05000000000007 Tm (Calculates consecutive days of qualifying activity using the learner\222s configured) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 142.45000000000005 Tm (time zone.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 138.10000000000014 m 563 138.10000000000014 l S
+0.95 0.96 0.98 rg 49 109.20000000000013 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 125.15000000000009 Tm (Achievement display and) Tj ET
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 113.55000000000007 Tm (validation) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 125.15000000000009 Tm (Displays recorded achievements. The database validates eligibility and prevents) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 113.55000000000007 Tm (duplicates. The current lesson flow does not automatically issue awards.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 109.20000000000016 m 563 109.20000000000016 l S
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 7632 >>
+stream
+BT /F3 10 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 753 Tm (ASIGNX) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 421 753 Tm (FUNCTIONAL INVENTORY) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 744 m 563 744 l S
+0.82 0.85 0.88 RG 0.45 w 49 44 m 563 44 l S
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 49 26 Tm (Source audit  |  24 November 2026  |  Revision 64bd6057) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 532 26 Tm (3 / 5) Tj ET
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 710 Tm (5. ASignLive camera recognition and English output) Tj ET
+0.1 0.18 0.3 rg 49 678 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 685 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 685 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 644.6 514 33.400000000000006 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 664.5 Tm (Live camera preview and) Tj ET
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 652.2 Tm (controls) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 664.5 Tm (Starts and stops the webcam, shows a local preview and camera status, and) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 652.2 Tm (allows recognition to be retried after an error.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 644.6 m 563 644.6 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 631.1 Tm (ASL fingerspelling recognition) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 631.1 Tm (Recognizes the configured alphabet labels using a static model for 24 letters) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 618.8 Tm (and a movement model for J and Z.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 611.2 m 563 611.2 l S
+0.95 0.96 0.98 rg 49 565.5 514 45.7 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 597.7 Tm (Selected whole-sign recognition) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 597.7 Tm (Recognizes HELLO, HELP, PLEASE, and THANK YOU when the) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 585.4 Tm (whole-sign model and required landmarks are available. Alphabet) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 573.1 Tm (recognition remains available when the whole-sign component fails to load.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 565.5 m 563 565.5 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 552.0 Tm (Landmark extraction and motion) Tj ET
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 539.7 Tm (tracking) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 552.0 Tm (Tracks up to two hands. Whole-sign recognition uses additional landmarks) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 539.7 Tm (from the shoulders, elbows, nose, chin, and temples to interpret movement) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 527.4 Tm (relative to the signer.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 519.8 m 563 519.8 l S
+0.95 0.96 0.98 rg 49 474.09999999999997 514 45.7 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 506.3 Tm (Prediction stabilization and) Tj ET
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 494.0 Tm (repeat control) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 506.3 Tm (Requires stable evidence before recording a sign and suppresses brief) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 494.0 Tm (transitions. Users can repeat a letter by briefly lowering and showing the) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 481.7 Tm (hand again.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 474.1 m 563 474.1 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 460.6 Tm (Live recognition feedback) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 460.6 Tm (Shows the detected sign, hand, confidence, latest recognition time, and raw) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 448.3 Tm (session history. An optional sound indicates an accepted sign.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 440.70000000000005 m 563 440.70000000000005 l S
+0.95 0.96 0.98 rg 49 395.00000000000006 514 45.7 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 427.20000000000005 Tm (Automatic word formation) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 427.20000000000005 Tm (Groups recognized letters after a pause of about two seconds. Applies a clear) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 414.90000000000003 Tm (spelling match and preserves the detected spelling when the result is) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 402.6 Tm (uncertain.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 395.00000000000006 m 563 395.00000000000006 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 381.50000000000006 Tm (English sentence composition) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 381.50000000000006 Tm (Uses spelling and word context to assemble provisional words, recover word) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 369.20000000000005 Tm (breaks, and show possible corrections. About four seconds with hands out of) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 356.90000000000003 Tm (view after the last word finishes finalizes the sentence.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 349.30000000000007 m 563 349.30000000000007 l S
+0.95 0.96 0.98 rg 49 315.9000000000001 514 33.400000000000006 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 335.80000000000007 Tm (Raw and processed output) Tj ET
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 323.50000000000006 Tm (comparison) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 335.80000000000007 Tm (Lets users compare detected letters, provisional words, and finalized) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 323.50000000000006 Tm (sentences.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 315.9000000000001 m 563 315.9000000000001 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 302.4000000000001 Tm (Text-to-speech) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 302.4000000000001 Tm (Reads newly finalized English text aloud in supported browsers and) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 290.1000000000001 Tm (provides manual Speak and Stop speaking controls.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 282.5000000000001 m 563 282.5000000000001 l S
+0.95 0.96 0.98 rg 49 249.1000000000001 514 33.400000000000006 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 269.0000000000001 Tm (Session text clearing) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 269.0000000000001 Tm (Keeps the current transcription and recognition history in browser memory.) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 256.70000000000016 Tm (Clear all text removes both.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 249.10000000000014 m 563 249.10000000000014 l S
+BT /F2 13 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 221.10000000000014 Tm (Recognition scope) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 204.10000000000014 Tm (ASignLive processes camera frames in the browser. English spelling and sentence correction primarily run in browser) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 190.9000000000001 Tm (WebAssembly with a backend fallback for text processing.) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 171.70000000000005 Tm (ASignLearn graded camera questions use a separate server-side alphabet recognizer and submit temporary JPEG) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 158.5 Tm (frames for grading. The graded model\222s vocabulary excludes the four selected whole signs in ASignLive. ASignLive) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 145.29999999999995 Tm (assembles English text from supported signs and fingerspelling. Recognition accuracy should be reported separately) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 132.0999999999999 Tm (from vocabulary coverage.) Tj ET
+BT /F1 10.6 Tf 0.13 0.17 0.23 rg 1 0 0 1 49 112.89999999999986 Tm (ASignLive can process up to 15 camera frames per second. General ASL grammar translation is outside its scope.) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 5982 >>
+stream
+BT /F3 10 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 753 Tm (ASIGNX) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 421 753 Tm (FUNCTIONAL INVENTORY) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 744 m 563 744 l S
+0.82 0.85 0.88 RG 0.45 w 49 44 m 563 44 l S
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 49 26 Tm (Source audit  |  24 November 2026  |  Revision 64bd6057) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 532 26 Tm (4 / 5) Tj ET
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 710 Tm (6. Sign Strike arcade) Tj ET
+0.1 0.18 0.3 rg 49 678 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 685 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 685 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 656.9 514 21.1 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 664.5 Tm (Game modes) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 664.5 Tm (Offers Alphabet Patrol, Timed Word Defense, and Endless Word Defense.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 656.9 m 563 656.9 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 643.4 Tm (Camera and keyboard controls) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 643.4 Tm (Accepts recognized fingerspelled letters through the webcam or typed letters) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 631.1 Tm (in keyboard practice. Camera mode includes a preview. J and Z are excluded) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 618.8 Tm (from arcade input and target words.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 611.2 m 563 611.2 l S
+0.95 0.96 0.98 rg 49 577.8000000000001 514 33.400000000000006 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 597.7 Tm (Pace settings) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 597.7 Tm (Offers two settings that change ship speed, spawn frequency, starting) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 585.4 Tm (shields, and the maximum number of ships on the field.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 577.8 m 563 577.8 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 564.3 Tm (Fullscreen and round controls) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 564.3 Tm (Supports fullscreen play, a countdown, pause, resume, ending a round,) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 552.0 Tm (replay, and returning to settings.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 544.4 m 563 544.4 l S
+0.95 0.96 0.98 rg 49 498.7 514 45.7 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 530.9 Tm (Enemy flight and word variety) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 530.9 Tm (Spawns ships from multiple lanes, shuffles target vocabulary, avoids) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 518.5999999999999 Tm (immediate word repeats, and points ships toward the player as they) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 506.29999999999995 Tm (approach.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 498.7 m 563 498.7 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 485.2 Tm (Target lock and sequential) Tj ET
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 472.9 Tm (spelling) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 485.2 Tm (Locks onto an active ship when the first input matches the first letter of its) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 472.9 Tm (label. If multiple ships match, the closest to the defense line takes priority.) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 460.59999999999997 Tm (The player spells the rest of the label in order to clear the ship.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 453.0 m 563 453.0 l S
+0.95 0.96 0.98 rg 49 419.6 514 33.400000000000006 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 439.5 Tm (Carrier ships and scouts) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 439.5 Tm (Uses larger, slower carriers with longer words. A carrier can deploy up to) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 427.2 Tm (two smaller ships carrying shorter words.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 419.6 m 563 419.6 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 406.1 Tm (Endless wave progression) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 406.1 Tm (Starts a new wave after the current targets are resolved. Later waves bring) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 393.8 Tm (faster ships and shorter spawn intervals, with longer carrier words at higher) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 381.5 Tm (difficulty.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 373.90000000000003 m 563 373.90000000000003 l S
+0.95 0.96 0.98 rg 49 328.20000000000005 514 45.7 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 360.40000000000003 Tm (Hit feedback and shield damage) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 360.40000000000003 Tm (Shows laser hits and successful clears. A wrong letter on the locked ship) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 348.1 Tm (causes a subtle shake and red tint. Ships that reach the defense line reduce) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 335.8 Tm (the player\222s shields.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 328.20000000000005 m 563 328.20000000000005 l S
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 314.70000000000005 Tm (Scoring and results) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 314.70000000000005 Tm (Awards points for correct letters and clears, applies combo bonuses, and) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 302.40000000000003 Tm (shows the score, ships cleared, and highest wave reached in Endless mode.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 294.80000000000007 m 563 294.80000000000007 l S
+0.95 0.96 0.98 rg 49 261.4000000000001 514 33.400000000000006 re f
+BT /F2 10.5 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 281.30000000000007 Tm (Sound effects and local records) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 281.30000000000007 Tm (Plays cues for target lock, firing, ship clears, damage, and other game) Tj ET
+BT /F1 10.5 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 269.0000000000001 Tm (events. Mute settings and best scores are stored in the current browser.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 261.4000000000001 m 563 261.4000000000001 l S
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Type /Annot /Subtype /Link /Rect [49 65.20000000000016 127.0 79.20000000000016] /Border [0 0 0] /A << /S /URI /URI (https://github.com/ayawton/ASignX/blob/64bd6057/client/src/App.jsx) >> >>
+endobj
+16 0 obj
+<< /Type /Annot /Subtype /Link /Rect [221 65.20000000000016 274.0921875 79.20000000000016] /Border [0 0 0] /A << /S /URI /URI (https://github.com/ayawton/ASignX/blob/64bd6057/server/src/personal.ts) >> >>
+endobj
+17 0 obj
+<< /Type /Annot /Subtype /Link /Rect [393 65.20000000000016 484.3 79.20000000000016] /Border [0 0 0] /A << /S /URI /URI (https://github.com/ayawton/ASignX/blob/64bd6057/server/src/gamification.ts) >> >>
+endobj
+18 0 obj
+<< /Type /Annot /Subtype /Link /Rect [49 49.20000000000016 135.5 63.20000000000016] /Border [0 0 0] /A << /S /URI /URI (https://github.com/ayawton/ASignX/blob/64bd6057/client/src/recognition/browserFrameStream.js) >> >>
+endobj
+19 0 obj
+<< /Type /Annot /Subtype /Link /Rect [221 49.20000000000016 276.7 63.20000000000016] /Border [0 0 0] /A << /S /URI /URI (https://github.com/ayawton/ASignX/blob/64bd6057/client/src/data/arcade.js) >> >>
+endobj
+20 0 obj
+<< /Type /Annot /Subtype /Link /Rect [393 49.20000000000016 469.5921875 63.20000000000016] /Border [0 0 0] /A << /S /URI /URI (https://github.com/ayawton/ASignX/blob/64bd6057/server/src/admin.ts) >> >>
+endobj
+21 0 obj
+<< /Length 9444 >>
+stream
+BT /F3 10 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 753 Tm (ASIGNX) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 421 753 Tm (FUNCTIONAL INVENTORY) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 744 m 563 744 l S
+0.82 0.85 0.88 RG 0.45 w 49 44 m 563 44 l S
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 49 26 Tm (Source audit  |  24 November 2026  |  Revision 64bd6057) Tj ET
+BT /F3 8.5 Tf 0.32 0.37 0.44 rg 1 0 0 1 532 26 Tm (5 / 5) Tj ET
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 710 Tm (7. Administrator functions) Tj ET
+0.1 0.18 0.3 rg 49 678 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 685 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 685 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 649.1 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 665.05 Tm (System overview) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 665.05 Tm (Shows learner account, course, lesson, enrollment, and completion counts,) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 653.45 Tm (including course counts by publication status. Lists recently created courses.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 649.1 m 563 649.1 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 636.15 Tm (Course management) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 636.15 Tm (Lists current and archived courses and their statuses. Administrators create drafts) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 624.55 Tm (and edit course titles and descriptions.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 620.2 m 563 620.2 l S
+0.95 0.96 0.98 rg 49 579.7 514 40.5 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 607.25 Tm (Course cover design) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 607.25 Tm (Previews the learner\222s course card. Controls include cover text, layout, color,) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 595.65 Tm (font, weight, size, pattern angle, and density. Supports randomizing the cover) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 584.05 Tm (and undoing the randomization.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 579.7 m 563 579.7 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 566.75 Tm (Lesson authoring) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 566.75 Tm (Creates and edits draft lessons, sets their sequence and XP reward, writes study) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 555.15 Tm (material, and selects and orders linked signs.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 550.8 m 563 550.8 l S
+0.95 0.96 0.98 rg 49 521.9 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 537.85 Tm (Assessment authoring) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 537.85 Tm (Adds and removes draft questions and choices, sets correct answers for written) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 526.25 Tm (questions, and selects target signs for camera questions.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 521.9 m 563 521.9 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 508.95 Tm (Recognition target validation) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 508.95 Tm (Loads supported labels from the grading service so authors can choose an) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 497.34999999999997 Tm (eligible published sign linked to the lesson.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 493.0 m 563 493.0 l S
+0.95 0.96 0.98 rg 49 464.1 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 480.05 Tm (Course publication) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 480.05 Tm (Validates lesson content and question configuration, publishes a course and its) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 468.45 Tm (lessons together, and locks published lesson content against ordinary editing.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 464.1 m 563 464.1 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 451.15000000000003 Tm (Archiving and restoration) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 451.15000000000003 Tm (Hides a published course while preserving enrollments and learning records.) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 439.55 Tm (Republishing restores learner access.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 435.20000000000005 m 563 435.20000000000005 l S
+0.95 0.96 0.98 rg 49 406.30000000000007 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 422.25000000000006 Tm (Course duplication) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 422.25000000000006 Tm (Creates an editable draft copy with the original cover, lessons, linked signs,) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 410.65000000000003 Tm (questions, and options. Learner records stay with the original course.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 406.30000000000007 m 563 406.30000000000007 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 393.3500000000001 Tm (Structured text import) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 393.3500000000001 Tm (Accepts pasted text or a .txt file to create a draft course or append lessons to an) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 381.75000000000006 Tm (existing draft. Offers a downloadable template, validates the content, and) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 370.1500000000001 Tm (previews lessons, signs, questions, and XP before saving.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 365.80000000000007 m 563 365.80000000000007 l S
+0.95 0.96 0.98 rg 49 336.9000000000001 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 352.8500000000001 Tm (Sign library management) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 352.8500000000001 Tm (Searches the library, creates and edits draft signs, records labels, meanings,) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 341.25000000000006 Tm (categories, and instructions, and publishes signs for lesson use.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 336.9000000000001 m 563 336.9000000000001 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 323.9500000000001 Tm (Demonstration video management) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 323.9500000000001 Tm (Uploads, previews, and replaces a sign\222s MP4 demonstration up to 20 MiB.) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 312.3500000000001 Tm (Linked lessons use the sign\222s current video.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 308.0000000000001 m 563 308.0000000000001 l S
+BT /F2 17 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 280.0000000000001 Tm (8. Supporting system functions) Tj ET
+0.1 0.18 0.3 rg 49 248.0000000000001 514 21 re f
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 58 255.0000000000001 Tm (FUNCTION) Tj ET
+BT /F3 8.5 Tf 1 1 1 rg 1 0 0 1 222 255.0000000000001 Tm (IMPLEMENTED BEHAVIOR) Tj ET
+0.95 0.96 0.98 rg 49 219.1000000000001 514 28.9 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 235.05000000000007 Tm (Access and data protection) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 235.05000000000007 Tm (The API verifies identity, role, enrollment, and record ownership. Database) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 223.45000000000005 Tm (policies restrict personal records. Learner lesson responses exclude answer keys.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 219.10000000000014 m 563 219.10000000000014 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 206.1500000000001 Tm (Consistent assessment records) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 206.1500000000001 Tm (The backend validates question order, prevents duplicate submissions from) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 194.55000000000007 Tm (awarding XP twice, and records the prediction, confidence, and model version) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 182.95000000000005 Tm (for graded camera attempts.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 178.60000000000014 m 563 178.60000000000014 l S
+0.95 0.96 0.98 rg 49 138.10000000000014 514 40.5 re f
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 165.6500000000001 Tm (Private media and recognition) Tj ET
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 154.05000000000007 Tm (services) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 165.6500000000001 Tm (Demonstrations are stored in a private Supabase bucket and served using signed) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 154.05000000000007 Tm (URLs. Graded camera recognition uses a private backend service with temporary) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 142.45000000000005 Tm (recognition sessions.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 138.10000000000014 m 563 138.10000000000014 l S
+BT /F2 9.95 Tf 0.1 0.18 0.3 rg 1 0 0 1 58 125.15000000000009 Tm (Service readiness and recovery) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 125.15000000000009 Tm (The API provides database and recognition readiness checks, limits guest and) Tj ET
+BT /F1 9.95 Tf 0.13 0.17 0.23 rg 1 0 0 1 222 113.55000000000007 Tm (recognition session creation, and expires inactive sessions.) Tj ET
+0.82 0.85 0.88 RG 0.45 w 49 109.20000000000016 m 563 109.20000000000016 l S
+BT /F2 13 Tf 0.1 0.18 0.3 rg 1 0 0 1 49 86.20000000000016 Tm (Source references) Tj ET
+BT /F3 9.6 Tf 0.18 0.31 0.5 rg 1 0 0 1 49 68.20000000000016 Tm (Application routes) Tj ET
+BT /F3 9.6 Tf 0.18 0.31 0.5 rg 1 0 0 1 221 68.20000000000016 Tm (Learner API) Tj ET
+BT /F3 9.6 Tf 0.18 0.31 0.5 rg 1 0 0 1 393 68.20000000000016 Tm (Grading and rewards) Tj ET
+BT /F3 9.6 Tf 0.18 0.31 0.5 rg 1 0 0 1 49 52.20000000000016 Tm (Browser recognition) Tj ET
+BT /F3 9.6 Tf 0.18 0.31 0.5 rg 1 0 0 1 221 52.20000000000016 Tm (Arcade rules) Tj ET
+BT /F3 9.6 Tf 0.18 0.31 0.5 rg 1 0 0 1 393 52.20000000000016 Tm (Administrator API) Tj ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R /Annots [15 0 R 16 0 R 17 0 R 18 0 R 19 0 R 20 0 R] >>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000149 00000 n 
+0000000248 00000 n 
+0000000346 00000 n 
+0000000443 00000 n 
+0000000556 00000 n 
+0000008576 00000 n 
+0000008722 00000 n 
+0000017517 00000 n 
+0000017664 00000 n 
+0000025349 00000 n 
+0000025497 00000 n 
+0000031532 00000 n 
+0000031680 00000 n 
+0000031890 00000 n 
+0000032111 00000 n 
+0000032330 00000 n 
+0000032566 00000 n 
+0000032784 00000 n 
+0000033002 00000 n 
+0000042499 00000 n 
+trailer
+<< /Size 23 /Root 1 0 R /Info 6 0 R >>
+startxref
+42699
+%%EOF

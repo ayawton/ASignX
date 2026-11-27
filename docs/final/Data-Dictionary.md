@@ -35,7 +35,7 @@ This dictionary documents the current ASignX application schema: 19 tables, 111 
 - recognition_sessions — Schema support for saved recognition sessions.
 - recognition_results — Schema support for ordered predictions within a recognition session.
 - achievements — Achievement definitions and threshold metrics.
-- user_achievements — Association recording an achievement unlocked by a learner.
+- profile_achievements — Association recording an achievement unlocked by a learner.
 
 ## profiles
 
@@ -482,6 +482,8 @@ Achievement definitions and threshold metrics.
 | description | text | — | No | — | Description of how to earn the badge. |
 | metric | varchar(25) | — | No | — | One of completed_lessons, successful_practices, total_xp, or streak_days. |
 | threshold | integer | — | No | — | Positive target value for the selected metric. |
+| status | varchar(10) | - | No | published | Draft, published, or retired. |
+| icon | varchar(10) | - | No | trophy | Lesson, practice, xp, streak, or trophy icon key. |
 
 ### Keys and database constraints
 
@@ -495,9 +497,9 @@ Achievement definitions and threshold metrics.
 
 ### Trigger and application rules
 
-Metrics are limited to completed_lessons, successful_practices, total_xp and streak_days. Automatic awarding is not implemented end to end.
+Published badges are awarded automatically for verified lesson completions, successful Practice rounds, XP, and learning streaks. Publication also checks existing progress. The metric and threshold become immutable once an award exists. Retired badges remain visible to their recipients. Guest awards are stored in the temporary guest database and are cleared when the session ends.
 
-## user_achievements
+## profile_achievements
 
 Association recording an achievement unlocked by a learner.
 

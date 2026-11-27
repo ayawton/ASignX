@@ -21,6 +21,7 @@ const complete = () => `UPDATE lesson_progress SET completed_at=now() WHERE enro
 test('temporary guest sessions grade lessons independently and logout invalidates only that guest', async () => {
     const sourceProfiles = await scalar('SELECT count(*)::int FROM profiles');
     const sourceAttempts = await scalar('SELECT count(*)::int FROM exercise_attempts');
+    const sourceBadges = await scalar('SELECT count(*)::int FROM profile_achievements');
     const catalog = {
         async begin(mode, fn) {
             assert.match(mode, /read only/i);
@@ -69,6 +70,7 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         assert.equal(graded.status, 200);
         assert.equal(graded.data.correct, true);
         assert.equal((await request('/me/progress', 'GET', first)).data.xp, 10);
+        assert.ok((await request('/me/progress', 'GET', first)).data.achievements.some(badge => badge.name === 'First Lesson'));
         const practice = await request('/me/practice/start', 'POST', first);
         assert.equal(practice.status, 200);
         assert.equal(practice.data.hearts.hearts, 3);
@@ -84,8 +86,10 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         const fresh = await request('/guest', 'POST');
         assert.notEqual(fresh.data.user.id, a.data.user.id);
         assert.equal((await request('/me/progress', 'GET', fresh.data.token)).data.xp, 0);
+        assert.deepEqual((await request('/me/progress', 'GET', fresh.data.token)).data.achievements, []);
         assert.equal(await scalar('SELECT count(*)::int FROM profiles'), sourceProfiles);
         assert.equal(await scalar('SELECT count(*)::int FROM exercise_attempts'), sourceAttempts);
+        assert.equal(await scalar('SELECT count(*)::int FROM profile_achievements'), sourceBadges);
     } finally {
         await new Promise(resolve => server.close(resolve));
         await close();
@@ -364,11 +368,18 @@ test('only one option per exercise can be correct', async () => {
     await rejects(`UPDATE exercise_options SET is_correct=true WHERE id='${wrong}'`, /duplicate key/);
 });
 test('achievement awards require eligibility and cannot be duplicated or redefined', async () => {
-    await rejects(`INSERT INTO user_achievements(user_id,achievement_id) VALUES ('${u1}','${badge}')`, /threshold has not been met/);
+    await rejects(`INSERT INTO profile_achievements(user_id,achievement_id) VALUES ('${u1}','${badge}')`, /threshold has not been met/);
     await db.exec(attempt()); await db.exec(`insert into lesson_runs(enrollment_id,lesson_id,completed_at) values ('${enrollment}','${l1}',now())`); await db.exec(complete());
-    await db.exec(`INSERT INTO user_achievements(user_id,achievement_id) VALUES ('${u1}','${badge}')`);
-    await rejects(`INSERT INTO user_achievements(user_id,achievement_id) VALUES ('${u1}','${badge}')`, /duplicate key/);
+    assert.equal(await scalar(`SELECT count(*)::int FROM profile_achievements WHERE user_id='${u1}' AND achievement_id='${badge}'`), 1);
+    await rejects(`INSERT INTO profile_achievements(user_id,achievement_id) VALUES ('${u1}','${badge}')`, /duplicate key/);
     await rejects("UPDATE achievements SET threshold=2", /immutable/);
+    await db.exec(`UPDATE achievements SET status='retired', name='Retired badge' WHERE id='${badge}'`);
+    assert.equal(await scalar(`SELECT count(*)::int FROM profile_achievements WHERE achievement_id='${badge}'`), 1);
+    await db.exec(`INSERT INTO achievements(code,name,description,metric,threshold,status)
+        VALUES ('BACKFILL','Backfill','Complete a lesson','completed_lessons',1,'draft')`);
+    assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='BACKFILL'"), 0);
+    await db.exec("UPDATE achievements SET status='published' WHERE code='BACKFILL'");
+    assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='BACKFILL'"), 1);
 });
 test('streak combines local dates, counts a date once and resets after a gap', async () => {
     await addPractice('now()'); await addPractice('now()');
@@ -447,7 +458,7 @@ test('upgrade removes empty pending profiles, preserves confirmed profiles, and 
             GRANT USAGE ON SCHEMA auth TO anon,authenticated,service_role;
             GRANT EXECUTE ON FUNCTION auth.uid() TO anon,authenticated,service_role;`);
         const folders = (await readdir(new URL('../drizzle/', import.meta.url))).sort();
-        for (const folder of folders.filter(name => !name.endsWith('_confirmed_profiles') && !name.endsWith('_guest_profiles') && !name.endsWith('_simplify_practice'))) {
+        for (const folder of folders.filter(name => !name.endsWith('_confirmed_profiles') && name < '20261123203000_guest_profiles')) {
             await upgradeDb.exec(await readFile(new URL(`../drizzle/${folder}/migration.sql`, import.meta.url), 'utf8'));
         }
         const pending = uid(310), confirmed = uid(311), activePending = uid(312);

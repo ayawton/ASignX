@@ -11,6 +11,7 @@ import Admin from './pages/Admin'
 import AdminCourseForm from './pages/AdminCourseForm'
 import CourseTextImport from './pages/CourseTextImport'
 import AdminCourse from './pages/AdminCourse'
+import AdminAchievements from './pages/AdminAchievements'
 import AdminOverview from './pages/AdminOverview'
 import AdminSigns from './pages/AdminSigns'
 import Live from './pages/Live'
@@ -46,6 +47,7 @@ export default function App() {
    <Route index element={<Dashboard />} />
    <Route path="admin" element={<AdminOverview />} />
    <Route path="admin/courses" element={<Admin />} />
+   <Route path="admin/achievements" element={<AdminAchievements />} />
    <Route path="admin/signs" element={<AdminSigns />} />
    <Route path="admin/courses/import" element={<CourseTextImport />} />
    <Route path="admin/courses/:id/import" element={<CourseTextImport />} />

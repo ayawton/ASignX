@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, Camera, ClipboardCheck, Gamepad2, Hand, LayoutDashboard, LogOut, Trophy, UserRound } from 'lucide-react'
+import AchievementNotice from './AchievementNotice'
 import Hearts from './Hearts'
 import { api, useAuth } from '../auth'
 import { workspaceDestination } from '../auth-path'
@@ -34,6 +35,7 @@ export default function DashboardLayout() {
  if (destination) return <Navigate to={destination} replace />
  return <div className={`dashboard-workspace${focusedLesson ? ' is-lesson-focused' : ''}`}>
   <header className="dashboard-header"><Link to={isAdmin ? '/dashboard/admin' : '/dashboard'} aria-label="ASignX dashboard"><img src="/branding/asignx-horizontal-color.svg" alt="ASignX" width="160" height="47" /></Link><span>{isAdmin ? 'Administration' : 'Your learning space'}</span>{!isAdmin&&<Hearts/>}<Link to="/dashboard/profile"><UserRound size={18} /> Your account</Link></header>
+  {!isAdmin && <AchievementNotice key={user?.id} />}
   <div className="container learner-dashboard">
    {!focusedLesson && <aside className="learner-sidebar" aria-label="Your workspace">
     <span className="learner-workspace"><Hand size={20} /> {isAdmin ? 'Admin workspace' : 'Your workspace'}</span>
@@ -45,7 +47,7 @@ export default function DashboardLayout() {
      <NavLink to="/dashboard/learn/arcade"><Gamepad2 size={18} /> Sign Strike</NavLink>
      <NavLink to="/dashboard/progress"><Trophy size={18} /> My progress</NavLink></>}
      <NavLink to="/dashboard/profile"><UserRound size={18} /> My profile</NavLink>
-     {isAdmin && <><NavLink to="/dashboard/admin" end><LayoutDashboard size={18} /> Overview</NavLink><NavLink to="/dashboard/admin/courses"><BookOpen size={18} /> Manage courses</NavLink><NavLink to="/dashboard/admin/signs"><Hand size={18} /> Sign library</NavLink></>}
+     {isAdmin && <><NavLink to="/dashboard/admin" end><LayoutDashboard size={18} /> Overview</NavLink><NavLink to="/dashboard/admin/courses"><BookOpen size={18} /> Manage courses</NavLink><NavLink to="/dashboard/admin/achievements"><Trophy size={18} /> Achievements</NavLink><NavLink to="/dashboard/admin/signs"><Hand size={18} /> Sign library</NavLink></>}
     </nav>
     {user?.role === 'guest' && <p>Guest progress is temporary and is cleared when you log out.</p>}
     {error && <p role="alert">{error}</p>}

@@ -1,8 +1,39 @@
 import { useEffect, useState } from 'react'
 import Link from '../components/WorkspaceLink'
-import { api } from '../auth'
+import { BadgeCard } from '../components/Achievements'
+import { api, useAuth } from '../auth'
+
 export default function Progress() {
- const [data, setData] = useState(null), [error, setError] = useState('')
- useEffect(() => { let active = true; api('/me/progress').then(value => { if (active) setData(value) }).catch(e => { if (active) setError(e.message) }); return () => { active = false } }, [])
- return <section className="container studio-section studio-page"><div className="page-heading"><div><span className="text-label">Your account progress</span><h1>Every sign is a step forward.</h1><p>Verified account records stay separate from practice saved in this browser.</p></div></div>{error ? <p role="alert">{error}</p> : !data ? <p role="status">Loading your progress…</p> : <><div className="studio-stats"><div className="studio-stat"><strong>{data.lessons.filter(l => l.completed_at).length}</strong><span>Completed lessons</span></div><div className="studio-stat"><strong>{data.xp}</strong><span>Verified XP</span></div><div className="studio-stat"><strong>{data.achievements.length}</strong><span>Achievements</span></div><div className="studio-stat"><strong>{data.streak}</strong><span>Day streak</span></div></div><article className="studio-progress-panel"><h2>Your learning record</h2>{data.lessons.length ? data.lessons.map(l => <p key={l.lesson_id}>{l.title} — {l.completed_at ? 'Completed' : 'In progress'}</p>) : <p>No account lessons recorded yet. Written sample introductions are guest practice and do not award account XP.</p>}{data.achievements.map(a => <p key={a.id}>{a.name}: {a.description}</p>)}<Link className="text-link" to="/learn">Explore learning</Link></article></>}</section>
+ const { user } = useAuth()
+ const [data, setData] = useState(null)
+ const [error, setError] = useState('')
+ const [retry, setRetry] = useState(0)
+ useEffect(() => {
+  let active = true
+  api('/me/progress').then(value => { if (active) setData(value) })
+   .catch(failure => { if (active) setError(failure.message) })
+  return () => { active = false }
+ }, [retry])
+ const completed = data?.lessons.filter(lesson => lesson.completed_at).length ?? 0
+ const badges = data?.badges ?? data?.achievements ?? []
+ return <section className="container studio-section studio-page achievement-page">
+  <header className="page-heading"><div><h1>Your progress</h1>{user?.role === 'guest' && <p>Guest badges and progress expire with this session.</p>}</div></header>
+  {error ? <p role="alert">{error} <button className="text-link" onClick={() => { setError(''); setRetry(value => value + 1) }}>Retry</button></p> :
+   !data ? <p role="status">Loading your progress…</p> : <>
+    <div className="studio-stats">
+     <div className="studio-stat"><strong>{completed}</strong><span>Completed lessons</span></div>
+     <div className="studio-stat"><strong>{data.xp}</strong><span>XP</span></div>
+     <div className="studio-stat"><strong>{data.achievements.length}</strong><span>Badges earned</span></div>
+     <div className="studio-stat"><strong>{data.streak}</strong><span>Day streak</span></div>
+    </div>
+    <section id="achievements" className="studio-progress-panel">
+     <h2>Achievements</h2>
+     {badges.length ? <ul className="badge-list">{badges.map(badge => <BadgeCard key={badge.id} badge={badge} />)}</ul> : <p>No achievements are available yet.</p>}
+    </section>
+    <section className="studio-progress-panel"><h2>Learning record</h2>
+     {data.lessons.length ? <ul className="badge-list">{data.lessons.map(lesson => <li className="learning-record-row" key={lesson.lesson_id}>{lesson.title}<span>{lesson.completed_at ? 'Completed' : 'In progress'}</span></li>)}</ul> : <p>No lessons started yet.</p>}
+     <Link className="text-link" to="/learn">Explore learning</Link>
+    </section>
+   </>}
+ </section>
 }

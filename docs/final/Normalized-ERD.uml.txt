@@ -150,8 +150,10 @@ entity "achievements" as achievements {
     * description : text
     * metric : varchar(25)
     * threshold : integer
+    *status : varchar(10)
+    *icon : varchar(10)
 }
-entity "user_achievements" as user_achievements {
+entity "profile_achievements" as profile_achievements {
     * user_id : uuid <<PK,FK>>
     * achievement_id : uuid <<PK,FK>>
     * unlocked_at : timestamptz
@@ -185,8 +187,8 @@ practice_rounds ||--o{ practice_round_questions : round_id
 exercises ||--o{ practice_round_questions : exercise_id
 exercise_options ||--o{ practice_submissions : selected_option_id
 practice_round_questions ||--o{ practice_submissions : round_id, question_index
-profiles ||--o{ user_achievements : user_id
-achievements ||--o{ user_achievements : achievement_id
+profiles ||--o{ profile_achievements : user_id
+achievements ||--o{ profile_achievements : achievement_id
 
 legend bottom
 PK primary key | FK foreign key | UK single-column unique

@@ -89,12 +89,17 @@ async function readProfile(user: { id: string; email?: string }) {
  return { ...profile, role: guestConnection.getStore() ? 'guest' : profile.role, email: user.email };
 }
 async function readProgress(userId: string) {
-    const [lessons, achievements, [streak]] = await Promise.all([
+    const [lessons, badges, [activity]] = await Promise.all([
         sql`select lp.lesson_id, l.title, lp.completed_at, lp.perfected_at, (select coalesce(sum(a.amount),0) from xp_awards a where a.enrollment_id=lp.enrollment_id and a.lesson_id=lp.lesson_id)::int as xp_earned from lesson_progress lp join enrollments e on e.id = lp.enrollment_id join lessons l on l.id = lp.lesson_id where e.user_id = ${userId}`,
-        sql`select a.id, a.name, a.description, ua.unlocked_at from user_achievements ua join achievements a on a.id = ua.achievement_id where ua.user_id = ${userId}`,
-        sql`select asignx_private.current_streak(${userId}::uuid) as days`
+        sql`select a.id, a.name, a.description, a.metric, a.threshold, a.icon, a.status, pa.unlocked_at
+            from achievements a left join profile_achievements pa on pa.achievement_id=a.id and pa.user_id=${userId}
+            where a.status='published' or pa.unlocked_at is not null
+            order by pa.unlocked_at desc nulls last, a.name, a.id`,
+        sql`select asignx_private.achievement_metrics(${userId}::uuid) as metrics`
     ]);
- return { lessons, achievements, streak: streak?.days ?? 0, xp: lessons.reduce((sum, row) => sum + row.xp_earned, 0) };
+ const metrics = activity?.metrics ?? {};
+ return { lessons, badges: badges.map(badge => ({ ...badge, progress: metrics[badge.metric] ?? 0 })),
+    achievements: badges.filter(badge => badge.unlocked_at), streak: metrics.streak_days ?? 0, xp: metrics.total_xp ?? 0 };
 }
 async function readEnrollments(userId: string) {
  const rows = await sql`select e.id, e.course_id, e.enrolled_at, c.title, c.description, c.cover_text, c.cover_style, c.cover_tone, c.cover_font, c.cover_weight, c.cover_density, c.cover_angle, c.cover_size, c.is_published,

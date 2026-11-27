@@ -10,7 +10,7 @@ try {
     const missing = applicationTables.filter(name => !rows.some(row => row.table_name === name));
     const unprotected = rows.filter(row => applicationTables.includes(row.table_name as typeof applicationTables[number]) && !row.rls_enabled);
     const retiredTables = [
-        'departments', 'subjects', 'model_versions', 'practice_attempts',
+        'departments', 'subjects', 'user_achievements', 'model_versions', 'practice_attempts',
         'recognition_sessions', 'recognition_results', 'heart_practice_rounds',
         'heart_practice_questions', 'heart_practice_submissions',
     ];

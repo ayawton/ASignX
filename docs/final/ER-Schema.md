@@ -164,8 +164,10 @@ erDiagram
         text description "required"
         varchar(25) metric "required"
         integer threshold "required"
+        varchar(10) status
+        varchar(10) icon
     }
-    user_achievements {
+    profile_achievements {
         uuid user_id PK,FK "required"
         uuid achievement_id PK,FK "required"
         timestamptz unlocked_at "required"
@@ -199,6 +201,6 @@ erDiagram
     exercises ||--o{ practice_round_questions : "exercise_id"
     exercise_options ||--o{ practice_submissions : "selected_option_id"
     practice_round_questions ||--o{ practice_submissions : "round_id_question_index"
-    profiles ||--o{ user_achievements : "user_id"
-    achievements ||--o{ user_achievements : "achievement_id"
+    profiles ||--o{ profile_achievements : "user_id"
+    achievements ||--o{ profile_achievements : "achievement_id"
 ```

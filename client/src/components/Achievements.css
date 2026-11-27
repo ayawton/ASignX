@@ -1,0 +1,35 @@
+.achievement-page { display: grid; gap: 1rem; }
+.achievement-page .page-heading h1 { font-size: clamp(1.5rem, 3vw, 2rem); }
+.badge-list { list-style: none; padding: 0; margin: 0; }
+.badge-row, .admin-badge-row, .learning-record-row {
+ display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.75rem;
+ align-items: center; padding: 0.85rem 0; border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+.admin-badge-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+.learning-record-row { grid-template-columns: minmax(0, 1fr) auto; }
+.badge-list li:last-child { border-bottom: 0; }
+.badge-list h3 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.badge-list p { margin: 0.2rem 0 0; overflow-wrap: anywhere; }
+.badge-progress { display: grid; gap: 0.35rem; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.badge-progress time { display: block; }
+.badge-progress progress { width: 100%; height: 0.5rem; accent-color: var(--accent, #087884); animation: badge-progress-in 400ms ease-out; transform-origin: left; }
+.badge-editor { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
+.badge-filters { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
+.badge-filters button { background: transparent; color: inherit; border: 0; border-bottom: 2px solid transparent; min-height: 44px; }
+.badge-filters button[aria-pressed=true] { border-bottom-color: currentColor; font-weight: 650; }
+.admin-badge-row button { min-height: 44px; }
+.badge-announcer { position: fixed; inset: auto 1rem 1rem auto; z-index: 30; max-width: calc(100vw - 2rem); }
+.badge-notice { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.9rem; color: #fff; background: #17282d; border-radius: 0.75rem; animation: badge-notice-in 250ms ease-out; }
+.badge-notice p { margin: 0; }
+.badge-notice a, .badge-notice button { color: inherit; }
+.badge-notice button { background: transparent; border: 0; min-width: 44px; min-height: 44px; font-size: 1.25rem; }
+@keyframes badge-notice-in { from { transform: translateY(0.6rem) scale(0.98); opacity: 0; } }
+@keyframes badge-progress-in { from { transform: scaleX(0); } }
+@media (max-width: 700px) {
+ .badge-editor { grid-template-columns: 1fr; }
+ .badge-row { grid-template-columns: auto minmax(0, 1fr); }
+ .badge-progress { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .badge-notice, .badge-progress progress { animation: none; }
+}

@@ -133,6 +133,13 @@ test('badge designer recipes round-trip through admin writes and preserve old-cl
   assert.equal(stored.icon, 'xp', 'Designed badges derive the compatible legacy icon from the metric');
   assert.equal(stored.tier, 'mastery'); assert.equal(stored.status, 'draft'); assert.equal(stored.milestone_group, null);
   assert.deepEqual(stored.badge_design, design);
+  const invalidFields = await call('post', '/achievements', { ...details, name: ' ', description: '', threshold: 0 });
+  assert.equal(invalidFields.code, 400);
+  assert.deepEqual(Object.keys(invalidFields.body.fields), ['name', 'description', 'threshold']);
+  const legacySoft = await call('patch', '/achievements/:id', { ...details, status: 'draft', badge_design: { ...design, finish: 'soft' } }, created.body.id);
+  assert.equal(legacySoft.code, 200);
+  assert.equal((await db.query('select badge_design from achievements where id=$1', [created.body.id])).rows[0].badge_design.finish, 'classic');
+  await call('patch', '/achievements/:id', { ...details, status: 'draft' }, created.body.id);
   for (const changes of [{ tier: 'legendary' }, { milestone_group: ' ' }, { milestone_group: 'x'.repeat(81) },
    { badge_design: { ...design, version: 2 } }, { badge_design: { ...design, svg: '<script />' } },
    { badge_design: { ...design, border: 'url(https://example.test)' } }, { badge_design: [] }]) {

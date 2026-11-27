@@ -23,7 +23,7 @@ export default function BadgeDesigner({ badge, catalog, onChange, disabled, erro
   <legend>Badge designer</legend>
   {errors.badge_design && <p id="badge-error-badge_design" className="field-error">{errors.badge_design}</p>}
   <p className="badge-design-identity"><strong>{category.label}</strong><span>{category.icon} icon · coordinated category colors</span></p>
-  <fieldset className="badge-visual-field" id="badge-field-tier" tabIndex={-1} aria-invalid={Boolean(errors.tier)} aria-describedby={errors.tier ? 'badge-error-tier' : undefined}><legend>Tier <span className="field-requirement">Required</span></legend>
+  <fieldset className="badge-visual-field" id="badge-field-tier" tabIndex={-1} aria-invalid={Boolean(errors.tier)} aria-describedby={errors.tier ? 'badge-error-tier' : undefined}><legend>Tier <span className="field-required" role="img" aria-label="Required">*</span></legend>
    <div className="badge-visual-options">{Object.entries(badgeTiers).map(([key, label]) => <button type="button" key={key} aria-pressed={snapshot.tier === key} onClick={() => apply({ ...snapshot, tier: key })}><BadgeSvg badge={{ ...badge, tier: key, badge_design: recipe }} /><strong>{label}</strong><span>{badgeShapes[key]}</span></button>)}</div>
    {errors.tier && <p id="badge-error-tier" className="field-error">{errors.tier}</p>}
   </fieldset>
@@ -31,7 +31,7 @@ export default function BadgeDesigner({ badge, catalog, onChange, disabled, erro
   {suggested && <div className="badge-tier-suggestion"><span>Suggested from milestone order: {badgeTiers[suggested]}</span>
    <button type="button" className="text-link" disabled={suggested === snapshot.tier} onClick={() => apply({ ...snapshot, tier: suggested })}>Use suggestion</button></div>}
   {!badge.badge_design ? <div className="badge-empty"><p>This badge uses temporary artwork.</p><button type="button" className="text-link" onClick={() => apply({ ...snapshot, badge_design: { ...defaultBadgeDesign } })}>Start designing</button></div> : <>
-   <div className="badge-design-fields">{Object.entries(designOptions).map(([key, choices]) => <fieldset className="badge-visual-field" key={key}><legend>{key === 'finish' ? 'Color depth' : key[0].toUpperCase() + key.slice(1)} <span className="field-requirement">Required</span></legend>
+   <div className="badge-design-fields">{Object.entries(designOptions).map(([key, choices]) => <fieldset className="badge-visual-field" key={key}><legend>{key === 'finish' ? 'Color depth' : key[0].toUpperCase() + key.slice(1)} <span className="field-required" role="img" aria-label="Required">*</span></legend>
     <div className="badge-visual-options">{choices.map(choice => <button type="button" key={choice} aria-pressed={recipe[key] === choice} onClick={() => apply({ ...snapshot, badge_design: { ...recipe, [key]: choice } })}>
      <BadgeSvg badge={{ ...badge, badge_design: { ...recipe, [key]: choice } }} /><span>{choice[0].toUpperCase() + choice.slice(1)}</span>
     </button>)}</div>

@@ -130,7 +130,7 @@ and optional secret hint. The Designer tab controls artwork and tier.
 | Border | Decorative treatment | Single, double, dotted, or laurel |
 | Background pattern | Decorative treatment | Solid, rays, stars, or diamonds |
 | Decoration | Decorative treatment | None, ribbon, wings, or stars |
-| Color depth | Variation within the category palette | Classic, soft, or deep |
+| Color depth | Variation within the category palette | Classic or deep |
 
 | Category | Metric | Center icon | Primary color |
 | --- | --- | --- | --- |
@@ -152,7 +152,7 @@ recipe. **Undo/Redo** applies to design and tier changes within the editor sessi
 
 Duplicate combinations show a warning and do not prevent saving or awarding. The
 comparison uses category, tier, and normalized recipe rather than JSON key order.
-The available options yield 192 recipes per category/tier, or 4,608 combinations
+The available options yield 128 recipes per category/tier, or 3,072 combinations
 across six categories and four tiers. This is a configuration count; subtle
 variants are not guaranteed to look completely different at every size.
 
@@ -164,7 +164,7 @@ variants are not guaranteed to look completely different at every size.
 | Published | Available for eligibility evaluation and learner display, subject to secret masking |
 | Retired | Stops new awards; remains visible to learners who already earned it |
 
-Admins use Gallery or List view with search and status filters. Both views display
+Admins use Gallery, List, or By type view with search, type/status filters, and name/target/tier sorting. Secret/Visible filtering is available under More filters. Both views display
 12 badges per page with a result range and Previous/Next controls. Search and
 status changes return to page 1; switching views preserves the page. The desktop
 gallery uses four columns, tablets two, and phones one. Board view was removed.
@@ -364,3 +364,30 @@ when the session ends.
 
 Standalone and secret badges are supported now through the existing threshold
 metrics. More specialized challenge conditions require additional backend rules.
+
+## Catalog and visual editor refinements — 27 November 2026
+
+The By type view groups badges under Learning, Practice, Experience, Consistency,
+Precision, and Courses. Each nonempty group has its own count and 12-badge
+pagination. Search, type/status/visibility filters, and name/target/tier sorting
+apply before grouping. Filter or sort changes reset grouped pages. Gallery/List
+keep their shared page when switching between those two views.
+
+Details and Designer share a top-aligned preview beside the form above 768px; the
+preview remains sticky on desktop and stacks below the form on smaller screens.
+Tier shapes, borders, patterns, decorations, and color depth are chosen using
+clickable SVG samples with text labels, keyboard focus, and a selected state. Each
+sample uses the current category and the other current design choices.
+
+Only Classic and Deep are offered. Legacy Soft recipes display as Classic and are
+normalized to Classic when saved through the updated API. Existing database
+constraints continue accepting Soft for backward compatibility; no destructive
+backfill or schema migration is needed for this refinement.
+
+Required fields are explicitly labeled; hints are optional and milestone group is
+required only for a milestone series. Validation shows a red border and a specific
+message below each invalid field, preserves entered values, opens the appropriate
+editor tab, and focuses the first invalid field after Save. Correcting a field
+clears its error. API validation returns a field-error map for the same treatment.
+Connection failures remain general alerts. Earned requirement locks, secret
+masking, tier semantics, and isolated guest-session behavior remain in force.

@@ -26,8 +26,14 @@ Use Outfit for headings and DM Sans for body text, labels, and controls. Keep th
 existing logo assets. App titles are about 28–32px; body copy is 14–16px; metadata
 is 12–13px. Check actual contrast on the surface used.
 
-Use white panels, restrained pale blue fills, quiet 1px borders, and 8–10px corners
-on controls and catalog cards. Existing larger panels can keep their 12px radius.
+Use white panels, restrained pale blue fills, and quiet 1px borders.
+Squircle corners are the system-wide default for new and existing buttons, inputs,
+dropdowns, cards, panels, and dialogs. Reuse `client/src/shape-tokens.css`:
+`--radius-control` (12px) for controls, `--radius-panel` (20px) for larger containers,
+and `--radius-detail` (8px) for small nested details. Use `corner-shape: squircle`
+with these radii; browsers without support retain the rounded-square fallback.
+Preserve intentional circles (avatars, status dots, badge artwork), thin progress
+tracks, and structural flush edges. Do not turn everyday controls into pills.
 Do not introduce gradients, glass, glows, ornamental KPI tiles, or heavy shadows.
 The interface chrome stays blue and neutral; semantic badges may use their own
 documented category palette.
@@ -39,7 +45,7 @@ documented category palette.
 - Use 20px catalog gaps and 24px panel gaps. Maintain equal outer gutters.
 - Admin navigation ends with My profile, followed by Log out. The top-right
   account link remains available. Keep the learner and guest navigation order.
-- Achievement toolbar order is Search, Status, then Gallery/List. The search icon
+- Achievement controls include Search, Type, Sort, Status, then Gallery/List/By type. The search icon
   sits inside the input on the left, with reserved text padding.
 - Never rely on an unscoped `sr-only` class: use an available helper or an explicit
   accessible name. Decorative icons use `aria-hidden`.
@@ -47,6 +53,9 @@ documented category palette.
   less. Collection shelves use three desktop columns, two on tablets, one on phones.
 - Gallery and List share 12 results per page, a result range, page position, and
   Previous/Next controls. Search/status changes reset the page; view changes keep it.
+- Achievement pagination uses 44px square squircle buttons with only left/right
+  arrows. Keep accessible Previous page/Next page names, tooltips, disabled states,
+  keyboard focus, page position, and result counts across Gallery, List, and By type.
 - Board view was intentionally removed. Do not reintroduce it without a new need.
 - Keep keyboard focus visible, touch controls at least 44px tall, and disabled text
   readable. Tabs support arrow keys. Provide loading, empty, retry, and error states.
@@ -103,9 +112,9 @@ warning, not an award restriction.
 - Border: single, double, dotted, laurel.
 - Pattern: solid, rays, stars, diamonds.
 - Decoration: none, ribbon, wings, stars.
-- Finish: classic, soft, deep (within the category palette).
+- Finish: classic, deep (within the category palette).
 
-The 192 recipes per category/tier give 4,608 category/tier/recipe combinations.
+The 128 recipes per category/tier give 3,072 category/tier/recipe combinations.
 Some choices are visually subtle, so this is a combination count, not a claim that
 every pair is perceptually distinct. Duplication compares canonical recipes,
 category, and tier. Validation rejects unknown versions, options, and extra keys.
@@ -135,3 +144,33 @@ Before shipping a new visual pattern, check desktop, tablet, and phone layouts,
 keyboard use, long names, empty data, errors, and secret previews. Run client build
 and lint, relevant tests, and browser inspection when available. Report any visual
 check that could not run instead of treating a successful build as visual proof.
+
+## Catalog and visual editor refinements — 27 November 2026
+
+The By type view groups badges under Learning, Practice, Experience, Consistency,
+Precision, and Courses. Each nonempty group has its own count and 12-badge
+pagination. Search, type/status/visibility filters, and name/target/tier sorting
+apply before grouping. Filter or sort changes reset grouped pages. Gallery/List
+keep their shared page when switching between those two views.
+
+Details and Designer share a top-aligned preview beside the form above 768px; the
+preview remains sticky on desktop and stacks below the form on smaller screens.
+Tier shapes, borders, patterns, decorations, and color depth are chosen using
+clickable SVG samples with text labels, keyboard focus, and a selected state. Each
+sample uses the current category and the other current design choices.
+
+Only Classic and Deep are offered. Legacy Soft recipes display as Classic and are
+normalized to Classic when saved through the updated API. Existing database
+constraints continue accepting Soft for backward compatibility; no destructive
+backfill or schema migration is needed for this refinement.
+
+Required field labels use a red asterisk beside the label, with an accessible
+Required name and native required attributes where applicable. Do not add a
+required-field explanation note. Optional labels stay as text.
+Hints are optional and milestone group is
+required only for a milestone series. Validation shows a red border and a specific
+message below each invalid field, preserves entered values, opens the appropriate
+editor tab, and focuses the first invalid field after Save. Correcting a field
+clears its error. API validation returns a field-error map for the same treatment.
+Connection failures remain general alerts. Earned requirement locks, secret
+masking, tier semantics, and isolated guest-session behavior remain in force.

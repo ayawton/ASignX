@@ -13,7 +13,7 @@ const db = new PGlite();
 const uid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const u1 = uid(1), u2 = uid(2), c1 = uid(10), c2 = uid(11), l1 = uid(20), l2 = uid(21);
 const sign = uid(30), otherSign = uid(31), exercise = uid(40), correct = uid(50), wrong = uid(51);
-const enrollment = uid(60), model = uid(70), session = uid(80), badge = uid(90);
+const enrollment = uid(60), badge = uid(90);
 const scalar = async sql => Object.values((await db.query(sql)).rows[0])[0];
 const attempt = (option = correct, claimed = false) => `INSERT INTO exercise_attempts
     (enrollment_id,exercise_id,selected_option_id,is_correct) VALUES ('${enrollment}','${exercise}','${option}',${claimed})`;
@@ -62,12 +62,18 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         assert.equal((await request('/me/lessons/' + l1 + '/start', 'POST', first, { start_id: runId })).status, 200);
         const question = await request('/me/lessons/' + l1, 'GET', first);
         assert.ok(question.data.exercises[0].options.every(option => !('is_correct' in option)));
+        assert.equal((await request('/me/practice/start', 'POST', first)).status, 404);
         const graded = await request('/me/lessons/' + l1 + '/attempt', 'POST', first, {
             run_id: runId, attempt_id: uid(541), exercise_id: exercise, selected_option_id: correct,
         });
         assert.equal(graded.status, 200);
         assert.equal(graded.data.correct, true);
         assert.equal((await request('/me/progress', 'GET', first)).data.xp, 10);
+        const practice = await request('/me/practice/start', 'POST', first);
+        assert.equal(practice.status, 200);
+        assert.equal(practice.data.hearts.hearts, 3);
+        assert.equal(practice.data.round.question.id, exercise);
+        assert.equal((await request('/me/practice/start', 'POST', second)).status, 404);
         assert.deepEqual((await request('/me/enrollments', 'GET', second)).data, []);
         assert.equal((await request('/me/progress', 'GET', second)).data.xp, 0);
         assert.equal((await request('/guest/session', 'GET', first)).data.id, a.data.user.id);
@@ -148,14 +154,31 @@ test('hearts, remaining question XP, perfect-run replays and heart practice are 
   assert.equal(await scalar('select sum(amount) from xp_awards'),12);
   await db.exec(`update learner_hearts set hearts=0,regenerated_at=now() where user_id='${u1}'`);
   assert.equal((await call('start',{start_id:uid(206)})).code,423);
-  const game=personal.stack.find(l=>l.handle?.stack?.some(r=>r.route?.path==='/heart-practice/start')).handle;
+  const game=personal.stack.find(l=>l.handle?.stack?.some(r=>r.route?.path==='/practice/start')).handle;
   async function practice(path,body={}){const res={locals:{user:{id:u1}},code:200,status(code){this.code=code;return this},json(body){this.body=body}};await game.stack.find(l=>l.route?.path===path).route.stack[0].handle({body},res);return res;}
-  const round=(await practice('/heart-practice/start')).body.round;let response;
-  for(let i=0;i<3;i++)response=await practice('/heart-practice/answer',{round_id:round.id,attempt_id:uid(210+i),selected_option_id:correct,question_index:i});
+  const round=(await practice('/practice/start')).body.round;let response;
+  const retry=await practice('/practice/answer',{round_id:round.id,attempt_id:uid(208),selected_option_id:wrong,question_index:0});
+  assert.equal(retry.body.correct,false);assert.equal(retry.body.hearts.hearts,0);assert.equal(retry.body.round.question.question_index,0);
+  for(let i=0;i<3;i++)response=await practice('/practice/answer',{round_id:round.id,attempt_id:uid(210+i),selected_option_id:correct,question_index:i});
   assert.equal(response.body.hearts.hearts,1);assert.equal(await scalar('select sum(amount) from xp_awards'),12);
-  assert.equal((await practice('/heart-practice/answer',{round_id:round.id,attempt_id:uid(212),selected_option_id:correct,question_index:2})).body.hearts.hearts,1);
-  await db.exec(`update learner_hearts set hearts=0,regenerated_at=now()-interval '625 seconds' where user_id='${u1}'`);
-  const regenerated=(await practice('/hearts')).body;assert.equal(regenerated.hearts,2);assert.equal(new Date(regenerated.next_heart_at)-new Date(regenerated.server_time),275000);assert.equal((await practice('/hearts')).body.hearts,2,'Reading twice must retain fractional regeneration time');
+  assert.equal((await practice('/practice/answer',{round_id:round.id,attempt_id:uid(212),selected_option_id:correct,question_index:2})).body.hearts.hearts,1);
+  assert.equal(response.body.round.heart_restored,true);
+  for(const [caseIndex,{balance,passive}] of [{balance:2,passive:false},{balance:3,passive:false},{balance:2,passive:true}].entries()){
+   await db.exec(`update learner_hearts set hearts=${balance},regenerated_at=now() where user_id='${u1}'`);
+   const nextStart=await practice('/practice/start');
+   assert.equal(nextStart.code,200);
+   const nextId=nextStart.body.round.id;
+   for(let i=0;i<3;i++){
+    if(passive&&i===2)await db.exec(`update learner_hearts set regenerated_at=now()-interval '30 minutes' where user_id='${u1}'`);
+    response=await practice('/practice/answer',{round_id:nextId,attempt_id:uid(730+caseIndex*3+i),selected_option_id:correct,question_index:i});
+   }
+   assert.equal(response.body.hearts.hearts,3);
+   assert.equal(response.body.round.heart_restored,balance===2&&!passive);
+  }
+  await db.exec(`update learner_hearts set hearts=0,regenerated_at=now()-interval '1799 seconds' where user_id='${u1}'`);
+  assert.equal((await practice('/hearts')).body.hearts,0);
+  await db.exec(`update learner_hearts set regenerated_at=now()-interval '3625 seconds' where user_id='${u1}'`);
+  const regenerated=(await practice('/hearts')).body;assert.equal(regenerated.regen_interval_seconds,1800);assert.equal(regenerated.hearts,2);assert.equal(new Date(regenerated.next_heart_at)-new Date(regenerated.server_time),1775000);assert.equal((await practice('/hearts')).body.hearts,2,'Reading twice must retain fractional regeneration time');
   const multi=uid(600),q1=uid(601),q2=uid(602),q3=uid(603);
   await db.exec(`insert into lessons(id,course_id,title,content,sort_order,xp_reward) values ('${multi}','${c1}','Weighted','Study',9,100);
    insert into exercises(id,lesson_id,prompt,sort_order,answer_type) values ('${q1}','${multi}','One',1,'choice'),('${q2}','${multi}','Two',2,'choice'),('${q3}','${multi}','Three',3,'boolean');
@@ -175,7 +198,7 @@ test('hearts, remaining question XP, perfect-run replays and heart practice are 
   const paused=uid(700);await weighted('start',{start_id:paused});
   const loss=await weighted('attempt',{run_id:paused,attempt_id:uid(701),exercise_id:q1,selected_option_id:uid(612)});assert.equal(loss.body.hearts.hearts,0);assert.equal(loss.body.run.completed_at,null);
   assert.equal((await weighted('attempt',{run_id:paused,attempt_id:uid(702),exercise_id:q2,selected_option_id:uid(613)})).code,423);
-  await db.exec(`update learner_hearts set regenerated_at=now()-interval '301 seconds' where user_id='${u1}'`);
+  await db.exec(`update learner_hearts set regenerated_at=now()-interval '1801 seconds' where user_id='${u1}'`);
   assert.equal((await weighted('attempt',{run_id:paused,attempt_id:uid(702),exercise_id:q2,selected_option_id:uid(613)})).code,200);
   await db.exec(`delete from auth.users where id='${u1}'`);assert.equal(await scalar('select count(*) from lesson_runs'),0);assert.equal(await scalar(`select count(*) from learner_hearts where user_id='${u1}'`),0);
 
@@ -217,13 +240,17 @@ test('mixed answer types grade on server, keep keys private and save only truste
   const stolen=response(u2);await sessionMiddleware({params:{session:started.body.session_id}},stolen,()=>assert.fail('foreign camera session accepted'));assert.equal(stolen.code,404);
   async function frame(){const res=response();await sessionMiddleware({params:{session:started.body.session_id}},res,()=>{});await router.stack.find(l=>l.route?.path==='/lesson-recognition/:session/frames').route.stack.at(-1).handle({body:Buffer.from('test JPEG forwarded to trusted mock'),is:()=>true,get:()=> '1000'},res);return res;}
   assert.equal((await frame()).body.correct,false);detected='A';assert.equal((await frame()).body.correct,true);
-  assert.equal(await scalar(`select m.fingerprint from exercise_attempts a join model_versions m on m.id=a.model_version_id where exercise_id='${camera}' and is_correct`),'model-test');
+  assert.equal(await scalar(`select response_text from exercise_attempts where exercise_id='${camera}' and is_correct`),'A');
   assert.equal((await action('complete',{})).code,200);
  }finally{globalThis.fetch=originalFetch;if(token===undefined)delete process.env.RECOGNITION_INTERNAL_TOKEN;else process.env.RECOGNITION_INTERNAL_TOKEN=token;delete globalThis.__lessonSql;}
 });
-const practice = (score = '.9', prediction = `'${sign}'`, time = 'now()') => `INSERT INTO practice_attempts
-    (user_id,target_sign_id,predicted_sign_id,model_version_id,confidence,is_correct,attempted_at)
-    VALUES ('${u1}','${sign}',${prediction},'${model}',${score},true,${time})`;
+async function addPractice(time = 'now()') {
+    const { rows: [round] } = await db.query(`insert into practice_rounds(user_id,completed_at) values ('${u1}',${time}) returning id`);
+    for (let index = 0; index < 3; index++) {
+        await db.query('insert into practice_round_questions values ($1,$2,$3)', [round.id,index,exercise]);
+        await db.query('insert into practice_submissions(id,round_id,question_index,selected_option_id,is_correct) values (gen_random_uuid(),$1,$2,$3,false)', [round.id,index,correct]);
+    }
+}
 async function rejects(sql, pattern) {
     await db.exec('SAVEPOINT expected_failure');
     await assert.rejects(db.exec(sql), pattern);
@@ -262,8 +289,6 @@ before(async () => {
         UPDATE lessons SET is_published=true WHERE id IN ('${l1}','${l2}');
         INSERT INTO enrollments(id,user_id,course_id) VALUES ('${enrollment}','${u1}','${c1}');
         INSERT INTO lesson_progress(enrollment_id,lesson_id) VALUES ('${enrollment}','${l1}');
-        INSERT INTO model_versions(id,version,artifact_path) VALUES ('${model}','v1','models/v1.onnx');
-        INSERT INTO recognition_sessions(id,user_id) VALUES ('${session}','${u1}');
         INSERT INTO achievements(id,code,name,description,metric,threshold) VALUES
             ('${badge}','FIRST','First lesson','Complete one lesson','completed_lessons',1);`);
 });
@@ -271,11 +296,11 @@ after(async () => { await db.close(); });
 beforeEach(async () => { await db.exec('BEGIN'); });
 afterEach(async () => { await db.exec('ROLLBACK'); });
 
-test('migration replaces both practice tables with exactly 23 RLS-protected application tables', async () => {
+test('migration replaces both practice tables with exactly 19 RLS-protected application tables', async () => {
     const { rows } = await db.query("SELECT relname,relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND relkind='r'");
-    assert.equal(rows.length, 23);
+    assert.equal(rows.length, 19);
     assert.ok(rows.every(r => r.relrowsecurity));
-    assert.ok(!rows.some(r => ['departments', 'subjects'].includes(r.relname)));
+    assert.ok(!rows.some(r => ['departments', 'subjects', 'model_versions', 'practice_attempts', 'recognition_sessions', 'recognition_results'].includes(r.relname)));
 });
 test('already-confirmed signup creates a learner profile and ignores requested admin metadata', async () => {
     assert.equal(await scalar(`SELECT role FROM profiles WHERE id='${u1}'`), 'learner');
@@ -290,12 +315,11 @@ test('anonymous readers see only published content, including the parent course'
     assert.equal(await scalar('SELECT count(*)::int FROM signs'), 1);
     assert.equal(await scalar('SELECT count(*)::int FROM exercises'), 1);
 });
-test('learners can read only their own progress, profile and Live history', async () => {
+test('learners can read only their own progress and profile', async () => {
     await asUser(u2);
     assert.equal(await scalar('SELECT count(*)::int FROM profiles'), 1);
     assert.equal(await scalar('SELECT count(*)::int FROM enrollments'), 0);
     assert.equal(await scalar('SELECT count(*)::int FROM lesson_progress'), 0);
-    assert.equal(await scalar('SELECT count(*)::int FROM recognition_sessions'), 0);
 });
 test('owner can edit allowed profile fields but cannot promote their role', async () => {
     await asUser();
@@ -303,12 +327,11 @@ test('owner can edit allowed profile fields but cannot promote their role', asyn
     assert.equal(await scalar(`SELECT display_name FROM profiles WHERE id='${u1}'`), 'Updated');
     await rejects(`UPDATE profiles SET role='admin' WHERE id='${u1}'`, /permission denied/);
 });
-test('browser cannot read answer keys or model artifact paths or write trusted outcomes', async () => {
+test('browser cannot read answer keys or write trusted outcomes', async () => {
     await asUser();
     await rejects('SELECT * FROM exercise_options', /permission denied/);
-    await rejects('SELECT * FROM model_versions', /permission denied/);
     await rejects(complete(), /permission denied/);
-    await rejects(practice(), /permission denied/);
+    await rejects('SELECT * FROM practice_submissions', /permission denied/);
 });
 test('grading uses stored option correctness and verifies course membership', async () => {
     await db.exec(attempt(wrong, true));
@@ -326,22 +349,6 @@ test('completion requires a finalized run and preserves its timestamp', async ()
  await rejects('DELETE FROM lesson_progress', /cannot be deleted/);
 });
 
-test('practice uses the immutable model threshold and rejects out-of-range scores', async () => {
-    await db.exec(practice('.79'));
-    assert.equal(await scalar('SELECT is_correct FROM practice_attempts'), false);
-    await db.exec(practice('.95'));
-    assert.equal(await scalar('SELECT count(*)::int FROM practice_attempts WHERE is_correct'), 1);
-    await db.exec(practice('.99', 'NULL'));
-    assert.equal(await scalar('SELECT count(*)::int FROM practice_attempts WHERE is_correct'), 1);
-    await rejects(practice('1.1'), /violates check constraint/);
-    await rejects("UPDATE model_versions SET confidence_threshold='.1'", /immutable/);
-});
-test('lesson practice requires target membership and enrollment', async () => {
-    await rejects(`INSERT INTO practice_attempts(user_id,lesson_id,target_sign_id,model_version_id,confidence,is_correct)
-        VALUES ('${u1}','${l1}','${otherSign}','${model}',.9,true)`, /requires enrollment/);
-    await rejects(`INSERT INTO practice_attempts(user_id,lesson_id,target_sign_id,model_version_id,confidence,is_correct)
-        VALUES ('${u2}','${l1}','${sign}','${model}',.9,true)`, /requires enrollment/);
-});
 test('published quiz definitions cannot be silently changed', async () => {
     await rejects(`UPDATE exercise_options SET option_text='Replaced' WHERE id='${correct}'`, /definitions are frozen/);
     await rejects(`UPDATE exercises SET prompt='Replaced' WHERE id='${exercise}'`, /definitions are frozen/);
@@ -356,15 +363,6 @@ test('only one option per exercise can be correct', async () => {
     await db.exec(`UPDATE lessons SET is_published=false WHERE id='${l1}'`);
     await rejects(`UPDATE exercise_options SET is_correct=true WHERE id='${wrong}'`, /duplicate key/);
 });
-test('Live final text uses ordered, accepted predictions and rejects later appends', async () => {
-    await db.exec(`INSERT INTO recognition_results(session_id,sign_id,model_version_id,sequence_no,confidence) VALUES
-        ('${session}','${sign}','${model}',2,.9),('${session}','${otherSign}','${model}',1,.9),
-        ('${session}','${sign}','${model}',3,.3),('${session}',NULL,'${model}',4,.99);
-        UPDATE recognition_sessions SET ended_at=now(),final_text='Client fake text' WHERE id='${session}'`);
-    assert.equal(await scalar('SELECT final_text FROM recognition_sessions'), 'Letter B Letter A');
-    await rejects(`INSERT INTO recognition_results(session_id,model_version_id,sequence_no,confidence)
-        VALUES ('${session}','${model}',5,.9)`, /ended recognition session/);
-});
 test('achievement awards require eligibility and cannot be duplicated or redefined', async () => {
     await rejects(`INSERT INTO user_achievements(user_id,achievement_id) VALUES ('${u1}','${badge}')`, /threshold has not been met/);
     await db.exec(attempt()); await db.exec(`insert into lesson_runs(enrollment_id,lesson_id,completed_at) values ('${enrollment}','${l1}',now())`); await db.exec(complete());
@@ -373,23 +371,22 @@ test('achievement awards require eligibility and cannot be duplicated or redefin
     await rejects("UPDATE achievements SET threshold=2", /immutable/);
 });
 test('streak combines local dates, counts a date once and resets after a gap', async () => {
-    await db.exec(practice()); await db.exec(practice());
+    await addPractice('now()'); await addPractice('now()');
     assert.equal(await scalar(`SELECT asignx_private.current_streak('${u1}')`), 1);
-    await db.exec(practice('.9', `'${sign}'`, "now()-interval '1 day'"));
-    await db.exec(practice('.9', `'${sign}'`, "now()-interval '3 days'"));
+    await addPractice("now()-interval '1 day'");
+    await addPractice("now()-interval '3 days'");
     assert.equal(await scalar(`SELECT asignx_private.current_streak('${u1}')`), 2);
-    await db.exec('DELETE FROM practice_attempts');
-    await db.exec(practice('.9', `'${sign}'`, "now()-interval '3 days'"));
+    await db.exec('DELETE FROM practice_rounds');
+    await addPractice("now()-interval '3 days'");
     assert.equal(await scalar(`SELECT asignx_private.current_streak('${u1}')`), 0);
 });
 test('account deletion cascades private activity but preserves shared content', async () => {
-    await db.exec(attempt()); await db.exec(`insert into lesson_runs(enrollment_id,lesson_id,completed_at) values ('${enrollment}','${l1}',now())`); await db.exec(complete()); await db.exec(practice());
+    await db.exec(attempt()); await db.exec(`insert into lesson_runs(enrollment_id,lesson_id,completed_at) values ('${enrollment}','${l1}',now())`); await db.exec(complete()); await addPractice();
     await db.exec(`DELETE FROM auth.users WHERE id='${u1}'`);
-    for (const name of ['enrollments','lesson_progress','exercise_attempts','practice_attempts','recognition_sessions']) {
+    for (const name of ['enrollments','lesson_progress','exercise_attempts','practice_rounds','practice_round_questions','practice_submissions']) {
         assert.equal(await scalar(`SELECT count(*)::int FROM ${name}`), 0, name);
     }
     assert.equal(await scalar('SELECT count(*)::int FROM courses'), 2);
-    assert.equal(await scalar('SELECT count(*)::int FROM model_versions'), 1);
 });
 
 test('legacy replacement guard handles absent tables and refuses populated tables', async () => {
@@ -450,7 +447,7 @@ test('upgrade removes empty pending profiles, preserves confirmed profiles, and 
             GRANT USAGE ON SCHEMA auth TO anon,authenticated,service_role;
             GRANT EXECUTE ON FUNCTION auth.uid() TO anon,authenticated,service_role;`);
         const folders = (await readdir(new URL('../drizzle/', import.meta.url))).sort();
-        for (const folder of folders.filter(name => !name.endsWith('_confirmed_profiles') && !name.endsWith('_guest_profiles'))) {
+        for (const folder of folders.filter(name => !name.endsWith('_confirmed_profiles') && !name.endsWith('_guest_profiles') && !name.endsWith('_simplify_practice'))) {
             await upgradeDb.exec(await readFile(new URL(`../drizzle/${folder}/migration.sql`, import.meta.url), 'utf8'));
         }
         const pending = uid(310), confirmed = uid(311), activePending = uid(312);
@@ -488,10 +485,10 @@ test('normalized histories enforce run ownership, question membership and award 
  await rejects(`insert into xp_awards(enrollment_id,lesson_id,exercise_id,source,amount) values ('${enrollment}','${l1}','${exercise}','claim',0)`,/duplicate key/);
  await rejects('update xp_awards set amount=100',/immutable/);
  const round=uid(954);
- await db.exec(`insert into heart_practice_rounds(id,user_id) values ('${round}','${u1}');insert into heart_practice_questions values ('${round}',0,'${exercise}')`);
- await rejects(`insert into heart_practice_submissions values ('${uid(955)}','${round}',0,'${uid(999)}',true,now())`,/Heart answer does not belong/);
- await db.exec(`insert into heart_practice_submissions values ('${uid(956)}','${round}',0,'${wrong}',true,now())`);
- assert.equal(await scalar('select is_correct from heart_practice_submissions'),false);
+ await db.exec(`insert into practice_rounds(id,user_id) values ('${round}','${u1}');insert into practice_round_questions values ('${round}',0,'${exercise}')`);
+ await rejects(`insert into practice_submissions values ('${uid(955)}','${round}',0,'${uid(999)}',true,now())`,/Practice answer does not belong/);
+ await db.exec(`insert into practice_submissions values ('${uid(956)}','${round}',0,'${wrong}',true,now())`);
+ assert.equal(await scalar('select is_correct from practice_submissions'),false);
  await asUser(u1);
- for(const table of ['xp_awards','heart_practice_questions','heart_practice_submissions'])await rejects(`select * from ${table}`,/permission denied/);
+ for(const table of ['xp_awards','practice_round_questions','practice_submissions'])await rejects(`select * from ${table}`,/permission denied/);
 });

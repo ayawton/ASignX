@@ -1,10 +1,17 @@
 # ASignX Current ER Schema
 
-Updated 8 November 2026. Generated from the current Drizzle application schema: **23 application tables, 138 application fields and 41 foreign keys**. `auth_users` represents the external Supabase `auth.users` table and is not included in the application table count.
+The updated application schema has **19 tables, 111 fields and 31 foreign keys**. The diagram includes the external Supabase Auth identity separately.
 
-[PNG image](ER-Schema.png) · [Zoomable SVG](ER-Schema.svg) · [Mermaid source](ER-Schema.mmd) · [PlantUML source](Normalized-ERD.uml.txt) · [Data dictionary](Data-Dictionary.md)
+[Mermaid source](ER-Schema.mmd) · [PlantUML source](Normalized-ERD.uml.txt) · [Data dictionary](Data-Dictionary.md)
 
-The image includes all fields and declared FK relationships. Crow’s-foot endpoints describe the cardinality allowed by keys and nullability; they do not promise that every parent has a child. Composite FKs are one relationship, even when they include two fields. Partial unique indexes and trigger rules are documented in the dictionary, rather than represented as unconditional cardinalities. PNG and SVG are rendered from the PlantUML source using its bundled Smetana layout. The Mermaid source may use different placement.
+## Changes for the manuscript
+
+- ASignLearn Practice uses multiple-choice and true-or-false questions from completed, published lessons. It is available at any heart balance. Three correct answers complete the round. If the learner has fewer than three hearts, completion restores one heart. Wrong answers carry no heart penalty, and Practice awards no XP.
+- Passive regeneration restores one heart per 30 minutes, up to three. Completed Practice rounds count toward the learning streak and the successful-practices achievement metric.
+- The three former `heart_practice_*` tables are now `practice_rounds`, `practice_round_questions`, and `practice_submissions`. The migration preserves their rows. The new `heart_restored` field records whether the round granted a heart.
+- The simplified schema removes `practice_attempts`, `recognition_sessions`, `recognition_results`, and `model_versions`. ASignLearn retains graded camera results in `exercise_attempts`, including the detected sign and confidence. ASignLive keeps its live text in browser memory.
+
+Use the editable ERD below and the linked dictionary for this revision. The previously exported ERD images and Word/PDF dictionaries represent the earlier schema.
 
 ## Editable diagram
 
@@ -93,8 +100,8 @@ erDiagram
         uuid enrollment_id FK "required"
         uuid exercise_id FK "required"
         text response_text "optional"
+        varchar(50) model_version "optional legacy metadata"
         numeric(6__5) recognition_confidence "optional"
-        uuid model_version_id FK "optional"
         uuid selected_option_id FK "optional"
         boolean is_correct "required"
         timestamptz attempted_at "required"
@@ -130,59 +137,25 @@ erDiagram
         integer amount "required"
         timestamptz awarded_at "required"
     }
-    heart_practice_rounds {
+    practice_rounds {
         uuid id PK "required"
         uuid user_id FK "required"
         timestamptz completed_at "optional"
         timestamptz created_at "required"
+        boolean heart_restored "required"
     }
-    heart_practice_questions {
+    practice_round_questions {
         uuid round_id PK,FK "required"
         integer question_index PK "required"
         uuid exercise_id FK "required"
     }
-    heart_practice_submissions {
+    practice_submissions {
         uuid id PK "required"
         uuid round_id FK "required"
         integer question_index FK "required"
         uuid selected_option_id FK "required"
         boolean is_correct "required"
         timestamptz submitted_at "required"
-    }
-    model_versions {
-        uuid id PK "required"
-        varchar(50) version UK "required"
-        varchar(128) fingerprint UK "optional"
-        text artifact_path "optional"
-        numeric(6__5) confidence_threshold "required"
-        timestamptz created_at "required"
-    }
-    practice_attempts {
-        uuid id PK "required"
-        uuid user_id FK "required"
-        uuid lesson_id FK "optional"
-        uuid target_sign_id FK "required"
-        uuid predicted_sign_id FK "optional"
-        uuid model_version_id FK "required"
-        numeric(6__5) confidence "required"
-        boolean is_correct "required"
-        timestamptz attempted_at "required"
-    }
-    recognition_sessions {
-        uuid id PK "required"
-        uuid user_id FK "required"
-        timestamptz started_at "required"
-        timestamptz ended_at "optional"
-        text final_text "optional"
-    }
-    recognition_results {
-        uuid id PK "required"
-        uuid session_id FK "required"
-        uuid sign_id FK "optional"
-        uuid model_version_id FK "required"
-        integer sequence_no "required"
-        numeric(6__5) confidence "required"
-        timestamptz recognized_at "required"
     }
     achievements {
         uuid id PK "required"
@@ -210,7 +183,6 @@ erDiagram
     lessons ||--o{ lesson_progress : "lesson_id"
     enrollments ||--o{ exercise_attempts : "enrollment_id"
     exercises ||--o{ exercise_attempts : "exercise_id"
-    model_versions |o--o{ exercise_attempts : "model_version_id"
     exercise_options |o--o{ exercise_attempts : "exercise_id_selected_option_id"
     profiles ||--o| learner_hearts : "user_id"
     enrollments ||--o{ lesson_runs : "enrollment_id"
@@ -222,30 +194,11 @@ erDiagram
     lessons ||--o{ xp_awards : "lesson_id"
     lesson_runs |o--o{ xp_awards : "run_id"
     exercises |o--o{ xp_awards : "exercise_id"
-    profiles ||--o{ heart_practice_rounds : "user_id"
-    heart_practice_rounds ||--o{ heart_practice_questions : "round_id"
-    exercises ||--o{ heart_practice_questions : "exercise_id"
-    exercise_options ||--o{ heart_practice_submissions : "selected_option_id"
-    heart_practice_questions ||--o{ heart_practice_submissions : "round_id_question_index"
-    profiles ||--o{ practice_attempts : "user_id"
-    lessons |o--o{ practice_attempts : "lesson_id"
-    signs ||--o{ practice_attempts : "target_sign_id"
-    signs |o--o{ practice_attempts : "predicted_sign_id"
-    model_versions ||--o{ practice_attempts : "model_version_id"
-    profiles ||--o{ recognition_sessions : "user_id"
-    recognition_sessions ||--o{ recognition_results : "session_id"
-    signs |o--o{ recognition_results : "sign_id"
-    model_versions ||--o{ recognition_results : "model_version_id"
+    profiles ||--o{ practice_rounds : "user_id"
+    practice_rounds ||--o{ practice_round_questions : "round_id"
+    exercises ||--o{ practice_round_questions : "exercise_id"
+    exercise_options ||--o{ practice_submissions : "selected_option_id"
+    practice_round_questions ||--o{ practice_submissions : "round_id_question_index"
     profiles ||--o{ user_achievements : "user_id"
     achievements ||--o{ user_achievements : "achievement_id"
 ```
-
-## Current persistence boundaries
-
-- Profiles hold learner or admin authorization; Supabase Auth owns identities and credentials.
-- Courses store cover settings. Lessons, signs and exercises supply published learning content.
-- Enrollment progress stores milestones; lesson runs snapshot question order and XP allocation. `xp_awards` is the single XP ledger. Heart practice uses relational question and submission tables, without duplicated JSON or correct-count fields.
-- Model versions identify recognition evidence. `practice_attempts`, recognition session/result tables and achievement tables are schema capabilities; standalone persisted practice, saved Live history and automatic achievement awarding are not implemented end to end. Current Live text history remains in browser memory.
-- Curated demonstration media uses Storage object paths. Model files belong to the recognition deployment. Camera frames and raw recordings are not columns in this schema.
-
-This is a source-based schema snapshot, not a live Supabase introspection. See the dictionary for keys, defaults, checks, deletion rules and application validation.

@@ -9,7 +9,12 @@ try {
     `;
     const missing = applicationTables.filter(name => !rows.some(row => row.table_name === name));
     const unprotected = rows.filter(row => applicationTables.includes(row.table_name as typeof applicationTables[number]) && !row.rls_enabled);
-    const legacy = rows.filter(row => ['departments', 'subjects'].includes(row.table_name)).map(row => row.table_name);
+    const retiredTables = [
+        'departments', 'subjects', 'model_versions', 'practice_attempts',
+        'recognition_sessions', 'recognition_results', 'heart_practice_rounds',
+        'heart_practice_questions', 'heart_practice_submissions',
+    ];
+    const legacy = rows.filter(row => retiredTables.includes(row.table_name)).map(row => row.table_name);
     console.log(JSON.stringify({ connected: true, missing, unprotected, legacy }, null, 2));
     if (missing.length || unprotected.length || legacy.length) process.exitCode = 1;
 } catch (error) {

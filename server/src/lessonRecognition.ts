@@ -7,7 +7,7 @@ import { recognitionRequest, recognitionCapabilities } from './recognitionTransp
 
 import { heartState, recordRunAnswer } from './gamification.js';
 export const lessonRecognition=Router();
-type Session={run:string;result?:Record<string,any>;user:string;lesson:string;exercise:string;target:string;upstream:string;model:string;touched:number;created:number;busy:boolean;solved:boolean;attempts:number};
+type Session={run:string;result?:Record<string,any>;user:string;lesson:string;exercise:string;target:string;upstream:string;touched:number;created:number;busy:boolean;solved:boolean;attempts:number};
 const sessions=new Map<string,Session>();
 export async function closeLessonRecognitionForUser(user: string) {
  await Promise.all([...sessions].filter(([, session]) => session.user === user).map(async ([id, session]) => {
@@ -32,7 +32,7 @@ lessonRecognition.post('/lessons/:id/recognition',async(req,res)=>{
   const upstream=await recognitionRequest('/sessions',{method:'POST'});
   if(!/^[A-Za-z0-9_-]{43}$/.test(upstream?.session_id))throw new Error('Invalid session');
   const id=randomBytes(32).toString('base64url');
-  sessions.set(id,{run:req.body.run_id,user,lesson:req.params.id as string,exercise:access.id,target:access.gloss,upstream:upstream.session_id,model:capabilities.model,touched:Date.now(),created:Date.now(),busy:false,solved:false,attempts:0});
+  sessions.set(id,{run:req.body.run_id,user,lesson:req.params.id as string,exercise:access.id,target:access.gloss,upstream:upstream.session_id,touched:Date.now(),created:Date.now(),busy:false,solved:false,attempts:0});
   res.json({session_id:id});
  }catch{res.status(503).json({error:'Recognition is unavailable. Start the recognition service and retry.'});}
 });
@@ -58,7 +58,7 @@ lessonRecognition.post('/lesson-recognition/:session/frames',express.raw({type:'
    await heartState(tx,session.user);
    const [access]=await tx`select e.id as enrollment_id,s.gloss from exercises x join lessons l on l.id=x.lesson_id join courses c on c.id=l.course_id join enrollments e on e.course_id=c.id join signs s on s.id=x.sign_id join lesson_signs ls on ls.lesson_id=l.id and ls.sign_id=s.id where x.id=${session.exercise} and l.id=${session.lesson} and e.user_id=${session.user} and x.answer_type='recognition' and l.is_published and c.is_published and s.is_published for share of l,c,e,x,s`;
    if(!access || access.gloss!==session.target)return {status:409,body:{error:'Sign question unavailable.'}};
-   return recordRunAnswer(tx,session.user,session.run,session.exercise,null,randomUUID(),{label:emission.label,confidence:emission.confidence.toFixed(5),model:session.model});
+   return recordRunAnswer(tx,session.user,session.run,session.exercise,null,randomUUID(),{label:emission.label,confidence:emission.confidence.toFixed(5)});
   });
   if(saved.status!==200){res.status(saved.status).json(saved.body);return;}
   session.attempts++;session.solved=Boolean('correct' in saved.body && saved.body.correct);

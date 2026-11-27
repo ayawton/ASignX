@@ -1,4 +1,4 @@
-import { BookOpen, Crosshair, ArrowUpRight } from 'lucide-react'
+import { BookOpen, ClipboardCheck, Crosshair, ArrowUpRight } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import Link from './WorkspaceLink'
 import './LearningModes.css'
@@ -6,11 +6,18 @@ import './LearningModes.css'
 export default function LearningModes() {
   const { pathname } = useLocation()
   const arcade = pathname.endsWith('/learn/arcade')
+  const practice = pathname.endsWith('/learn/practice')
+  const modules = !arcade && !practice
   return <nav className="learning-modes" aria-label="Learning experiences">
-    <Link to="/learn" className={`learning-mode${!arcade ? ' is-current' : ''}`} aria-current={!arcade ? 'page' : undefined}>
+    <Link to="/learn" className={`learning-mode${modules ? ' is-current' : ''}`} aria-current={modules ? 'page' : undefined}>
       <span className="learning-mode-icon"><BookOpen size={21} /></span>
       <span><strong>Learning modules</strong><small>A little guidance, one sign at a time.</small></span>
       <ArrowUpRight size={17} />
+    </Link>
+    <Link to="/learn/practice" className={`learning-mode${practice ? ' is-current' : ''}`} aria-current={practice ? 'page' : undefined}>
+      <span className="learning-mode-icon"><ClipboardCheck size={21} /></span>
+      <span><strong>Practice</strong><small>Review questions from completed lessons.</small></span>
+      <ArrowUpRight size={18} />
     </Link>
     <Link to="/learn/arcade" className={`learning-mode learning-mode-game${arcade ? ' is-current' : ''}`} aria-current={arcade ? 'page' : undefined}>
       <span className="learning-mode-icon"><Crosshair size={21} /></span>

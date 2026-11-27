@@ -54,7 +54,7 @@ personal.get('/lessons/:id', async (req, res) => {
         from exercise_options o join exercises e on e.id = o.exercise_id
         where e.lesson_id = ${lessonId} order by o.sort_order`,
         sql`select lp.* from lesson_progress lp join enrollments e on e.id=lp.enrollment_id where lp.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}`,
-        sql`select distinct on (a.exercise_id) a.exercise_id,a.selected_option_id,a.response_text,a.recognition_confidence,a.model_version_id,a.is_correct
+        sql`select distinct on (a.exercise_id) a.exercise_id,a.selected_option_id,a.response_text,a.recognition_confidence,a.is_correct
         from exercise_attempts a join enrollments e on e.id=a.enrollment_id join exercises x on x.id=a.exercise_id
         where x.lesson_id=${lessonId} and e.user_id=${res.locals.user.id}
         order by a.exercise_id,a.is_correct desc,a.attempted_at desc,a.id desc`

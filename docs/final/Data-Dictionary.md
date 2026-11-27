@@ -1,15 +1,15 @@
 # ASignX Current Data Dictionary
 
-This dictionary documents the current ASignX application schema: 23 tables, 138 fields and 41 foreign keys. It covers account profiles, learning content, enrollment, lesson activity, hearts, XP, recognition and achievements. Supabase manages auth.users separately.
+This dictionary documents the current ASignX application schema: 19 tables, 111 fields and 31 foreign keys. It covers account profiles, learning content, enrollment, lesson activity, practice, hearts, XP and achievements. Supabase manages auth.users separately.
 
-- Prepared 8 November 2026 from server/src/db/schema/app.ts and the checked-in migration and service rules. This is a source-based snapshot; the live Supabase deployment was not inspected.
+- Prepared 25 November 2026 from server/src/db/schema/app.ts and the checked-in migration and service rules. This is a source-based snapshot; the live Supabase deployment was not inspected.
 - PK means primary key, FK means foreign key and UK means single-column unique. Multiple PK fields form one composite key. Composite foreign keys apply to the combination of fields.
 - Nullable means the database permits NULL. A dash in Default means no explicit column default. Required values without defaults must be supplied by the caller or a documented trigger. String defaults appear in quotes.
 - PostgreSQL varchar lengths are character limits. numeric(6,5) means six total digits and five fractional digits. timestamp with time zone represents an instant, displayed using a chosen timezone.
-- All 23 application tables enable row-level security. Public content reads require publication. Owner-scoped reads apply where defined. Tables without a client policy are accessed through the trusted backend; authorization remains necessary there.
+- All 19 application tables enable row-level security. Public content reads require publication. Owner-scoped reads apply where defined. Tables without a client policy are accessed through the trusted backend; authorization remains necessary there.
 - Supabase auth.users is external. Only id (uuid, primary key) is shown in the ERD because it is the application FK target. Auth owns email, verification and credentials; those are not copied into profiles.
 - PK, FK, unique indexes and checks below come from Drizzle metadata. Trigger and service rules are described separately. FK updates use NO ACTION. CASCADE deletes dependent rows; RESTRICT prevents deleting a referenced parent.
-- Current persisted lesson recognition uses exercise_attempts and model_versions. Standalone practice storage, saved Live history and automatic achievement awarding are schema capabilities, not verified end-to-end UI workflows. Current Live text history stays in browser memory.
+- Graded camera answers store the detected sign label and confidence in exercise_attempts. ASignLive history stays in browser memory. Achievement eligibility is validated by the database when an award is inserted.
 
 ## Table index
 
@@ -27,9 +27,9 @@ This dictionary documents the current ASignX application schema: 23 tables, 138 
 - lesson_runs — Individual lesson attempts, including reduced-XP replays.
 - lesson_run_questions — Question order, allocated XP and submitted attempt for a particular run.
 - xp_awards — Append-only XP ledger used to derive learner and course totals.
-- heart_practice_rounds — Practice rounds for restoring a heart without awarding XP.
-- heart_practice_questions — Three ordered questions assigned to a heart restoration round.
-- heart_practice_submissions — Graded answer submissions for the questions in a heart restoration round.
+- practice_rounds — Three-question review rounds using exercises from completed lessons.
+- practice_round_questions — Three ordered questions assigned to a practice round.
+- practice_submissions — Graded answer submissions for the questions in a practice round.
 - model_versions — Model identity, fingerprint and confidence threshold for traceability.
 - practice_attempts — Schema support for standalone sign practice results.
 - recognition_sessions — Schema support for saved recognition sessions.
@@ -281,8 +281,8 @@ Immutable graded exercise responses, including optional recognition evidence.
 | enrollment_id | uuid | FK | No | — | Enrollment identifying the learner and course. |
 | exercise_id | uuid | FK | No | — | References exercises.id. |
 | response_text | text | — | Yes | — | Recognized response label or other stored response evidence. |
+| model_version | varchar(50) | - | Yes | - | Model version copied from the legacy reference on existing attempts. |
 | recognition_confidence | numeric(6, 5) | — | Yes | — | Optional camera recognition score. |
-| model_version_id | uuid | FK | Yes | — | Model version that produced this prediction or response. |
 | selected_option_id | uuid | FK | Yes | — | Required for choice/boolean, NULL for recognition; option must belong to exercise. |
 | is_correct | boolean | — | No | — | Database-trigger grading result, derived from the stored option or trusted model evidence on insert. |
 | attempted_at | timestamp with time zone | — | No | now() | Submission time. |
@@ -292,7 +292,6 @@ Immutable graded exercise responses, including optional recognition evidence.
 - Primary key: (id).
 - FK (enrollment_id) → enrollments (id); delete CASCADE.
 - FK (exercise_id) → exercises (id); delete RESTRICT.
-- FK (model_version_id) → model_versions (id); delete RESTRICT.
 - FK (exercise_id, selected_option_id) → exercise_options (exercise_id, id); delete RESTRICT.
 
 ### Trigger and application rules
@@ -319,7 +318,7 @@ One shared heart balance per learner and regeneration baseline.
 
 ### Trigger and application rules
 
-The service restores one heart every five minutes, capped at three. Camera mismatches do not spend hearts. These timing and grading policies are service rules.
+The service restores one heart every 30 minutes, capped at three. Camera mismatches do not spend hearts. These timing and grading policies are service rules.
 
 ## lesson_runs
 
@@ -404,9 +403,9 @@ Database validation checks enrollment, lesson, run and exercise consistency. Upd
 
 Supporting indexes: (enrollment_id); (run_id).
 
-## heart_practice_rounds
+## practice_rounds
 
-Practice rounds for restoring a heart without awarding XP.
+Three-question review rounds using exercises from completed lessons.
 
 | Field | PostgreSQL type | Key | Nullable | Default | Description |
 |---|---|---|---|---|---|
@@ -414,6 +413,7 @@ Practice rounds for restoring a heart without awarding XP.
 | user_id | uuid | FK | No | — | Profile owning this record. |
 | completed_at | timestamp with time zone | — | Yes | — | Completion time; NULL while incomplete. |
 | created_at | timestamp with time zone | — | No | now() | Record creation time. |
+| heart_restored | boolean | - | No | false | Whether completing the round restored a heart. |
 
 ### Keys and database constraints
 
@@ -423,38 +423,38 @@ Practice rounds for restoring a heart without awarding XP.
 
 ### Trigger and application rules
 
-Only one incomplete round is allowed per learner. Three correct answers restore one heart and award no XP.
+Only one incomplete round is allowed per learner. Three correct answers complete the round. Completing a round restores one heart when the learner has fewer than three. Practice awards no XP.
 
-## heart_practice_questions
+## practice_round_questions
 
-Three ordered questions assigned to a heart restoration round.
+Three ordered questions assigned to a practice round.
 
 | Field | PostgreSQL type | Key | Nullable | Default | Description |
 |---|---|---|---|---|---|
-| round_id | uuid | PK, FK | No | — | Heart restoration round containing this record. |
-| question_index | integer | PK | No | — | Zero-based position in a three-question heart round. |
+| round_id | uuid | PK, FK | No | — | Practice round containing this record. |
+| question_index | integer | PK | No | — | Zero-based position in a three-question practice round. |
 | exercise_id | uuid | FK | No | — | Exercise associated with this record. |
 
 ### Keys and database constraints
 
 - Primary key: (round_id, question_index).
-- FK (round_id) → heart_practice_rounds (id); delete CASCADE.
+- FK (round_id) → practice_rounds (id); delete CASCADE.
 - FK (exercise_id) → exercises (id); delete RESTRICT.
 - Check: question_index between 0 and 2.
 
 ### Trigger and application rules
 
-Positions are 0, 1 and 2. The application chooses previously encountered choice or boolean questions.
+Positions are 0, 1 and 2. The application chooses multiple-choice or true-or-false exercises from completed, published lessons.
 
-## heart_practice_submissions
+## practice_submissions
 
-Graded answer submissions for the questions in a heart restoration round.
+Graded answer submissions for the questions in a practice round.
 
 | Field | PostgreSQL type | Key | Nullable | Default | Description |
 |---|---|---|---|---|---|
 | id | uuid | PK | No | — | Unique record identifier. |
-| round_id | uuid | FK | No | — | Heart restoration round containing this record. |
-| question_index | integer | FK | No | — | Zero-based position in a three-question heart round. |
+| round_id | uuid | FK | No | — | Practice round containing this record. |
+| question_index | integer | FK | No | — | Zero-based position in a three-question practice round. |
 | selected_option_id | uuid | FK | No | — | Selected answer option. |
 | is_correct | boolean | — | No | — | Graded correctness of the submitted response. |
 | submitted_at | timestamp with time zone | — | No | now() | Time this practice answer was recorded. |
@@ -464,124 +464,11 @@ Graded answer submissions for the questions in a heart restoration round.
 - Primary key: (id).
 - Unique index: (round_id, question_index) WHERE is_correct.
 - FK (selected_option_id) → exercise_options (id); delete RESTRICT.
-- FK (round_id, question_index) → heart_practice_questions (round_id, question_index); delete CASCADE.
+- FK (round_id, question_index) → practice_round_questions (round_id, question_index); delete CASCADE.
 
 ### Trigger and application rules
 
 Database grading verifies the selected option against the assigned question. The composite FK identifies that question. At most one correct submission is stored per round question; updates are rejected.
-
-## model_versions
-
-Model identity, fingerprint and confidence threshold for traceability.
-
-| Field | PostgreSQL type | Key | Nullable | Default | Description |
-|---|---|---|---|---|---|
-| id | uuid | PK | No | gen_random_uuid() | Unique model version identifier. |
-| version | varchar(50) | UK | No | — | Unique immutable release name. |
-| fingerprint | varchar(128) | UK | Yes | — | Optional unique model artifact fingerprint. |
-| artifact_path | text | — | Yes | — | Optional model artifact location; not required to be a Supabase Storage path. |
-| confidence_threshold | numeric(6, 5) | — | No | 0.80000 | Acceptance threshold from 0 to 1 for this model version. |
-| created_at | timestamp with time zone | — | No | now() | Model registration time. |
-
-### Keys and database constraints
-
-- Primary key: (id).
-- Unique: (version). NULL remains allowed where the field is nullable.
-- Unique: (fingerprint). NULL remains allowed where the field is nullable.
-- Check: length(btrim(version)) > 0.
-- Check: artifact_path is null or length(btrim(artifact_path)) > 0.
-- Check: confidence_threshold between 0 and 1.
-
-### Trigger and application rules
-
-Versions and non-null fingerprints are unique. Model records are immutable. Artifact paths are optional; model binaries belong to the recognition deployment, not necessarily Supabase Storage.
-
-## practice_attempts
-
-Schema support for standalone sign practice results.
-
-| Field | PostgreSQL type | Key | Nullable | Default | Description |
-|---|---|---|---|---|---|
-| id | uuid | PK | No | gen_random_uuid() | Unique practice attempt identifier; reuse on retry. |
-| user_id | uuid | FK | No | — | References profiles.id. |
-| lesson_id | uuid | FK | Yes | — | Optional references lessons.id; NULL means standalone practice or review. |
-| target_sign_id | uuid | FK | No | — | References signs.id; the sign the learner was asked to perform. |
-| predicted_sign_id | uuid | FK | Yes | — | References signs.id; NULL means no supported sign was recognized. |
-| model_version_id | uuid | FK | No | — | Model version that produced this prediction or response. |
-| confidence | numeric(6, 5) | — | No | — | Recognition score between 0 and 1. |
-| is_correct | boolean | — | No | — | Database-trigger result based on target match and the recorded model confidence threshold. |
-| attempted_at | timestamp with time zone | — | No | now() | Practice time. |
-
-### Keys and database constraints
-
-- Primary key: (id).
-- FK (user_id) → profiles (id); delete CASCADE.
-- FK (lesson_id) → lessons (id); delete RESTRICT.
-- FK (target_sign_id) → signs (id); delete RESTRICT.
-- FK (predicted_sign_id) → signs (id); delete RESTRICT.
-- FK (model_version_id) → model_versions (id); delete RESTRICT.
-- Check: confidence between 0 and 1.
-
-### Trigger and application rules
-
-Database grading validates model confidence and target prediction. Records are immutable. Standalone practice persistence is schema support rather than a verified end-to-end UI workflow.
-
-Supporting indexes: (user_id, attempted_at); (lesson_id); (target_sign_id); (predicted_sign_id); (model_version_id).
-
-## recognition_sessions
-
-Schema support for saved recognition sessions.
-
-| Field | PostgreSQL type | Key | Nullable | Default | Description |
-|---|---|---|---|---|---|
-| id | uuid | PK | No | gen_random_uuid() | Unique saved session identifier. |
-| user_id | uuid | FK | No | — | References profiles.id; session owner. |
-| started_at | timestamp with time zone | — | No | now() | Session start time. |
-| ended_at | timestamp with time zone | — | Yes | — | Session end time; NULL while open. |
-| final_text | text | — | Yes | — | Text assembled by the finalization trigger from accepted sign meanings; NULL while open. |
-
-### Keys and database constraints
-
-- Primary key: (id).
-- FK (user_id) → profiles (id); delete CASCADE.
-- Check: ended_at is null or ended_at >= started_at.
-- Check: final_text is null or ended_at is not null.
-
-### Trigger and application rules
-
-Database finalization checks session times and text. Current Live history remains in browser memory; the saved-session workflow is not implemented end to end.
-
-Supporting indexes: (user_id, started_at).
-
-## recognition_results
-
-Schema support for ordered predictions within a recognition session.
-
-| Field | PostgreSQL type | Key | Nullable | Default | Description |
-|---|---|---|---|---|---|
-| id | uuid | PK | No | gen_random_uuid() | Unique prediction-event identifier. |
-| session_id | uuid | FK | No | — | References recognition_sessions.id. |
-| sign_id | uuid | FK | Yes | — | References signs.id; NULL means no supported label was recognized. |
-| model_version_id | uuid | FK | No | — | Model version that produced this prediction or response. |
-| sequence_no | integer | — | No | — | Positive event position within the session. |
-| confidence | numeric(6, 5) | — | No | — | Recognition score between 0 and 1; only accepted labeled results contribute to final_text. |
-| recognized_at | timestamp with time zone | — | No | now() | Prediction time. |
-
-### Keys and database constraints
-
-- Primary key: (id).
-- Unique: (session_id, sequence_no).
-- FK (session_id) → recognition_sessions (id); delete CASCADE.
-- FK (sign_id) → signs (id); delete RESTRICT.
-- FK (model_version_id) → model_versions (id); delete RESTRICT.
-- Check: sequence_no > 0.
-- Check: confidence between 0 and 1.
-
-### Trigger and application rules
-
-Database validation checks session ordering and model confidence. Results are immutable. This storage model does not prove a current saved-history UI exists.
-
-Supporting indexes: (sign_id); (model_version_id).
 
 ## achievements
 
@@ -634,8 +521,8 @@ Supporting indexes: (achievement_id).
 
 ## Normalization and XP notes
 
-XP is derived from xp_awards, not stored as a profile balance or duplicated in lesson_progress and lesson_runs. lesson_question_rewards was merged into the ledger. Heart round questions and submissions are relational children; the successful-answer count is calculated. Recognition attempts reference model_versions rather than storing duplicate model names.
+XP is derived from xp_awards, not stored as a profile balance or duplicated in lesson_progress and lesson_runs. lesson_question_rewards was merged into the ledger. Practice questions and submissions are relational children. The successful-answer count is calculated from the submissions.
 
-The service currently allocates lesson XP by answer type with weights of choice 30%, boolean 20% and recognition 50%, renormalized when a type is absent. Unclaimed first-time question XP can be recovered on a retry. Replays after perfection award reduced XP based on correct answers. Hearts are shared across lessons and regenerate one every five minutes, up to three. These are service policies, not column defaults.
+The service currently allocates lesson XP by answer type with weights of choice 30%, boolean 20% and recognition 50%, renormalized when a type is absent. Unclaimed first-time question XP can be recovered on a retry. Replays after perfection award reduced XP based on correct answers. Hearts are shared across lessons and regenerate one every 30 minutes, up to three. These are service policies, not column defaults.
 
 Related artifacts: [ERD PNG](ER-Schema.png), [ERD SVG](ER-Schema.svg), [editable ERD](Normalized-ERD.uml.txt).

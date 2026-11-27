@@ -1,0 +1,187 @@
+# ASignLearn course import
+# Sign library prerequisites: published labels A, B, C, D, E, F, G, H, I, L, O, Y.
+# Camera questions target individual letters through the ASignLearn recognition service.
+# Handshape reference: ASL University, https://www.lifeprint.com/asl101/fingerspelling/abc.htm
+
+Course: Fingerspelling Foundations 2: Six More Letters
+Description: |
+  Learn to fingerspell D, E, F, G, H and I. Compare the letters in pairs, recall them from memory and combine them with A, B, C, O, L and Y from the first course. Camera questions check individual letters. The word drills help you practise moving clearly from one letter to the next.
+
+Lesson: D and F: check your index finger
+XP: 30
+Signs: D, F
+Content: |
+  Your goal is to form D and F and tell them apart by looking at the index finger.
+
+  Use the hand you normally sign with. Watch the linked demonstrations when available. You can also compare your handshape with the ASL University alphabet chart.
+
+  For D, extend your index finger upward. Curl the other three fingers toward your thumb so they make a rounded shape.
+
+  For F, touch the tip of your index finger to the tip of your thumb. Keep your middle, ring and little fingers extended.
+
+  Try D, lower your hand, then try F. Switch the order and repeat it slowly. Look away from the reference and form each letter from memory. Check which finger meets your thumb and which fingers stay extended.
+
+Question: choice | Which finger points up on its own in D?
+- Little finger
+* Index finger
+- Middle finger
+
+Question: recognition | Form the letter F with your signing hand.
+Target: F
+
+Question: boolean | In F, the index finger touches the thumb.
+Answer: true
+
+Question: recognition | Form the letter D with your signing hand.
+Target: D
+
+Question: choice | You want to form F. What should your other three fingers do while your index finger touches your thumb?
+* Stay extended
+- Curl into the palm
+- Cross over one another
+
+Lesson: E and I: look for the raised little finger
+XP: 30
+Signs: E, I, D, F
+Content: |
+  Your goal is to form E and I and switch between them without confusing the finger positions.
+
+  For E, bend your fingers down toward your thumb. Follow the reference for where the thumb rests, and keep your hand relaxed.
+
+  For I, extend your little finger while the other three fingers curl into your palm. Rest your thumb across the curled fingers.
+
+  Start with E, then form I. Watch for the little finger lifting on I. Try I followed by E and check that the little finger bends with the other fingers on E.
+
+  Recall drill: form F, I, D and E from memory. Compare each letter with its reference. Give the letter that took the longest another try before you start the questions.
+
+Question: recognition | Form the letter E with your signing hand.
+Target: E
+
+Question: choice | Which finger is extended in I?
+- Index finger
+- Ring finger
+* Little finger
+
+Question: boolean | E is formed with the little finger extended upright.
+Answer: false
+
+Question: recognition | Form the letter I with your signing hand.
+Target: I
+
+Question: choice | Which earlier letter uses a circle between the index finger and thumb with three fingers extended?
+- D
+* F
+- E
+
+Lesson: G and H: one finger or two?
+XP: 30
+Signs: G, H, I
+Content: |
+  Your goal is to form G and H and recognise how many fingers point sideways.
+
+  For G, extend your index finger sideways with your thumb extended alongside it. Keep the index finger and thumb apart and curl the remaining fingers.
+
+  For H, extend your index and middle fingers sideways together. Curl the ring and little fingers and keep your thumb tucked in.
+
+  Practise G and H slowly. Notice the role of the middle finger. It stays curled in G and extends next to the index finger in H. Use the reference to check orientation without twisting your wrist.
+
+  Mixed recall: try I, H and G. Before each attempt, name the finger or fingers you expect to extend. Then check the shape you made.
+
+Question: choice | Which two fingers extend together in H?
+* Index and middle fingers
+- Ring and little fingers
+- Middle and ring fingers
+
+Question: recognition | Form the letter G with your signing hand.
+Target: G
+
+Question: boolean | In G, the middle finger extends beside the index finger.
+Answer: false
+
+Question: recognition | Form the letter H with your signing hand.
+Target: H
+
+Question: choice | In the G and H comparison, which finger changes from curled in G to extended in H?
+- Little finger
+* Middle finger
+- Index finger
+
+Lesson: Spell your first mixed words
+XP: 30
+Signs: D, I, G, F, H, E, L, A
+Content: |
+  Your goal is to connect letters from both courses while keeping each handshape clear.
+
+  Start with these four words:
+  DIG: D, I, G
+  FIG: F, I, G
+  HIDE: H, I, D, E
+  LEAF: L, E, A, F
+
+  Form each letter slowly in a comfortable area in front of you. Pause between whole words. When the handshape changes feel natural, try each word again with shorter pauses between letters.
+
+  DIG and FIG share I and G. Practise them back to back and concentrate on changing only the first letter. Then try HIDE and LEAF from memory. If a letter slows you down, practise that handshape on its own before repeating the word.
+
+  Ask a partner to write the letters they see, or compare your handshapes with the references one at a time. The camera questions below check individual letters.
+
+Question: choice | Which letter changes when you go from DIG to FIG?
+- The final G changes to F
+* The first letter changes from D to F
+- The middle I changes to F
+
+Question: recognition | Form the first letter of HIDE.
+Target: H
+
+Question: boolean | LEAF begins with L and ends with F.
+Answer: true
+
+Question: recognition | Form the last letter of DIG.
+Target: G
+
+Question: choice | One handshape keeps slowing you down in LEAF. What should you practise next?
+- Try the entire word as fast as possible
+- Skip the difficult letter
+* Practise that letter on its own, then spell LEAF again
+
+Lesson: Final review: recall and fingerspell
+XP: 50
+Signs: D, E, F, G, H, I, A, B, C, O, L, Y
+Content: |
+  Your goal is to recall all six new letters in mixed order and combine them with letters from the first course.
+
+  Look away from the guide and form H, D, I, F, G and E. After the first round, check each shape against the reference. Choose the two you hesitated on and practise each once before repeating the sequence.
+
+  Next, pick one word from the previous lesson and one from this review:
+  COLD: C, O, L, D
+  BOY: B, O, Y
+  FACE: F, A, C, E
+
+  Fingerspell both words from memory. Check the order and whether each handshape was clear enough to identify. If a partner is available, have them read your letters before you show them the written word.
+
+  For the camera checks, make one letter at a time and keep your signing hand visible. If a shape is hard to recognise, relax your hand and compare it with the reference before trying again.
+
+Question: recognition | Form the letter H.
+Target: H
+
+Question: recognition | Form the letter D.
+Target: D
+
+Question: choice | What is the correct order of letters in FACE?
+- F, C, A, E
+* F, A, C, E
+- F, A, E, C
+
+Question: recognition | Form the letter I.
+Target: I
+
+Question: recognition | Form the letter F.
+Target: F
+
+Question: boolean | If a word is hard to fingerspell, practising its difficult letters individually can help.
+Answer: true
+
+Question: recognition | Form the letter G.
+Target: G
+
+Question: recognition | Form the letter E.
+Target: E

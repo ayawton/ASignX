@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, LayoutGrid, Columns3, List, ArrowLeft, EyeOff } from 'lucide-react'
+import { Search, LayoutGrid, Columns3, List, ArrowLeft, EyeOff, Plus } from 'lucide-react'
 import { achievementMetrics, BadgeCard, BadgeArt, badgeIcons, statusLabels } from '../components/Achievements'
 import { api } from '../auth'
 
@@ -52,7 +52,7 @@ export default function AdminAchievements() {
  function card(badge) {
   return <li key={badge.id}><button className="catalog-card" onClick={() => setSelected(badge)}>
    <BadgeArt badge={badge} /><span className="catalog-title">{badge.name}</span>
-   <span>{badge.threshold} {achievementMetrics[badge.metric]?.toLowerCase()}</span>
+   <span className="catalog-requirement">{badge.threshold} {achievementMetrics[badge.metric]?.toLowerCase()}</span>
    <span className="catalog-card-meta"><span className={`badge-status status-${badge.status}`}>{statusLabels[badge.status]}</span>{badge.is_secret && <span><EyeOff size={14} /> Secret</span>}</span>
   </button></li>
  }
@@ -62,10 +62,10 @@ export default function AdminAchievements() {
  return <section className="admin-authoring studio-section studio-page achievement-page">
   <header className="page-heading"><div><h1>{form ? 'Preview Studio' : selected ? 'Badge Inspector' : 'Achievements'}</h1>
    <p>{form ? 'Design the badge and preview its locked and earned states.' : 'Create milestones for every stage of learning.'}</p></div>
-   {!form && <button className="btn" onClick={() => edit(empty)}>New badge</button>}
+   {!form && <button className="btn" onClick={() => edit(empty)}><Plus size={17} aria-hidden="true" />New badge</button>}
   </header>
-  {error && <p role="alert">{error} {!badges && <button className="text-link" onClick={() => { setError(''); load() }}>Retry</button>}</p>}
-  {message && <p role="status">{message}</p>}
+  {error && <p className="badge-feedback is-error" role="alert">{error} {!badges && <button className="text-link" onClick={() => { setError(''); load() }}>Retry</button>}</p>}
+  {message && <p className="badge-feedback" role="status">{message}</p>}
   {form ? <div className="badge-editor">
    <form className="studio-progress-panel admin-form" onSubmit={save}>
     <fieldset disabled={busy}><legend>{form.id ? 'Edit badge' : 'Draft details'}</legend>
@@ -107,8 +107,8 @@ export default function AdminAchievements() {
    {view === 'board' ? <div className="publishing-board">{Object.entries(statusLabels).map(([status, label]) => {
     const lane = visible.filter(b => b.status === status)
     return <section key={status}><h2>{label} <span>{lane.length}</span></h2>{lane.length ? <ul className="catalog-grid">{lane.map(card)}</ul> : <p>No {label.toLowerCase()} badges.</p>}</section>
-   })}</div> : view === 'gallery' ? visible.length ? <ul className="catalog-grid">{visible.map(card)}</ul> : <p>No badges match your search.</p> :
-    <ul className="badge-list catalog-list">{visible.map(b => <li key={b.id}><button onClick={() => setSelected(b)}><BadgeArt badge={b} /><span><strong>{b.name}</strong><small>{b.threshold} {achievementMetrics[b.metric]?.toLowerCase()}</small></span><span>{b.is_secret ? 'Secret' : 'Visible'}</span><span className={`badge-status status-${b.status}`}>{statusLabels[b.status]}</span></button></li>)}</ul>}
+   })}</div> : view === 'gallery' ? visible.length ? <ul className="catalog-grid">{visible.map(card)}</ul> : <p className="badge-empty">No badges match your search.</p> :
+    visible.length ? <ul className="badge-list catalog-list">{visible.map(b => <li key={b.id}><button onClick={() => setSelected(b)}><BadgeArt badge={b} /><span><strong>{b.name}</strong><small>{b.threshold} {achievementMetrics[b.metric]?.toLowerCase()}</small></span><span>{b.is_secret ? 'Secret' : 'Visible'}</span><span className={`badge-status status-${b.status}`}>{statusLabels[b.status]}</span></button></li>)}</ul> : <p className="badge-empty">No badges match your search.</p>}
   </> : !error && <p role="status">Loading achievements…</p>}
  </section>
 }

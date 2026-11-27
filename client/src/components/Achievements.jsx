@@ -14,6 +14,7 @@ export const statusLabels = { draft: 'Draft', published: 'Published', retired: '
 
 export function BadgeArt({ badge }) {
  const Icon = badge.hidden ? HelpCircle : badgeIcons[badge.icon] ?? Trophy
+ // Temporary artwork. The badge designer can replace this shared renderer later.
  return <span className={`badge-art badge-art-${badge.hidden ? 'secret' : badge.icon || 'trophy'}`}><Icon size={44} strokeWidth={1.5} aria-hidden="true" /></span>
 }
 

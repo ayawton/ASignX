@@ -201,6 +201,20 @@
 .badge-type-group > footer { margin-top:20px; }
 .field-requirement { font:400 12px 'DM Sans',sans-serif; color:var(--text); margin-left:6px; }
 .field-required { color:#a52b38; font-weight:600; margin-left:2px; }
+.field-label { display:inline; }
+.field-label .field-required,.badge-visual-field legend .field-required { display:inline; }
+.badge-pagination .numbered-pagination { gap:4px; }
+.numbered-pagination .pagination-wide { display:contents; }
+.numbered-pagination .pagination-compact { display:none; }
+.numbered-pagination .pagination-gap { width:16px; text-align:center; }
+.numbered-pagination button[aria-current=page] { background:var(--accent); border-color:var(--accent); color:white; font-weight:600; }
+.achievement-page .badge-toolbar.is-type-view { grid-template-columns:minmax(180px,1fr) repeat(2,minmax(120px,auto)); }
+@media(max-width:600px) {
+ .numbered-pagination .pagination-wide { display:none; }
+ .numbered-pagination .pagination-compact { display:contents; }
+ .badge-pagination .numbered-pagination { gap:2px; }
+ .achievement-page .badge-toolbar.is-type-view { grid-template-columns:minmax(0,1fr); }
+}
 .field-error { display:block; color:#a52b38; font-size:13px; line-height:1.5; margin:6px 0 0; }
 .achievement-page :is(input,textarea,select)[aria-invalid=true] { border-color:#a52b38; outline-color:#a52b38; background:#fffafb; }
 .badge-visual-field { min-width:0; margin:0 0 24px; padding:0; border:0; }

@@ -61,8 +61,12 @@ try {
  assert.ok(designer.includes('Undo') && designer.includes('Redo') && designer.includes('Shuffle design') && designer.includes('also belongs'))
  const {default: BadgeTypeGroups}=await vite.ssrLoadModule('/src/components/BadgeTypeGroups.jsx')
  const grouped=renderToStaticMarkup(h(BadgeTypeGroups,{badges:Array.from({length:13},(_,i)=>({...badge,id:String(i)})),renderCard:b=>h('li',{key:b.id},b.name)}))
- assert.ok(grouped.includes('Page 1 of 2'))
+ assert.ok(grouped.includes('aria-current="page"') && grouped.includes('aria-label="Page 2"'))
  assert.equal((grouped.match(/<li/g)||[]).length,12)
+ const ordered = renderToStaticMarkup(h(BadgeTypeGroups, { badges: [
+  {...badge,id:'high',name:'Zeta',threshold:100}, {...badge,id:'low-b',name:'Beta',threshold:2}, {...badge,id:'low-a',name:'Alpha',threshold:2}
+ ], renderCard: b => h('li',{key:b.id},b.name) }))
+ assert.ok(ordered.indexOf('Alpha') < ordered.indexOf('Beta') && ordered.indexOf('Beta') < ordered.indexOf('Zeta'))
  const collection = renderToStaticMarkup(h(BadgeCollection, { badges: [badge, { ...badge, id: 'standalone', milestone_group: null, name: 'Challenge' }] }))
  assert.ok(collection.includes('Learning milestones') && collection.includes('Lessons completed'))
  console.log('PASS scalable SVGs, unique clip IDs, fixed category icons, legacy fallback, secret masking and designer controls')

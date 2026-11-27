@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Search, LayoutGrid, List, ArrowLeft, EyeOff, Plus, ChevronLeft, ChevronRight, Layers } from 'lucide-react'
+import { Search, LayoutGrid, List, ArrowLeft, EyeOff, Plus, Layers } from 'lucide-react'
 import { achievementMetrics, BadgeCard, BadgeArt, statusLabels } from '../components/Achievements'
 import BadgeDesigner from '../components/BadgeDesigner'
 import BadgeTypeGroups from '../components/BadgeTypeGroups'
+import Pagination from '../components/Pagination'
 import { badgeFieldErrors, filterBadges } from '../data/badge-catalog'
 import { badgeCategories, badgeTiers, defaultBadgeDesign, normalizeBadgeDesign } from '../data/badge-design'
 import { api } from '../auth'
@@ -107,17 +108,17 @@ export default function AdminAchievements() {
     }}>{[['details', 'Details'], ['designer', 'Designer']].map(([key, label]) => <button key={key} id={`badge-tab-${key}`} type="button" role="tab" tabIndex={editorTab === key ? 0 : -1} aria-selected={editorTab === key} aria-controls={`badge-panel-${key}`} onClick={() => setEditorTab(key)}>{label}</button>)}</div>
     <div id="badge-panel-details" role="tabpanel" aria-labelledby="badge-tab-details" hidden={editorTab !== 'details'}>
     <fieldset disabled={busy}><legend>{form.id ? 'Edit badge' : 'Draft details'}</legend>
-     <label>Name <span className="field-required" role="img" aria-label="Required">*</span><input {...invalid('name')} required maxLength={100} value={form.name} onChange={e => field('name', e.target.value)} />{fieldError('name')}</label>
-     <label>Description <span className="field-required" role="img" aria-label="Required">*</span><textarea {...invalid('description')} required maxLength={1000} rows={3} value={form.description} onChange={e => field('description', e.target.value)} />{fieldError('description')}</label>
-     <label>Requirement <span className="field-required" role="img" aria-label="Required">*</span><select {...invalid('metric')} required disabled={form.requirement_locked} value={form.metric} onChange={e => field('metric', e.target.value)}>
+     <label><span className="field-label">Name <span className="field-required" role="img" aria-label="Required">*</span></span><input {...invalid('name')} required maxLength={100} value={form.name} onChange={e => field('name', e.target.value)} />{fieldError('name')}</label>
+     <label><span className="field-label">Description <span className="field-required" role="img" aria-label="Required">*</span></span><textarea {...invalid('description')} required maxLength={1000} rows={3} value={form.description} onChange={e => field('description', e.target.value)} />{fieldError('description')}</label>
+     <label><span className="field-label">Requirement <span className="field-required" role="img" aria-label="Required">*</span></span><select {...invalid('metric')} required disabled={form.requirement_locked} value={form.metric} onChange={e => field('metric', e.target.value)}>
       {Object.entries(achievementMetrics).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>{fieldError('metric')}</label>
-     <label>Target <span className="field-required" role="img" aria-label="Required">*</span><input {...invalid('threshold')} type="number" required min={1} max={2147483647} disabled={form.requirement_locked} value={form.threshold} onChange={e => field('threshold', e.target.valueAsNumber || '')} />{fieldError('threshold')}</label>
+     <label><span className="field-label">Target <span className="field-required" role="img" aria-label="Required">*</span></span><input {...invalid('threshold')} type="number" required min={1} max={2147483647} disabled={form.requirement_locked} value={form.threshold} onChange={e => field('threshold', e.target.valueAsNumber || '')} />{fieldError('threshold')}</label>
      {form.metric === 'perfect_lessons' && <p>Each different lesson counts once. A perfect replay counts toward this goal.</p>}
      {form.metric === 'completed_courses' && <p>A course counts when all of its published lessons are complete.</p>}
      {form.requirement_locked && <p>This badge has been earned. Its requirement is locked.</p>}
-     <label>Achievement structure <span className="field-required" role="img" aria-label="Required">*</span><select required value={form.milestone_group === null ? 'standalone' : 'milestone'} onChange={e => field('milestone_group', e.target.value === 'standalone' ? null : '')}><option value="standalone">Standalone challenge</option><option value="milestone">Milestone series</option></select></label>
-     {form.milestone_group !== null && <label>Milestone group <span className="field-required" role="img" aria-label="Required">*</span><input {...invalid('milestone_group')} required maxLength={80} list="badge-milestone-groups" value={form.milestone_group} onChange={e => field('milestone_group', e.target.value)} /><datalist id="badge-milestone-groups">{[...new Set((badges || []).filter(b => b.metric === form.metric && b.milestone_group).map(b => b.milestone_group))].map(group => <option key={group} value={group} />)}</datalist>{fieldError('milestone_group')}</label>}
-     <label>Visibility <span className="field-required" role="img" aria-label="Required">*</span><select required value={form.is_secret ? 'secret' : 'visible'} onChange={e => field('is_secret', e.target.value === 'secret')}><option value="visible">Visible to learners</option><option value="secret">Secret until earned</option></select></label>
+     <label><span className="field-label">Achievement structure <span className="field-required" role="img" aria-label="Required">*</span></span><select required value={form.milestone_group === null ? 'standalone' : 'milestone'} onChange={e => field('milestone_group', e.target.value === 'standalone' ? null : '')}><option value="standalone">Standalone challenge</option><option value="milestone">Milestone series</option></select></label>
+     {form.milestone_group !== null && <label><span className="field-label">Milestone group <span className="field-required" role="img" aria-label="Required">*</span></span><input {...invalid('milestone_group')} required maxLength={80} list="badge-milestone-groups" value={form.milestone_group} onChange={e => field('milestone_group', e.target.value)} /><datalist id="badge-milestone-groups">{[...new Set((badges || []).filter(b => b.metric === form.metric && b.milestone_group).map(b => b.milestone_group))].map(group => <option key={group} value={group} />)}</datalist>{fieldError('milestone_group')}</label>}
+     <label><span className="field-label">Visibility <span className="field-required" role="img" aria-label="Required">*</span></span><select required value={form.is_secret ? 'secret' : 'visible'} onChange={e => field('is_secret', e.target.value === 'secret')}><option value="visible">Visible to learners</option><option value="secret">Secret until earned</option></select></label>
      {form.is_secret && <label>Hint <span className="field-requirement">Optional</span><input {...invalid('hint')} maxLength={250} value={form.hint} onChange={e => field('hint', e.target.value)} />{fieldError('hint')}</label>}
     </fieldset>
     </div>
@@ -143,10 +144,10 @@ export default function AdminAchievements() {
      <button className="btn" onClick={() => edit(selected)}>Edit badge</button></article>
    </div>
   </> : badges ? <>
-   <div className="badge-toolbar">
+   <div className={`badge-toolbar ${view === 'type' ? 'is-type-view' : ''}`}>
     <div className="badge-search"><Search size={17} aria-hidden="true" /><input type="search" aria-label="Search badges" placeholder="Search badges" value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} /></div>
     <select aria-label="Filter badge type" value={type} onChange={e => { setType(e.target.value); setPage(1) }}><option value="all">All types</option>{Object.entries(badgeCategories).map(([key, category]) => <option key={key} value={key}>{category.label}</option>)}</select>
-    <select aria-label="Sort badges" value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}><option value="name">Name</option><option value="target">Target (low to high)</option><option value="tier">Tier (low to high)</option></select>
+    {view !== 'type' && <select aria-label="Sort badges" value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}><option value="name">Name</option><option value="target">Target (low to high)</option><option value="tier">Tier (low to high)</option></select>}
     <select aria-label="Filter badge status" value={filter} onChange={e => { setFilter(e.target.value); setPage(1) }}>{Object.entries({ all: 'All statuses', ...statusLabels }).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
     <div className="badge-view-switch" role="group" aria-label="Catalog view">{views.map(([key, label, Icon]) => <button key={key} aria-pressed={view === key} onClick={() => changeView(key)}><Icon size={16} aria-hidden="true" />{label}</button>)}</div>
    </div>
@@ -156,11 +157,7 @@ export default function AdminAchievements() {
      <ul className="badge-list catalog-list">{pageBadges.map(b => <li key={b.id}><button onClick={() => setSelected(b)}><BadgeArt badge={b} /><span><strong>{b.name}</strong><small>{b.threshold} {achievementMetrics[b.metric]?.toLowerCase()} · {badgeTiers[b.tier || 'starter']}</small></span><span>{b.is_secret ? 'Secret' : 'Visible'}</span><span className={`badge-status status-${b.status}`}>{statusLabels[b.status]}</span></button></li>)}</ul>}
     <footer className="badge-pagination">
      <p className="catalog-count" role="status">{start + 1}–{Math.min(start + pageSize, visible.length)} of {visible.length} {visible.length === 1 ? 'badge' : 'badges'}</p>
-     <nav aria-label="Badge pages">
-      <button type="button" aria-label="Previous page" title="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={18} aria-hidden="true" /></button>
-      <span>Page {currentPage} of {pageCount}</span>
-      <button type="button" aria-label="Next page" title="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}><ChevronRight size={18} aria-hidden="true" /></button>
-     </nav>
+     <Pagination label="Badge pages" current={currentPage} total={pageCount} onChange={setPage} />
     </footer>
    </>}
   </> : !error && <p role="status">Loading achievements…</p>}

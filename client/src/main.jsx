@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import './shape-tokens.css'
 import App from './App'
 import { AuthProvider } from './auth'
+import './form-states.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

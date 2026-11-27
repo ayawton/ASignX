@@ -53,9 +53,18 @@ documented category palette.
   less. Collection shelves use three desktop columns, two on tablets, one on phones.
 - Gallery and List share 12 results per page, a result range, page position, and
   Previous/Next controls. Search/status changes reset the page; view changes keep it.
-- Achievement pagination uses 44px square squircle buttons with only left/right
-  arrows. Keep accessible Previous page/Next page names, tooltips, disabled states,
-  keyboard focus, page position, and result counts across Gallery, List, and By type.
+- Pagination uses 44px squircle arrow and numbered buttons. Always expose first,
+  current, and last pages; show immediate neighbors on desktop and more pages near
+  either end. Show every page when there are five or fewer. Separate skipped ranges
+  with noninteractive ellipses. Phones may omit neighbors to stay compact. Use
+  `Pagination` across Gallery, List, and each By type group; mark the current button
+  with `aria-current="page"`. Preserve accessible arrow names and result counts.
+- Dropdowns and input fields share hover, focus, disabled, and invalid states in
+  `client/src/form-states.css`, including borders, backgrounds and focus outlines.
+  Error outlines stay red on focus and disabled fields do not gain hover styling.
+  Shared field rings use `:focus`, not only `:focus-visible`: native selects must
+  show the same ring when clicked as text inputs do. Load shared field states after
+  page styles so page-specific input rules cannot split their appearance.
 - Board view was intentionally removed. Do not reintroduce it without a new need.
 - Keep keyboard focus visible, touch controls at least 44px tall, and disabled text
   readable. Tabs support arrow keys. Provide loading, empty, retry, and error states.
@@ -149,8 +158,10 @@ check that could not run instead of treating a successful build as visual proof.
 
 The By type view groups badges under Learning, Practice, Experience, Consistency,
 Precision, and Courses. Each nonempty group has its own count and 12-badge
-pagination. Search, type/status/visibility filters, and name/target/tier sorting
-apply before grouping. Filter or sort changes reset grouped pages. Gallery/List
+pagination. Search and type/status/visibility filters apply before grouping. Within
+each group, sort by numeric target ascending, then name alphabetically, before
+pagination. By type hides Sort; Gallery/List retain name/target/tier sorting.
+Filter changes reset grouped pages. Gallery/List
 keep their shared page when switching between those two views.
 
 Details and Designer share a top-aligned preview beside the form above 768px; the

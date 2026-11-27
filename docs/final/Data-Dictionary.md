@@ -484,6 +484,8 @@ Achievement definitions and threshold metrics.
 | threshold | integer | — | No | — | Positive target value for the selected metric. |
 | status | varchar(10) | - | No | published | Draft, published, or retired. |
 | icon | varchar(10) | - | No | trophy | Lesson, practice, xp, streak, or trophy icon key. |
+| is_secret | boolean | - | No | false | Hide the badge identity and requirement until earned. |
+| hint | varchar(250) | - | No | empty | Optional teaser for a locked secret badge. |
 
 ### Keys and database constraints
 
@@ -492,7 +494,7 @@ Achievement definitions and threshold metrics.
 - Check: length(btrim(code)) > 0.
 - Check: length(btrim(name)) > 0.
 - Check: length(btrim(description)) > 0.
-- Check: metric in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days').
+- Check: metric in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days', 'perfect_lessons', 'completed_courses').
 - Check: threshold > 0.
 
 ### Trigger and application rules

@@ -245,6 +245,8 @@ Achievement definitions, identified by a unique code, with a metric and target t
 | threshold | INTEGER | - | NS | NS | Target value associated with the achievement metric. |
 | status | VARCHAR(10) | - | No | published | Draft, published, or retired. |
 | icon | VARCHAR(10) | - | No | trophy | Badge icon key. |
+| is_secret | boolean | - | No | false | Hide the badge identity and requirement until earned. |
+| hint | varchar(250) | - | No | empty | Optional teaser for a locked secret badge. |
 
 **Declared keys and references**
 

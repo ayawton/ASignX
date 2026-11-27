@@ -140,15 +140,17 @@ export const achievements = pgTable('achievements', {
     description: text('description').notNull(), metric: varchar('metric', { length: 25 }).notNull(), threshold: integer('threshold').notNull(),
     status: varchar('status', { length: 10 }).notNull().default('published'),
     icon: varchar('icon', { length: 10 }).notNull().default('trophy'),
+    isSecret: boolean('is_secret').notNull().default(false),
+    hint: varchar('hint', { length: 250 }).notNull().default(''),
 }, t => [
     check('achievements_status_valid', sql`${t.status} in ('draft', 'published', 'retired')`),
     check('achievements_icon_valid', sql`${t.icon} in ('lesson', 'practice', 'xp', 'streak', 'trophy')`),
     check('achievements_code_nonblank', sql`length(btrim(${t.code})) > 0`),
     check('achievements_name_nonblank', sql`length(btrim(${t.name})) > 0`),
     check('achievements_description_nonblank', sql`length(btrim(${t.description})) > 0`),
-    check('achievements_metric_valid', sql`${t.metric} in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days')`),
+    check('achievements_metric_valid', sql`${t.metric} in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days', 'perfect_lessons', 'completed_courses')`),
     check('achievements_threshold_positive', sql`${t.threshold} > 0`),
-    pgPolicy('achievements_read', { for: 'select', to: [anonRole, authenticatedRole], using: sql`${t.status} = 'published'` }),
+    pgPolicy('achievements_read', { for: 'select', to: [anonRole, authenticatedRole], using: sql`${t.status} = 'published' and not ${t.isSecret}` }),
 ]).enableRLS();
 
 export const profileAchievements = pgTable('profile_achievements', {

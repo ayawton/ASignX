@@ -64,6 +64,12 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         const question = await request('/me/lessons/' + l1, 'GET', first);
         assert.ok(question.data.exercises[0].options.every(option => !('is_correct' in option)));
         assert.equal((await request('/me/practice/start', 'POST', first)).status, 404);
+        const discovery = (await request('/me/progress', 'GET', first)).data.badges.find(badge => badge.hidden);
+        assert.ok(discovery);
+        assert.equal(discovery.name, 'Secret badge');
+        assert.equal(discovery.metric, undefined);
+        assert.equal(discovery.threshold, undefined);
+        assert.equal(discovery.icon, undefined);
         const graded = await request('/me/lessons/' + l1 + '/attempt', 'POST', first, {
             run_id: runId, attempt_id: uid(541), exercise_id: exercise, selected_option_id: correct,
         });
@@ -380,6 +386,23 @@ test('achievement awards require eligibility and cannot be duplicated or redefin
     assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='BACKFILL'"), 0);
     await db.exec("UPDATE achievements SET status='published' WHERE code='BACKFILL'");
     assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='BACKFILL'"), 1);
+});
+test('challenge metrics count different perfect lessons and hide secret catalogs', async () => {
+    await db.exec(attempt());
+    const run = uid(950);
+    await db.exec(`INSERT INTO lesson_runs(id,enrollment_id,lesson_id) VALUES ('${run}','${enrollment}','${l1}')`);
+    await db.exec(`UPDATE lesson_runs SET perfect=true, completed_at=now() WHERE id='${run}'`);
+    await db.exec(complete());
+    assert.equal(await scalar(`SELECT (asignx_private.achievement_metrics('${u1}')->>'perfect_lessons')::int`), 1);
+    assert.equal(await scalar(`SELECT (asignx_private.achievement_metrics('${u1}')->>'completed_courses')::int`), 1);
+    await db.exec(`INSERT INTO achievements(code,name,description,metric,threshold,status,is_secret)
+        VALUES ('SECRET_TEST','Hidden challenge','A secret requirement','perfect_lessons',1,'published',true)`);
+    assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='SECRET_TEST'"), 1);
+    await asUser(u2);
+    assert.equal(await scalar("SELECT count(*)::int FROM achievements WHERE is_secret"), 0);
+    await db.exec('reset role');
+    await db.exec(`INSERT INTO lesson_runs(enrollment_id,lesson_id,perfect,completed_at) VALUES ('${enrollment}','${l1}',true,now())`);
+    assert.equal(await scalar(`SELECT (asignx_private.achievement_metrics('${u1}')->>'perfect_lessons')::int`), 1);
 });
 test('streak combines local dates, counts a date once and resets after a gap', async () => {
     await addPractice('now()'); await addPractice('now()');

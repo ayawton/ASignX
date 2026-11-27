@@ -166,6 +166,8 @@ erDiagram
         integer threshold "required"
         varchar(10) status
         varchar(10) icon
+        boolean is_secret
+        varchar(250) hint
     }
     profile_achievements {
         uuid user_id PK,FK "required"

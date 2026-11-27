@@ -76,6 +76,9 @@ export async function api(path, options = {}) {
     expireGuest(headers.get('Authorization').slice(7))
   }
   if (!response.ok) throw new Error(body.error || 'Unable to complete the request.')
+  if (options.method === 'POST' && /^\/me\/(lessons\/[^/]+\/(attempt|complete)|practice\/answer)$/.test(path)) {
+    window.dispatchEvent(new Event('asignx-learning-activity'))
+  }
   return body
 }
 

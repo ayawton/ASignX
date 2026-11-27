@@ -19,6 +19,8 @@ const attempt = (option = correct, claimed = false) => `INSERT INTO exercise_att
     (enrollment_id,exercise_id,selected_option_id,is_correct) VALUES ('${enrollment}','${exercise}','${option}',${claimed})`;
 const complete = () => `UPDATE lesson_progress SET completed_at=now() WHERE enrollment_id='${enrollment}'`;
 test('temporary guest sessions grade lessons independently and logout invalidates only that guest', async () => {
+    const artwork = { version: 1, border: 'laurel', pattern: 'stars', decoration: 'ribbon', finish: 'deep' };
+    await db.query("update achievements set badge_design=$1, tier='mastery', milestone_group='Learning' where code='FIRST_LESSON' or is_secret", [JSON.stringify(artwork)]);
     const sourceProfiles = await scalar('SELECT count(*)::int FROM profiles');
     const sourceAttempts = await scalar('SELECT count(*)::int FROM exercise_attempts');
     const sourceBadges = await scalar('SELECT count(*)::int FROM profile_achievements');
@@ -64,6 +66,15 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         const question = await request('/me/lessons/' + l1, 'GET', first);
         assert.ok(question.data.exercises[0].options.every(option => !('is_correct' in option)));
         assert.equal((await request('/me/practice/start', 'POST', first)).status, 404);
+        const discovery = (await request('/me/progress', 'GET', first)).data.badges.find(badge => badge.hidden);
+        assert.ok(discovery);
+        assert.equal(discovery.name, 'Secret badge');
+        assert.equal(discovery.metric, undefined);
+        assert.equal(discovery.threshold, undefined);
+        assert.equal(discovery.icon, undefined);
+        assert.equal(discovery.badge_design, undefined);
+        assert.equal(discovery.tier, undefined);
+        assert.equal(discovery.milestone_group, undefined);
         const graded = await request('/me/lessons/' + l1 + '/attempt', 'POST', first, {
             run_id: runId, attempt_id: uid(541), exercise_id: exercise, selected_option_id: correct,
         });
@@ -71,6 +82,9 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         assert.equal(graded.data.correct, true);
         assert.equal((await request('/me/progress', 'GET', first)).data.xp, 10);
         assert.ok((await request('/me/progress', 'GET', first)).data.achievements.some(badge => badge.name === 'First Lesson'));
+        const earnedDesign = (await request('/me/progress', 'GET', first)).data.achievements.find(badge => badge.name === 'First Lesson');
+        assert.deepEqual(earnedDesign.badge_design, artwork);
+        assert.equal(earnedDesign.tier, 'mastery');
         const practice = await request('/me/practice/start', 'POST', first);
         assert.equal(practice.status, 200);
         assert.equal(practice.data.hearts.hearts, 3);
@@ -95,6 +109,66 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         await close();
     }
 });
+test('badge designer recipes round-trip through admin writes and preserve old-client edits', async () => {
+ globalThis.__badgeSql = Object.assign(async (parts, ...values) =>
+  (await db.query(parts.reduce((text, part, i) => text + (i ? `$${i}` : '') + part, ''), values)).rows,
+ { json: value => JSON.stringify(value) });
+ try {
+  const bundle = await build({ entryPoints: ['src/achievementAdmin.ts'], bundle: true, write: false, platform: 'node', format: 'esm', packages: 'external', plugins: [{ name: 'badge-test-db', setup(builder) {
+   builder.onResolve({ filter: /^\.\/db\/index\.js$/ }, () => ({ path: 'db', namespace: 'badge-test' }));
+   builder.onLoad({ filter: /.*/, namespace: 'badge-test' }, () => ({ contents: 'export const connection = globalThis.__badgeSql' }));
+  } }] });
+  const source = bundle.outputFiles[0].text.replaceAll('from "express"', `from ${JSON.stringify(import.meta.resolve('express'))}`);
+  const { achievementAdmin } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  async function call(method, path, body, id) {
+   const res = { code: 200, status(code) { this.code = code; return this; }, json(value) { this.body = value; } };
+   const route = achievementAdmin.stack.find(layer => layer.route?.path === path && layer.route.methods[method]);
+   await route.route.stack[0].handle({ body, params: { id } }, res); return res;
+  }
+  const design = { version: 1, border: 'double', pattern: 'rays', decoration: 'stars', finish: 'deep' };
+  const details = { name: 'Designed badge', description: 'A standalone challenge', metric: 'total_xp', threshold: 99999, icon: 'lesson', tier: 'mastery', milestone_group: null, badge_design: design };
+  const created = await call('post', '/achievements', details);
+  assert.equal(created.code, 201);
+  const stored = (await db.query('select * from achievements where id=$1', [created.body.id])).rows[0];
+  assert.equal(stored.icon, 'xp', 'Designed badges derive the compatible legacy icon from the metric');
+  assert.equal(stored.tier, 'mastery'); assert.equal(stored.status, 'draft'); assert.equal(stored.milestone_group, null);
+  assert.deepEqual(stored.badge_design, design);
+  const invalidFields = await call('post', '/achievements', { ...details, name: ' ', description: '', threshold: 0 });
+  assert.equal(invalidFields.code, 400);
+  assert.deepEqual(Object.keys(invalidFields.body.fields), ['name', 'description', 'threshold']);
+  const legacySoft = await call('patch', '/achievements/:id', { ...details, status: 'draft', badge_design: { ...design, finish: 'soft' } }, created.body.id);
+  assert.equal(legacySoft.code, 200);
+  assert.equal((await db.query('select badge_design from achievements where id=$1', [created.body.id])).rows[0].badge_design.finish, 'classic');
+  await call('patch', '/achievements/:id', { ...details, status: 'draft' }, created.body.id);
+  for (const changes of [{ tier: 'legendary' }, { milestone_group: ' ' }, { milestone_group: 'x'.repeat(81) },
+   { badge_design: { ...design, version: 2 } }, { badge_design: { ...design, svg: '<script />' } },
+   { badge_design: { ...design, border: 'url(https://example.test)' } }, { badge_design: [] }]) {
+   assert.equal((await call('patch', '/achievements/:id', { ...details, ...changes, status: 'draft' }, created.body.id)).code, 400);
+  }
+  const oldClient = { name: 'Updated name', description: details.description, metric: details.metric, threshold: details.threshold, icon: 'xp', status: 'draft' };
+  assert.equal((await call('patch', '/achievements/:id', oldClient, created.body.id)).code, 200);
+  const preserved = (await db.query('select tier,badge_design from achievements where id=$1', [created.body.id])).rows[0];
+  assert.equal(preserved.tier, 'mastery'); assert.deepEqual(preserved.badge_design, design);
+ } finally { delete globalThis.__badgeSql; }
+});
+
+test('database independently validates badge recipes and preserves earned awards during cosmetic changes', async () => {
+ const design = { version: 1, border: 'laurel', pattern: 'diamonds', decoration: 'wings', finish: 'soft' };
+ await db.query('update achievements set badge_design=$1, tier=$2, milestone_group=$3 where id=$4', [JSON.stringify(design), 'advanced', 'Learning milestones', badge]);
+ await rejects(`update achievements set tier='invented' where id='${badge}'`, /achievements_tier_valid/);
+ for (const invalid of [{}, { ...design, border: 'unknown' }, { ...design, decoration: null }, { ...design, version: '1' }, { ...design, extra: true }, []]) {
+  await rejects(`update achievements set badge_design='${JSON.stringify(invalid)}'::jsonb where id='${badge}'`, /achievements_badge_design_valid/);
+ }
+ await rejects(`update achievements set milestone_group=' ' where id='${badge}'`, /achievements_milestone_group_nonblank/);
+ await db.exec(attempt());
+ await db.exec(`insert into lesson_runs(enrollment_id,lesson_id,completed_at) values ('${enrollment}','${l1}',now())`);
+ await db.exec(complete());
+ const before = (await db.query('select * from profile_achievements where achievement_id=$1', [badge])).rows;
+ await db.query('update achievements set badge_design=$1, tier=$2 where id=$3', [JSON.stringify({ ...design, pattern: 'stars' }), 'mastery', badge]);
+ const after = (await db.query('select * from profile_achievements where achievement_id=$1', [badge])).rows;
+ assert.ok(before.length); assert.deepEqual(after, before);
+});
+
 test('media policies restrict uploads to admins and expose only published linked videos',async()=>{
  await db.exec(`create schema storage;
   create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
@@ -380,6 +454,23 @@ test('achievement awards require eligibility and cannot be duplicated or redefin
     assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='BACKFILL'"), 0);
     await db.exec("UPDATE achievements SET status='published' WHERE code='BACKFILL'");
     assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='BACKFILL'"), 1);
+});
+test('challenge metrics count different perfect lessons and hide secret catalogs', async () => {
+    await db.exec(attempt());
+    const run = uid(950);
+    await db.exec(`INSERT INTO lesson_runs(id,enrollment_id,lesson_id) VALUES ('${run}','${enrollment}','${l1}')`);
+    await db.exec(`UPDATE lesson_runs SET perfect=true, completed_at=now() WHERE id='${run}'`);
+    await db.exec(complete());
+    assert.equal(await scalar(`SELECT (asignx_private.achievement_metrics('${u1}')->>'perfect_lessons')::int`), 1);
+    assert.equal(await scalar(`SELECT (asignx_private.achievement_metrics('${u1}')->>'completed_courses')::int`), 1);
+    await db.exec(`INSERT INTO achievements(code,name,description,metric,threshold,status,is_secret)
+        VALUES ('SECRET_TEST','Hidden challenge','A secret requirement','perfect_lessons',1,'published',true)`);
+    assert.equal(await scalar("SELECT count(*)::int FROM profile_achievements p JOIN achievements a ON a.id=p.achievement_id WHERE a.code='SECRET_TEST'"), 1);
+    await asUser(u2);
+    assert.equal(await scalar("SELECT count(*)::int FROM achievements WHERE is_secret"), 0);
+    await db.exec('reset role');
+    await db.exec(`INSERT INTO lesson_runs(enrollment_id,lesson_id,perfect,completed_at) VALUES ('${enrollment}','${l1}',true,now())`);
+    assert.equal(await scalar(`SELECT (asignx_private.achievement_metrics('${u1}')->>'perfect_lessons')::int`), 1);
 });
 test('streak combines local dates, counts a date once and resets after a gap', async () => {
     await addPractice('now()'); await addPractice('now()');

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Link from '../components/WorkspaceLink'
-import { BadgeCard } from '../components/Achievements'
+import { BadgeCollection } from '../components/Achievements'
 import { api, useAuth } from '../auth'
 
 export default function Progress() {
@@ -28,7 +28,7 @@ export default function Progress() {
     </div>
     <section id="achievements" className="studio-progress-panel">
      <h2>Achievements</h2>
-     {badges.length ? <ul className="badge-list">{badges.map(badge => <BadgeCard key={badge.id} badge={badge} />)}</ul> : <p>No achievements are available yet.</p>}
+     {badges.length ? <BadgeCollection badges={badges} /> : <p>No achievements are available yet.</p>}
     </section>
     <section className="studio-progress-panel"><h2>Learning record</h2>
      {data.lessons.length ? <ul className="badge-list">{data.lessons.map(lesson => <li className="learning-record-row" key={lesson.lesson_id}>{lesson.title}<span>{lesson.completed_at ? 'Completed' : 'In progress'}</span></li>)}</ul> : <p>No lessons started yet.</p>}

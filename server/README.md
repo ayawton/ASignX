@@ -566,3 +566,28 @@ The `simplify_practice` migration renames the existing Practice tables in place 
 2. Schedule a release window. Run `npm run db:migrate` from `server/` against the production database using the migration credentials. The Railway API runtime checks schema readiness and the separate Docker `migrations` target runs migrations. The old API can fail on endpoints that depend on renamed tables immediately after the migration commits.
 3. Release the matching backend on Railway and confirm `/health/ready` returns `200`. Then promote the matching Vercel frontend. If merging to the production branch triggers both automatically, coordinate promotion or use a release window that allows for the frontend and API to update at different speeds.
 4. Run `npm run db:check` against production. Verify that historical attempt counts and model labels were preserved, then check lesson progress, Practice, heart recovery, and guest access on the live site. Update the manuscript's production ERD after verification.
+
+### Badge collections and discovery challenges
+
+The badge catalog supports Gallery and List views with search and status filters. Both views show 12 badges per page with Previous/Next controls and a result range. The desktop gallery has four badges per row, reducing to two on tablets and one on phones. Search and status changes reset the page; switching views preserves it. Selecting a badge opens the Inspector. Preview Studio shows locked and earned learner states and supports an optional secret hint. These views share one catalog.
+
+The badge_collections migration adds is_secret (boolean, default false) and hint (varchar(250), default empty) to achievements. Published secret badges are returned by the learner API as anonymous discoveries until earned. Their name, metric, target, icon, and progress are omitted. Direct catalog reads by anonymous or authenticated database roles expose published non-secret definitions. Admins use the server role to manage all definitions.
+
+Additional metrics are perfect_lessons and completed_courses. perfect_lessons counts distinct lessons with a completed perfect run, including perfect replays. completed_courses counts enrolled published courses with at least one published lesson and completion records for every published lesson. Existing badge awards remain permanent when course content changes. New families include lesson milestones at 10 and 25, Practice milestones at 15 and 50, 500 XP, a seven-day streak, and a completed course. Clean Sweep is a secret published badge at three different perfect lessons. Steady Hands begins as a draft at ten.
+
+Guest sessions use the same rules against their temporary database. The guest catalog is a snapshot loaded when the temporary store starts. New catalog changes reach a new store after the existing store is released.
+
+### SVG badge designer
+
+The additive `20261127180000_badge_designer` migration adds `tier` (starter by default), nullable `milestone_group`, and nullable `badge_design` JSONB to `achievements`. Existing designs remain NULL and keep their temporary artwork. The award association and existing earned progress are unchanged. Apply this migration before running the matching API (`npm run db:migrate` in `server/`). The badge collections and designer migrations were applied to the existing Supabase database and journaled on 27 November 2026; local API readiness and a fresh guest progress request were verified afterward.
+
+Preview Studio has Details and Designer tabs with one save action. Metric selects the center icon and category palette; tier selects circle, shield, hexagon, or ornate seal. The designer provides borders, patterns, decorations, color depth, live previews, unused-combination shuffle, and undo/redo. Milestone grouping is optional. Tier suggestions require explicit admin application and never rewrite stored tiers. Standalone challenges may use any tier. This release retains the six existing threshold metrics; composite challenge conditions and earned-by percentages are future work.
+
+The API and database validate the version-1 recipe independently. Unknown fields, SVG markup, versions, and option values are rejected. Client duplicate warnings compare category, tier, and canonical recipe; duplicate artwork does not block awards. Old-client PATCH requests that omit design fields preserve the stored design, tier, and group. Hidden secret badges omit all three new fields until earned. Guest templates and catalog snapshots include the fields and keep all awards isolated to the temporary session store.
+
+Runtime routes use parameterized postgres.js SQL with the driver's native JSON and date codecs. Drizzle is retained for schema definitions and migrations. An unused runtime Drizzle wrapper was removed because it replaced the shared client's JSON serializer and caused badge saves to fail before reaching PostgreSQL. `tests/database-client.test.mjs` checks the actual runtime codec setup independently of the SQL mocks.
+
+`/health/ready` and `npm run db:check` also verify the achievement columns so a database missing the badge migrations cannot appear ready.
+
+Design conventions and source references are recorded in [the shared design system](../docs/Design-System.md).
+The [achievement manuscript reference](../docs/final/Achievement-Badges-Manuscript-Reference.md) documents actual module behavior, seed badges, data fields, limitations, and the verified Supabase migration rollout on 27 November 2026.

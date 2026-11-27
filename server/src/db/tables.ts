@@ -5,3 +5,5 @@ export const applicationTables = [
     'learner_hearts', 'lesson_runs', 'lesson_run_questions', 'xp_awards', 'practice_rounds', 'practice_round_questions', 'practice_submissions',
     'achievements', 'profile_achievements',
 ] as const;
+
+export const achievementColumns = ['is_secret', 'hint', 'tier', 'milestone_group', 'badge_design'] as const;

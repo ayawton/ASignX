@@ -1,5 +1,5 @@
 import { connection } from '../src/db/index.js';
-import { applicationTables } from '../src/db/tables.js';
+import { applicationTables, achievementColumns } from '../src/db/tables.js';
 
 try {
     const rows = await connection<{ table_name: string; rls_enabled: boolean }[]>`
@@ -15,8 +15,10 @@ try {
         'heart_practice_questions', 'heart_practice_submissions',
     ];
     const legacy = rows.filter(row => retiredTables.includes(row.table_name)).map(row => row.table_name);
-    console.log(JSON.stringify({ connected: true, missing, unprotected, legacy }, null, 2));
-    if (missing.length || unprotected.length || legacy.length) process.exitCode = 1;
+    const columns = await connection<{ column_name: string }[]>`select column_name from information_schema.columns where table_schema='public' and table_name='achievements'`;
+    const missingAchievementColumns = achievementColumns.filter(name => !columns.some(column => column.column_name === name));
+    console.log(JSON.stringify({ connected: true, missing, unprotected, legacy, missingAchievementColumns }, null, 2));
+    if (missing.length || unprotected.length || legacy.length || missingAchievementColumns.length) process.exitCode = 1;
 } catch (error) {
     // Never print credentials or a full connection URL in diagnostics.
     console.error('Database check failed. Verify DATABASE_URL in server/.env.', { code: (error as { code?: string }).code ?? 'UNKNOWN' });

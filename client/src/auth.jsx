@@ -75,7 +75,7 @@ export async function api(path, options = {}) {
   if (response.status === 401 && headers.get('Authorization')?.startsWith('Bearer guest.')) {
     expireGuest(headers.get('Authorization').slice(7))
   }
-  if (!response.ok) throw new Error(body.error || 'Unable to complete the request.')
+  if (!response.ok) { const error = new Error(body.error || 'Unable to complete the request.'); error.fields = body.fields || {}; throw error }
   if (options.method === 'POST' && /^\/me\/(lessons\/[^/]+\/(attempt|complete)|practice\/answer)$/.test(path)) {
     window.dispatchEvent(new Event('asignx-learning-activity'))
   }

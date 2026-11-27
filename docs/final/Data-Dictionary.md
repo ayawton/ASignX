@@ -480,10 +480,15 @@ Achievement definitions and threshold metrics.
 | code | varchar(50) | UK | No | — | Unique stable badge code, such as FIRST_LESSON. |
 | name | varchar(100) | — | No | — | Badge name displayed to learners. |
 | description | text | — | No | — | Description of how to earn the badge. |
-| metric | varchar(25) | — | No | — | One of completed_lessons, successful_practices, total_xp, or streak_days. |
+| metric | varchar(25) | — | No | — | One of completed_lessons, successful_practices, total_xp, streak_days, perfect_lessons, or completed_courses. |
 | threshold | integer | — | No | — | Positive target value for the selected metric. |
 | status | varchar(10) | - | No | published | Draft, published, or retired. |
 | icon | varchar(10) | - | No | trophy | Lesson, practice, xp, streak, or trophy icon key. |
+| is_secret | boolean | - | No | false | Hide the badge identity and requirement until earned. |
+| hint | varchar(250) | - | No | empty | Optional teaser for a locked secret badge. |
+| tier | varchar(10) | - | No | starter | Difficulty tier: starter, growing, advanced, or mastery; determines SVG shape. |
+| milestone_group | varchar(80) | - | Yes | NULL | Optional milestone series label; NULL means standalone. |
+| badge_design | jsonb | - | Yes | NULL | Validated version-1 SVG recipe; NULL retains legacy artwork. |
 
 ### Keys and database constraints
 
@@ -492,7 +497,7 @@ Achievement definitions and threshold metrics.
 - Check: length(btrim(code)) > 0.
 - Check: length(btrim(name)) > 0.
 - Check: length(btrim(description)) > 0.
-- Check: metric in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days').
+- Check: metric in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days', 'perfect_lessons', 'completed_courses').
 - Check: threshold > 0.
 
 ### Trigger and application rules
@@ -517,7 +522,7 @@ Association recording an achievement unlocked by a learner.
 
 ### Trigger and application rules
 
-Database eligibility validation checks achievement thresholds. Awards are immutable; automatic awarding is not implemented end to end.
+Database eligibility validation checks achievement thresholds. Awards are immutable and issued automatically from verified activity. Cosmetic badge edits do not remove earned awards.
 
 Supporting indexes: (achievement_id).
 

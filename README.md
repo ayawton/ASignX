@@ -6,6 +6,10 @@ service, and Supabase PostgreSQL, Auth and Storage.
 - `client/` — React and Vite user interface
 - `server/` — Express API, Drizzle migrations and private recognition service
 
+Shared UI and badge choices are documented in [the design system](docs/Design-System.md).
+Badge behavior, database fields, and manuscript wording are documented in the
+[achievement reference](docs/final/Achievement-Badges-Manuscript-Reference.md).
+
 ## Development
 
 Install packages separately in `client/` and `server/`:

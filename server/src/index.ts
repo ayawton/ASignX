@@ -1,6 +1,6 @@
 import express from 'express';
 import { connection } from './db/index.js';
-import { applicationTables } from './db/tables.js';
+import { applicationTables, achievementColumns } from './db/tables.js';
 import { personal } from './personal.js';
 import { createGuestAccess } from './guests.js';
 import { admin } from './admin.js';
@@ -42,7 +42,8 @@ app.get('/health/ready', async (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
         const rows = await connection<{ name: string; present: boolean }[]>`select name, to_regclass('public.' || name) is not null as present from unnest(${[...applicationTables]}::text[]) as name`;
-        const ready = rows.every(row => row.present);
+        const columns = await connection<{ column_name: string }[]>`select column_name from information_schema.columns where table_schema='public' and table_name='achievements'`;
+        const ready = rows.every(row => row.present) && achievementColumns.every(name => columns.some(column => column.column_name === name));
         res.status(ready ? 200 : 503).json({ ready });
     } catch { res.status(503).json({ ready: false }); }
 });

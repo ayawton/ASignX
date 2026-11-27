@@ -284,6 +284,7 @@ curate the artwork and grouping through the designer.
 
 Sources for manuscript review:
 
+- `server/src/db/index.ts`: parameterized postgres.js runtime client with native JSON and timestamp codecs; Drizzle remains schema/migration tooling.
 - `server/src/achievementAdmin.ts`: catalog API validation and writes.
 - `server/src/personal.ts`: progress responses and secret masking.
 - `server/src/badgeDesign.ts`: allowed recipe values and legacy icon mapping.
@@ -327,10 +328,19 @@ These are dated verification observations, not permanent system totals. Register
 learner activity and later catalog edits can change the counts. Applying database
 migrations does not itself deploy the frontend or Railway application release.
 
-Client tests and 42 backend tests previously passed, including recipe persistence,
+Client tests and 43 backend tests passed, including recipe persistence,
 database validation, secret masking, SVG scaling/identifiers, unused shuffle,
-guest isolation, and preservation of earned awards. Those automated checks do not
+guest isolation, preservation of earned awards, and native runtime JSON/timestamp
+parameter serialization. Those automated checks do not
 substitute for a full visual acceptance review of every screen.
+
+A subsequent save-path check found an unused runtime ORM initialization changing
+the shared driver's JSON serializers. Badge PATCH requests then failed in the
+driver before reaching PostgreSQL. The unused initialization was removed; runtime
+routes retain the native postgres.js codecs, and schema/migration tooling remains
+available. A regression test reproduced the original object-versus-string binding
+failure and passed after the fix. API readiness alone is not proof that a write
+path has been validated.
 
 ## 16. Suggested manuscript description
 

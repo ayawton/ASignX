@@ -585,6 +585,8 @@ Preview Studio has Details and Designer tabs with one save action. Metric select
 
 The API and database validate the version-1 recipe independently. Unknown fields, SVG markup, versions, and option values are rejected. Client duplicate warnings compare category, tier, and canonical recipe; duplicate artwork does not block awards. Old-client PATCH requests that omit design fields preserve the stored design, tier, and group. Hidden secret badges omit all three new fields until earned. Guest templates and catalog snapshots include the fields and keep all awards isolated to the temporary session store.
 
+Runtime routes use parameterized postgres.js SQL with the driver's native JSON and date codecs. Drizzle is retained for schema definitions and migrations. An unused runtime Drizzle wrapper was removed because it replaced the shared client's JSON serializer and caused badge saves to fail before reaching PostgreSQL. `tests/database-client.test.mjs` checks the actual runtime codec setup independently of the SQL mocks.
+
 `/health/ready` and `npm run db:check` also verify the achievement columns so a database missing the badge migrations cannot appear ready.
 
 Design conventions and source references are recorded in [the shared design system](../docs/Design-System.md).

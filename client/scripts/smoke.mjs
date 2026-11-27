@@ -37,7 +37,7 @@ try {
  assert.ok(importer.includes('asignx-course-template.txt') && importer.includes('text/plain') && importer.includes('accept=".txt,text/plain"'))
  assert.ok(!importer.includes('Create draft course</button>'), 'Saving is unavailable before a successful preview')
  const { default: WorkspaceLink } = await vite.ssrLoadModule('/src/components/WorkspaceLink.jsx')
- for (const path of ['/learn', '/live', '/learn/courses', '/learn/courses/00000000-0000-4000-8000-000000000010', '/learn/lesson/1', '/learn/arcade', '/profile', '/progress', '/heart-practice']) {
+ for (const path of ['/learn', '/live', '/learn/courses', '/learn/courses/00000000-0000-4000-8000-000000000010', '/learn/lesson/1', '/learn/arcade', '/profile', '/progress', '/learn/practice']) {
   const link = location => renderToString(h(MemoryRouter, { initialEntries: [location] }, h(WorkspaceLink, { to: path }, 'Open')))
   assert.ok(link('/dashboard').includes(`href="/dashboard${path}"`), 'Workspace links remain in workspace')
   assert.ok(link('/learn').includes(`href="${path}"`), 'Public links retain public destinations')

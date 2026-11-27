@@ -46,11 +46,26 @@ test('normalization preserves populated XP, practice submissions and recognition
  assert.equal(await scalar('select count(*)::int from heart_practice_submissions'),2);
  assert.equal(await scalar('select count(*)::int from heart_practice_submissions where is_correct'),1);
  assert.equal(await scalar("select fingerprint from model_versions m join exercise_attempts a on a.model_version_id=m.id"),'existing-model');
+ const savedModelVersion=await scalar('select version from model_versions m join exercise_attempts a on a.model_version_id=m.id');
  assert.equal(await scalar('select selected_option_id from exercise_attempts'),null);
  assert.equal(await scalar(`select count(*)::int from exercise_options where exercise_id='${id(6)}'`),0);
+ const simplification=await readFile(new URL('../drizzle/20261126010000_simplify_practice/migration.sql',import.meta.url),'utf8');
+ await db.exec('begin');
+ await db.exec(`insert into recognition_sessions(user_id) values ('${id(1)}'); savepoint before_cleanup`);
+ await assert.rejects(db.exec(simplification),/Review retention/);
+ await db.exec('rollback to before_cleanup');
+ assert.equal(await scalar('select count(*)::int from recognition_sessions'),1);
+ await db.exec('rollback');
+ await db.exec(`begin;${simplification}commit;`);
+ assert.equal(await scalar('select count(*)::int from practice_round_questions'),3);
+ assert.equal(await scalar('select count(*)::int from practice_submissions'),2);
+ assert.equal(await scalar("select count(*)::int from exercise_attempts where response_text='A' and recognition_confidence=.99 and is_correct"),1);
+ assert.equal(await scalar('select model_version from exercise_attempts'),savedModelVersion);
+ await assert.rejects(db.exec("update exercise_attempts set model_version='changed'"),/records are immutable/);
+ assert.equal(await scalar('select sum(amount)::int from xp_awards'),14);
  // Enrollment deletion must cascade through both new histories.
  await db.exec(`delete from auth.users where id='${id(1)}'`);
  assert.equal(await scalar('select count(*)::int from xp_awards'),0);
- assert.equal(await scalar('select count(*)::int from heart_practice_submissions'),0);
+ assert.equal(await scalar('select count(*)::int from practice_submissions'),0);
  }finally{await db.close()}
 });

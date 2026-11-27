@@ -8,7 +8,6 @@ import { anonRole, authenticatedRole, authUsers } from 'drizzle-orm/supabase';
 // Source: docs/final/Data-Dictionary.md. Supabase owns auth.users.
 const id = () => uuid('id').defaultRandom().primaryKey();
 const instant = (name: string) => timestamp(name, { withTimezone: true }).notNull().defaultNow();
-const confidence = (name: string) => numeric(name, { precision: 6, scale: 5 }).notNull();
 const owner = (column: unknown) => sql`${column} = (select auth.uid())`;
 const ownEnrollment = (column: unknown) => sql`exists (select 1 from public.enrollments e where e.id = ${column} and e.user_id = (select auth.uid()))`;
 const publishedLesson = (column: unknown) => sql`exists (select 1 from public.lessons l join public.courses c on c.id = l.course_id where l.id = ${column} and l.is_published and c.is_published)`;
@@ -125,7 +124,8 @@ export const lessonProgress = pgTable('lesson_progress', {
 export const exerciseAttempts = pgTable('exercise_attempts', {
     id: id(), enrollmentId: uuid('enrollment_id').notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
     exerciseId: uuid('exercise_id').notNull().references(() => exercises.id, { onDelete: 'restrict' }),
-    responseText: text('response_text'), recognitionConfidence: numeric('recognition_confidence', { precision: 6, scale: 5 }), modelVersionId: uuid('model_version_id').references(()=>modelVersions.id,{onDelete:'restrict'}),
+    modelVersion: varchar('model_version', { length: 50 }),
+    responseText: text('response_text'), recognitionConfidence: numeric('recognition_confidence', { precision: 6, scale: 5 }),
     selectedOptionId: uuid('selected_option_id'), isCorrect: boolean('is_correct').notNull(),
     attemptedAt: instant('attempted_at'),
 }, t => [
@@ -133,53 +133,6 @@ export const exerciseAttempts = pgTable('exercise_attempts', {
     index('exercise_attempts_enrollment_idx').on(t.enrollmentId),
     index('exercise_attempts_exercise_option_idx').on(t.exerciseId, t.selectedOptionId),
     pgPolicy('exercise_attempts_read_own', { for: 'select', to: authenticatedRole, using: ownEnrollment(t.enrollmentId) }),
-]).enableRLS();
-
-export const modelVersions = pgTable('model_versions', {
-    id: id(), version: varchar('version', { length: 50 }).notNull().unique(),
-    fingerprint: varchar('fingerprint',{length:128}).unique(), artifactPath: text('artifact_path'), confidenceThreshold: confidence('confidence_threshold').default('0.80000'),
-    createdAt: instant('created_at'),
-}, t => [
-    check('model_versions_version_nonblank', sql`length(btrim(${t.version})) > 0`),
-    check('model_versions_artifact_nonblank', sql`${t.artifactPath} is null or length(btrim(${t.artifactPath})) > 0`),
-    check('model_versions_threshold_range', sql`${t.confidenceThreshold} between 0 and 1`),
-]).enableRLS();
-
-export const practiceAttempts = pgTable('practice_attempts', {
-    id: id(), userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-    lessonId: uuid('lesson_id').references(() => lessons.id, { onDelete: 'restrict' }),
-    targetSignId: uuid('target_sign_id').notNull().references(() => signs.id, { onDelete: 'restrict' }),
-    predictedSignId: uuid('predicted_sign_id').references(() => signs.id, { onDelete: 'restrict' }),
-    modelVersionId: uuid('model_version_id').notNull().references(() => modelVersions.id, { onDelete: 'restrict' }),
-    confidence: confidence('confidence'), isCorrect: boolean('is_correct').notNull(), attemptedAt: instant('attempted_at'),
-}, t => [
-    index('practice_attempts_user_time_idx').on(t.userId, t.attemptedAt), index('practice_attempts_lesson_idx').on(t.lessonId),
-    index('practice_attempts_target_idx').on(t.targetSignId), index('practice_attempts_prediction_idx').on(t.predictedSignId),
-    index('practice_attempts_model_idx').on(t.modelVersionId), check('practice_attempts_confidence_range', sql`${t.confidence} between 0 and 1`),
-    pgPolicy('practice_attempts_read_own', { for: 'select', to: authenticatedRole, using: owner(t.userId) }),
-]).enableRLS();
-
-export const recognitionSessions = pgTable('recognition_sessions', {
-    id: id(), userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
-    startedAt: instant('started_at'), endedAt: timestamp('ended_at', { withTimezone: true }), finalText: text('final_text'),
-}, t => [
-    index('recognition_sessions_user_time_idx').on(t.userId, t.startedAt),
-    check('recognition_sessions_end_valid', sql`${t.endedAt} is null or ${t.endedAt} >= ${t.startedAt}`),
-    check('recognition_sessions_text_valid', sql`${t.finalText} is null or ${t.endedAt} is not null`),
-    pgPolicy('recognition_sessions_read_own', { for: 'select', to: authenticatedRole, using: owner(t.userId) }),
-]).enableRLS();
-
-export const recognitionResults = pgTable('recognition_results', {
-    id: id(), sessionId: uuid('session_id').notNull().references(() => recognitionSessions.id, { onDelete: 'cascade' }),
-    signId: uuid('sign_id').references(() => signs.id, { onDelete: 'restrict' }),
-    modelVersionId: uuid('model_version_id').notNull().references(() => modelVersions.id, { onDelete: 'restrict' }),
-    sequenceNo: integer('sequence_no').notNull(), confidence: confidence('confidence'), recognizedAt: instant('recognized_at'),
-}, t => [
-    unique('recognition_results_session_sequence_unique').on(t.sessionId, t.sequenceNo),
-    index('recognition_results_sign_idx').on(t.signId), index('recognition_results_model_idx').on(t.modelVersionId),
-    check('recognition_results_sequence_positive', sql`${t.sequenceNo} > 0`),
-    check('recognition_results_confidence_range', sql`${t.confidence} between 0 and 1`),
-    pgPolicy('recognition_results_read_own', { for: 'select', to: authenticatedRole, using: sql`exists (select 1 from public.recognition_sessions s where s.id = ${t.sessionId} and s.user_id = (select auth.uid()))` }),
 ]).enableRLS();
 
 export const achievements = pgTable('achievements', {
@@ -210,10 +163,6 @@ export type Exercise = typeof exercises.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type LessonProgress = typeof lessonProgress.$inferSelect;
 export type ExerciseAttempt = typeof exerciseAttempts.$inferSelect;
-export type ModelVersion = typeof modelVersions.$inferSelect;
-export type PracticeAttempt = typeof practiceAttempts.$inferSelect;
-export type RecognitionSession = typeof recognitionSessions.$inferSelect;
-export type RecognitionResult = typeof recognitionResults.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
 
 export const learnerHearts = pgTable('learner_hearts', {
@@ -231,12 +180,12 @@ export const lessonRunQuestions = pgTable('lesson_run_questions',{
 export const xpAwards=pgTable('xp_awards',{
  id:id(),enrollmentId:uuid('enrollment_id').notNull().references(()=>enrollments.id,{onDelete:'cascade'}),lessonId:uuid('lesson_id').notNull().references(()=>lessons.id,{onDelete:'restrict'}),runId:uuid('run_id').references(()=>lessonRuns.id,{onDelete:'cascade'}),exerciseId:uuid('exercise_id').references(()=>exercises.id,{onDelete:'restrict'}),source:varchar('source',{length:20}).notNull(),amount:integer('amount').notNull(),awardedAt:instant('awarded_at'),
 },t=>[check('xp_awards_nonnegative',sql`${t.amount}>=0`),check('xp_awards_source',sql`${t.source} in ('legacy','claim','run_import','first_question','replay','material')`),uniqueIndex('xp_awards_first_claim').on(t.enrollmentId,t.exerciseId).where(sql`${t.source} in ('claim','first_question')`),uniqueIndex('xp_awards_run_total').on(t.runId).where(sql`${t.source} in ('run_import','replay','material')`),index('xp_awards_enrollment_idx').on(t.enrollmentId),index('xp_awards_run_idx').on(t.runId)]).enableRLS();
-export const heartPracticeRounds=pgTable('heart_practice_rounds',{
- id:id(),userId:uuid('user_id').notNull().references(()=>profiles.id,{onDelete:'cascade'}),completedAt:timestamp('completed_at',{withTimezone:true}),createdAt:instant('created_at'),
-},t=>[uniqueIndex('heart_practice_one_active').on(t.userId).where(sql`${t.completedAt} is null`)]).enableRLS();
-export const heartPracticeQuestions=pgTable('heart_practice_questions',{
- roundId:uuid('round_id').notNull().references(()=>heartPracticeRounds.id,{onDelete:'cascade'}),questionIndex:integer('question_index').notNull(),exerciseId:uuid('exercise_id').notNull().references(()=>exercises.id,{onDelete:'restrict'}),
-},t=>[primaryKey({columns:[t.roundId,t.questionIndex]}),check('heart_practice_question_index',sql`${t.questionIndex} between 0 and 2`)]).enableRLS();
-export const heartPracticeSubmissions=pgTable('heart_practice_submissions',{
+export const practiceRounds=pgTable('practice_rounds',{
+ id:id(),userId:uuid('user_id').notNull().references(()=>profiles.id,{onDelete:'cascade'}),completedAt:timestamp('completed_at',{withTimezone:true}),createdAt:instant('created_at'),heartRestored:boolean('heart_restored').notNull().default(false),
+},t=>[uniqueIndex('practice_one_active').on(t.userId).where(sql`${t.completedAt} is null`)]).enableRLS();
+export const practiceRoundQuestions=pgTable('practice_round_questions',{
+ roundId:uuid('round_id').notNull().references(()=>practiceRounds.id,{onDelete:'cascade'}),questionIndex:integer('question_index').notNull(),exerciseId:uuid('exercise_id').notNull().references(()=>exercises.id,{onDelete:'restrict'}),
+},t=>[primaryKey({columns:[t.roundId,t.questionIndex]}),check('practice_question_index',sql`${t.questionIndex} between 0 and 2`)]).enableRLS();
+export const practiceSubmissions=pgTable('practice_submissions',{
  id:uuid('id').primaryKey(),roundId:uuid('round_id').notNull(),questionIndex:integer('question_index').notNull(),selectedOptionId:uuid('selected_option_id').notNull().references(()=>exerciseOptions.id,{onDelete:'restrict'}),isCorrect:boolean('is_correct').notNull(),submittedAt:instant('submitted_at'),
-},t=>[foreignKey({columns:[t.roundId,t.questionIndex],foreignColumns:[heartPracticeQuestions.roundId,heartPracticeQuestions.questionIndex]}).onDelete('cascade'),uniqueIndex('heart_practice_one_correct').on(t.roundId,t.questionIndex).where(sql`${t.isCorrect}`)]).enableRLS();
+},t=>[foreignKey({columns:[t.roundId,t.questionIndex],foreignColumns:[practiceRoundQuestions.roundId,practiceRoundQuestions.questionIndex]}).onDelete('cascade'),uniqueIndex('practice_one_correct').on(t.roundId,t.questionIndex).where(sql`${t.isCorrect}`)]).enableRLS();

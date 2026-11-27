@@ -74,7 +74,7 @@ function LessonContent({id}){
      {pending&&message&&!busy&&!answer?.answered&&<button className="btn" onClick={()=>choose(pending.selected_option_id,pending)}>Retry saving answer</button>}
      <div className="lesson-check-actions"><button className="btn btn-secondary" disabled={busy} onClick={()=>{setReview(true);setShowQuestions(false)}}><ArrowLeft size={18}/>Review guidance</button>{review&&<div className="admin-actions"><button className="btn btn-secondary" disabled={index===0} onClick={()=>setIndex(i=>i-1)}>Previous</button>{index<lesson.exercises.length-1?<button className="btn" onClick={()=>setIndex(i=>i+1)}>Next answer</button>:<button className="btn" onClick={()=>{setShowQuestions(false);setReview(false)}}>Back to results</button>}</div>}</div>
     </>}
-    {noHearts&&<div className="lesson-heart-pause" role="status"><h3>Your attempt is saved</h3><p>You’re out of hearts. Material and saved answers remain available. Restore a heart to start or continue a graded attempt.</p><Link className="btn" to={`/heart-practice?lesson=${id}`}>Practice to restore a heart</Link><button className="text-link" onClick={resume}>Check regenerated hearts</button></div>}
+    {noHearts&&<div className="lesson-heart-pause" role="status"><h3>Your attempt is saved</h3><p>You’re out of hearts. Material and saved answers remain available. Restore a heart to start or continue a graded attempt.</p><Link className="btn" to={`/learn/practice?lesson=${id}`}>Open Practice</Link><button className="text-link" onClick={resume}>Check regenerated hearts</button></div>}
    </article>
   </>}
  </section>

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { ArrowUpRight, Menu, X } from 'lucide-react'
 import { AuthCallback, ForgotPassword, ResetPassword, Login, Register } from './pages/Auth'
 import Guest from './pages/Guest'
 import Lesson from './pages/Lesson'
 import Course from './pages/Course'
-import HeartPractice from './pages/HeartPractice'
+import Practice from './pages/Practice'
 import AccountLesson from './pages/AccountLesson'
 import Admin from './pages/Admin'
 import AdminCourseForm from './pages/AdminCourseForm'
@@ -28,6 +28,10 @@ import './lesson.css'
 import { Protected, useAuth } from './auth'
 function Header() { const { user } = useAuth(); const [open, setOpen] = useState(false); const { pathname } = useLocation(); useEffect(() => { window.scrollTo(0, 0) }, [pathname]); return <header className="site-header"><div className="container nav"><Brand /><button className="menu-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button><nav id="main-navigation" onKeyDown={e => { if (e.key === 'Escape') setOpen(false) }} className={open ? 'navigation is-open' : 'navigation'} aria-label="Main navigation" onClick={() => setOpen(false)}><div className="nav-links">{user && <NavLink to="/dashboard">Dashboard</NavLink>}<NavLink to="/" end>Home</NavLink><NavLink to="/live">ASignLive <span className="nav-dot" /></NavLink><NavLink to="/learn">ASign Learn</NavLink><NavLink to="/about">Our story</NavLink></div><div className="nav-actions"><Link to={user ? "/dashboard" : "/login"}>{user ? "Your dashboard" : "Log in"}</Link><Button to="/learn">Let’s get signing <ArrowUpRight size={16} /></Button></div></nav></div></header> }
 function Footer() { return <footer className="site-footer"><div className="container footer-top"><div><Brand /><p>Learn and practice American Sign Language.</p></div><div><h3>Find your way</h3><Link to="/live">ASignLive</Link><Link to="/learn">ASign Learn</Link><Link to="/learn/courses">All courses</Link><Link to="/learn/arcade">Sign Strike arcade</Link></div><div><h3>Make it yours</h3><Link to="/progress">Your progress</Link><Link to="/profile">Your profile</Link><Link to="/about">About ASignX</Link></div></div><div className="container footer-bottom"><span>© 2026 ASignX. An academic project.</span></div></footer> }
+function PracticeRedirect() {
+ const { search } = useLocation()
+ return <Navigate to={`/dashboard/learn/practice${search}`} replace />
+}
 export default function App() {
  const { pathname } = useLocation()
  const workspace = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
@@ -55,7 +59,8 @@ export default function App() {
    <Route path="learn/lessons/:id" element={<AccountLesson />} />
    <Route path="learn/arcade" element={<Arcade />} />
    <Route path="learn/lesson/:id" element={<Lesson />} />
-   <Route path="heart-practice" element={<HeartPractice/>}/>
+   <Route path="learn/practice" element={<Practice/>}/>
+   <Route path="heart-practice" element={<PracticeRedirect/>}/>
    <Route path="progress" element={<Progress />} />
    <Route path="profile" element={<Profile />} />
    <Route path="*" element={<section className="studio-section"><h1>Page not found</h1><Link className="text-link" to="/dashboard">Back to dashboard</Link></section>} />

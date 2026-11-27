@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, Camera, Gamepad2, Hand, LayoutDashboard, LogOut, Trophy, UserRound } from 'lucide-react'
+import { BookOpen, Camera, ClipboardCheck, Gamepad2, Hand, LayoutDashboard, LogOut, Trophy, UserRound } from 'lucide-react'
 import Hearts from './Hearts'
 import { api, useAuth } from '../auth'
 import { workspaceDestination } from '../auth-path'
@@ -41,6 +41,7 @@ export default function DashboardLayout() {
      {!isAdmin && <><NavLink to="/dashboard" end><LayoutDashboard size={18} /> Overview</NavLink>
      <NavLink to="/dashboard/live"><Camera size={18} /> ASignLive</NavLink>
      <NavLink to="/dashboard/learn" end><BookOpen size={18} /> ASign Learn</NavLink>
+     <NavLink to="/dashboard/learn/practice"><ClipboardCheck size={18} /> Practice</NavLink>
      <NavLink to="/dashboard/learn/arcade"><Gamepad2 size={18} /> Sign Strike</NavLink>
      <NavLink to="/dashboard/progress"><Trophy size={18} /> My progress</NavLink></>}
      <NavLink to="/dashboard/profile"><UserRound size={18} /> My profile</NavLink>

@@ -138,21 +138,25 @@ export const exerciseAttempts = pgTable('exercise_attempts', {
 export const achievements = pgTable('achievements', {
     id: id(), code: varchar('code', { length: 50 }).notNull().unique(), name: varchar('name', { length: 100 }).notNull(),
     description: text('description').notNull(), metric: varchar('metric', { length: 25 }).notNull(), threshold: integer('threshold').notNull(),
+    status: varchar('status', { length: 10 }).notNull().default('published'),
+    icon: varchar('icon', { length: 10 }).notNull().default('trophy'),
 }, t => [
+    check('achievements_status_valid', sql`${t.status} in ('draft', 'published', 'retired')`),
+    check('achievements_icon_valid', sql`${t.icon} in ('lesson', 'practice', 'xp', 'streak', 'trophy')`),
     check('achievements_code_nonblank', sql`length(btrim(${t.code})) > 0`),
     check('achievements_name_nonblank', sql`length(btrim(${t.name})) > 0`),
     check('achievements_description_nonblank', sql`length(btrim(${t.description})) > 0`),
     check('achievements_metric_valid', sql`${t.metric} in ('completed_lessons', 'successful_practices', 'total_xp', 'streak_days')`),
     check('achievements_threshold_positive', sql`${t.threshold} > 0`),
-    pgPolicy('achievements_read', { for: 'select', to: [anonRole, authenticatedRole], using: sql`true` }),
+    pgPolicy('achievements_read', { for: 'select', to: [anonRole, authenticatedRole], using: sql`${t.status} = 'published'` }),
 ]).enableRLS();
 
-export const userAchievements = pgTable('user_achievements', {
+export const profileAchievements = pgTable('profile_achievements', {
     userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
     achievementId: uuid('achievement_id').notNull().references(() => achievements.id, { onDelete: 'restrict' }), unlockedAt: instant('unlocked_at'),
 }, t => [
-    primaryKey({ columns: [t.userId, t.achievementId] }), index('user_achievements_achievement_idx').on(t.achievementId),
-    pgPolicy('user_achievements_read_own', { for: 'select', to: authenticatedRole, using: owner(t.userId) }),
+    primaryKey({ columns: [t.userId, t.achievementId] }), index('profile_achievements_achievement_idx').on(t.achievementId),
+    pgPolicy('profile_achievements_read_own', { for: 'select', to: authenticatedRole, using: owner(t.userId) }),
 ]).enableRLS();
 
 export type Profile = typeof profiles.$inferSelect;

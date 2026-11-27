@@ -4,6 +4,7 @@ import { connection as sql } from './db/index.js';
 import { authenticate } from './personal.js';
 
 import { lessonValues, writeLessonContent } from './courseAuthoring.js';
+import { achievementAdmin } from './achievementAdmin.js';
 import { courseImportRoutes } from './courseImportRoutes.js';
 import { recognitionCapabilities } from './recognitionTransport.js';
 
@@ -17,6 +18,7 @@ export async function requireAdmin(_req: Request, res: Response, next: NextFunct
 }
 admin.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, authenticate, requireAdmin);
 admin.use(courseImportRoutes);
+admin.use(achievementAdmin);
 admin.get('/overview', async (_req, res) => {
  const [[counts],recent_courses] = await Promise.all([
   sql`select

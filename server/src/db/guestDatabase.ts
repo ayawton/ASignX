@@ -53,12 +53,13 @@ export async function createGuestDatabase(catalog: Sql) {
                 JOIN courses c ON c.id=l.course_id WHERE l.is_published AND c.is_published`,
             exercise_options: await tx`SELECT o.* FROM exercise_options o JOIN exercises x ON x.id=o.exercise_id
                 JOIN lessons l ON l.id=x.lesson_id JOIN courses c ON c.id=l.course_id WHERE l.is_published AND c.is_published`,
-            achievements: await tx`SELECT * FROM achievements`,
+            achievements: await tx`SELECT * FROM achievements WHERE status='published'`,
         }));
         await database.transaction(async tx => {
             // The catalog already passed publication checks in the source transaction.
             // Load its graph as a snapshot, then restore all triggers before learner traffic.
             await tx.exec('SET LOCAL session_replication_role = replica');
+            await tx.exec('DELETE FROM public.achievements');
             for (const [table, rows] of Object.entries(snapshot)) {
                 await tx.query(`INSERT INTO public.${table} SELECT * FROM jsonb_populate_recordset(NULL::public.${table}, $1::jsonb)`,
                     [JSON.stringify(rows)]);

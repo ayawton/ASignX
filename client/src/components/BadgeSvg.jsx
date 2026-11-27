@@ -21,7 +21,7 @@ export default function BadgeSvg({ badge }) {
  const palette = badgeCategories[badge.metric] || badgeCategories.completed_lessons
  const Icon = icons[badge.metric] || BookOpen
  const frame = shapes[badge.tier] || shapes.starter
- const edge = design.finish === 'soft' ? palette.ink : design.finish === 'deep' ? '#18294c' : palette.ink
+ const edge = design.finish === 'deep' ? '#18294c' : palette.ink
  const ground = design.finish === 'deep' ? palette.tone : palette.light
  return <svg className="badge-svg" viewBox="0 0 128 144" fill="none" aria-hidden="true" focusable="false" strokeLinejoin="round" strokeLinecap="round">
   <defs><clipPath id={clip}><path d={frame} /></clipPath></defs>

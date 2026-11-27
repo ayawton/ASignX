@@ -4,7 +4,7 @@ export const designOptions = {
  border: ['single', 'double', 'dotted', 'laurel'],
  pattern: ['solid', 'rays', 'stars', 'diamonds'],
  decoration: ['none', 'ribbon', 'wings', 'stars'],
- finish: ['classic', 'soft', 'deep'],
+ finish: ['classic', 'deep'],
 }
 export const defaultBadgeDesign = { version: 1, border: 'double', pattern: 'solid', decoration: 'none', finish: 'classic' }
 export const badgeCategories = {

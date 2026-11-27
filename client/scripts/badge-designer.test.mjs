@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { filterBadges, badgeFieldErrors } from '../src/data/badge-catalog.js'
+import { normalizeBadgeDesign } from '../src/data/badge-design.js'
 import { createElement as h } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createServer } from 'vite'
@@ -12,7 +14,7 @@ assert.equal(suggestedBadgeTier({ ...badge, milestone_group: null }, catalog), n
 assert.equal(suggestedBadgeTier(badge, [...catalog, { ...badge, id: 'different-metric', metric: 'total_xp', threshold: 5 }]), 'growing')
 assert.equal(designSignature(badge), designSignature({ ...badge, badge_design: { finish: 'classic', decoration: 'none', pattern: 'solid', border: 'double', version: 1 } }), 'Object key order does not change design identity')
 const generated = []
-for (let i = 0; i < 191; i++) {
+for (let i = 0; i < 127; i++) {
  const recipe = unusedBadgeDesign(badge, [...catalog, ...generated], () => 0)
  assert.ok(recipe, 'An unused recipe should be available')
  const next = { ...badge, id: `new-${i}`, badge_design: recipe }
@@ -21,6 +23,16 @@ for (let i = 0; i < 191; i++) {
  generated.push(next)
 }
 assert.equal(unusedBadgeDesign(badge, [...catalog, ...generated]), null, 'Exhaustion stops without an infinite shuffle loop')
+assert.equal(normalizeBadgeDesign({...defaultBadgeDesign,finish:'soft'}).finish,'classic')
+assert.deepEqual(designOptions.finish,['classic','deep'])
+const samples=[{...badge,id:'a',status:'draft',is_secret:false},{...badge,id:'b',metric:'total_xp',threshold:100,tier:'mastery',status:'published',is_secret:true}]
+assert.equal(filterBadges(samples,{type:'total_xp',visibility:'secret',status:'published'})[0].id,'b')
+assert.equal(filterBadges(samples,{search:'Learning'}).length,2)
+assert.equal(filterBadges(samples,{sort:'target'})[0].id,'a')
+assert.equal(filterBadges(samples,{sort:'tier'})[1].id,'b')
+assert.deepEqual(Object.keys(badgeFieldErrors({...badge,name:' ',description:'',threshold:0,milestone_group:''})),['name','description','threshold','milestone_group'])
+assert.deepEqual(badgeFieldErrors({...badge,milestone_group:null}),{})
+console.log('PASS filters, sorting, required fields and legacy Soft compatibility')
 console.log('PASS category/tier design identity, milestone suggestions, unused shuffle and exhaustion')
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' })
@@ -43,7 +55,14 @@ try {
  const precision = renderToStaticMarkup(h(BadgeArt, { badge: { ...badge, metric: 'perfect_lessons', icon: 'lesson' } }))
  assert.ok(precision.includes('lucide-target'), 'Metric determines the central SVG icon')
  const designer = renderToStaticMarkup(h(BadgeDesigner, { badge, catalog, onChange() {} }))
+ assert.ok(!designer.includes('<select'))
+ assert.ok(!designer.includes('>Soft<'))
+ assert.ok(designer.includes('aria-pressed="true"'))
  assert.ok(designer.includes('Undo') && designer.includes('Redo') && designer.includes('Shuffle design') && designer.includes('also belongs'))
+ const {default: BadgeTypeGroups}=await vite.ssrLoadModule('/src/components/BadgeTypeGroups.jsx')
+ const grouped=renderToStaticMarkup(h(BadgeTypeGroups,{badges:Array.from({length:13},(_,i)=>({...badge,id:String(i)})),renderCard:b=>h('li',{key:b.id},b.name)}))
+ assert.ok(grouped.includes('Page 1 of 2'))
+ assert.equal((grouped.match(/<li/g)||[]).length,12)
  const collection = renderToStaticMarkup(h(BadgeCollection, { badges: [badge, { ...badge, id: 'standalone', milestone_group: null, name: 'Challenge' }] }))
  assert.ok(collection.includes('Learning milestones') && collection.includes('Lessons completed'))
  console.log('PASS scalable SVGs, unique clip IDs, fixed category icons, legacy fallback, secret masking and designer controls')

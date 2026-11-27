@@ -187,3 +187,45 @@
  .badge-size-preview > div { flex-wrap:wrap; justify-content:start; gap:20px; }
  .catalog-list .badge-art.is-designed { width:40px; height:45px; }
 }
+/* Catalog grouping and visual authoring retain the approved ASignX surfaces. */
+.achievement-page .badge-toolbar { grid-template-columns:minmax(180px,1fr) repeat(3,minmax(110px,auto)); }
+.badge-toolbar .badge-view-switch { grid-column:1 / -1; justify-self:end; }
+.badge-more-filters { font-size:13px; color:var(--text); margin-top:-12px; }
+.badge-more-filters summary { cursor:pointer; min-height:44px; display:flex; align-items:center; width:fit-content; }
+.badge-more-filters label { display:flex; gap:12px; align-items:center; padding-block:8px; }
+.badge-more-filters select { padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); min-height:44px; }
+.badge-type-groups { display:grid; gap:32px; }
+.badge-type-group > header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.badge-type-group > header h2 { font-size:24px; margin:0; }
+.badge-type-group > header span { color:var(--text); font-size:13px; }
+.badge-type-group > footer { margin-top:20px; }
+.field-requirement { font:400 12px 'DM Sans',sans-serif; color:var(--text); margin-left:6px; }
+.field-error { display:block; color:#a52b38; font-size:13px; line-height:1.5; margin:6px 0 0; }
+.achievement-page :is(input,textarea,select)[aria-invalid=true] { border-color:#a52b38; outline-color:#a52b38; background:#fffafb; }
+.badge-visual-field { min-width:0; margin:0 0 24px; padding:0; border:0; }
+.admin-form .badge-visual-field > legend { font-size:14px; padding:0; margin-bottom:12px; }
+.badge-design-fields { display:block; }
+.badge-visual-options { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.badge-visual-options button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-width:0; padding:12px 6px; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:var(--paper); cursor:pointer; font:inherit; font-size:12px; }
+.badge-visual-options button .badge-svg { width:64px; height:72px; max-width:100%; }
+.badge-visual-options button > span { color:var(--text); }
+.badge-visual-options button[aria-pressed=true] { border:2px solid var(--accent); padding:11px 5px; background:var(--badge-soft); }
+.badge-visual-options button:hover { border-color:var(--accent); }
+.badge-visual-field[aria-invalid=true] { outline:1px solid #a52b38; outline-offset:6px; border-radius:4px; }
+.badge-design-identity { margin-top:0; }
+@media(min-width:769px) {
+ .badge-editor { grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr); align-items:start; }
+ .badge-editor > .badge-preview { position:sticky; top:20px; margin-top:0; align-self:start; }
+}
+@media(max-width:1100px) {
+ .achievement-page .badge-toolbar { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .badge-toolbar .badge-search { grid-column:1 / -1; }
+ .badge-visual-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:768px) { .badge-editor { grid-template-columns:minmax(0,1fr); }.badge-preview { position:static; } }
+@media(max-width:640px) {
+ .achievement-page .badge-toolbar { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .badge-toolbar .badge-view-switch { justify-self:stretch; }
+ .badge-toolbar select { max-width:100%; }
+ .badge-visual-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

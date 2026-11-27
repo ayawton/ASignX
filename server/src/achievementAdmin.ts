@@ -15,7 +15,7 @@ achievementAdmin.get('/achievements', async (_req, res) => {
 
 achievementAdmin.post('/achievements', async (req, res) => {
     const value = achievementValues(req.body);
-    if (!value) { res.status(400).json({ error: 'Enter a name, description, and valid badge requirement.' }); return; }
+    if (!value) { res.status(400).json({ error: 'Check the highlighted fields.', fields: achievementErrors(req.body) }); return; }
     const { name, description, metric, threshold, icon, is_secret, hint, tier, milestone_group, badge_design } = value;
     const [badge] = await sql`insert into achievements(code,name,description,metric,threshold,icon,status,is_secret,hint,tier,milestone_group,badge_design)
         values(gen_random_uuid()::text,${name},${description},${metric},${threshold},${icon},'draft',${is_secret},${hint},${tier},${milestone_group},${badge_design === null ? null : sql.json(badge_design)}) returning id`;
@@ -27,7 +27,7 @@ achievementAdmin.patch('/achievements/:id', async (req, res) => {
     const value = achievementValues(req.body);
     const status = req.body?.status;
     if (!validUuid(id) || !value || !statuses.includes(status)) {
-        res.status(400).json({ error: 'Enter valid achievement details and status.' }); return;
+        res.status(400).json({ error: 'Check the highlighted fields.', fields: achievementErrors(req.body) }); return;
     }
     const { name, description, metric, threshold, icon, is_secret, hint, tier, milestone_group, badge_design } = value;
     try {
@@ -56,5 +56,21 @@ function achievementValues(body: unknown) {
         !icons.includes(icon) || typeof threshold !== 'number' || !Number.isInteger(threshold) ||
         threshold < 1 || threshold > 2147483647) return null;
     return { name: name.trim(), description: description.trim(), metric, threshold, icon, is_secret, hint, tier,
-        milestone_group: typeof milestone_group === 'string' ? milestone_group.trim() : null, badge_design };
+        milestone_group: typeof milestone_group === 'string' ? milestone_group.trim() : null, badge_design: badge_design?.finish === 'soft' ? { ...badge_design, finish: 'classic' } : badge_design };
+}
+
+function achievementErrors(body: unknown): Record<string, string> {
+ const value = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
+ const errors: Record<string, string> = {};
+ for (const [key, max, label] of [['name',100,'badge name'],['description',1000,'badge description']] as const) {
+  if (typeof value[key] !== 'string' || !(value[key] as string).trim()) errors[key] = 'Enter a ' + label + '.';
+  else if ((value[key] as string).trim().length > max) errors[key] = 'Use ' + max + ' characters or fewer.';
+ }
+ if (typeof value.metric !== 'string' || !metrics.includes(value.metric)) errors.metric = 'Choose an achievement requirement.';
+ if (typeof value.threshold !== 'number' || !Number.isInteger(value.threshold) || value.threshold < 1 || value.threshold > 2147483647) errors.threshold = 'Enter a whole number from 1 to 2,147,483,647.';
+ if (value.milestone_group !== undefined && value.milestone_group !== null && (typeof value.milestone_group !== 'string' || !value.milestone_group.trim() || value.milestone_group.trim().length > 80)) errors.milestone_group = 'Enter a group name with 80 characters or fewer.';
+ if (value.hint !== undefined && (typeof value.hint !== 'string' || value.hint.length > 250)) errors.hint = 'Use 250 characters or fewer.';
+ if (value.tier !== undefined && (typeof value.tier !== 'string' || !badgeTiers.includes(value.tier))) errors.tier = 'Choose a badge tier.';
+ if (value.badge_design !== undefined && !validBadgeDesign(value.badge_design)) errors.badge_design = 'Choose valid design options.';
+ return errors;
 }

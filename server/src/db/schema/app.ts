@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
-    boolean, check, foreignKey, index, integer, pgPolicy, pgTable,
+    boolean, check, foreignKey, index, integer, jsonb, pgPolicy, pgTable,
     primaryKey, numeric, text, timestamp, unique, uniqueIndex, uuid, varchar,
 } from 'drizzle-orm/pg-core';
 import { anonRole, authenticatedRole, authUsers } from 'drizzle-orm/supabase';
@@ -142,7 +142,20 @@ export const achievements = pgTable('achievements', {
     icon: varchar('icon', { length: 10 }).notNull().default('trophy'),
     isSecret: boolean('is_secret').notNull().default(false),
     hint: varchar('hint', { length: 250 }).notNull().default(''),
+    tier: varchar('tier', { length: 10 }).notNull().default('starter'),
+    milestoneGroup: varchar('milestone_group', { length: 80 }),
+    badgeDesign: jsonb('badge_design'),
 }, t => [
+    check('achievements_tier_valid', sql`${t.tier} in ('starter','growing','advanced','mastery')`),
+    check('achievements_milestone_group_nonblank', sql`${t.milestoneGroup} is null or length(btrim(${t.milestoneGroup})) > 0`),
+    check('achievements_badge_design_valid', sql`${t.badgeDesign} is null or (
+        jsonb_typeof(${t.badgeDesign}) = 'object' and ${t.badgeDesign}->'version' = '1'::jsonb
+        and ${t.badgeDesign} ?& array['version','border','pattern','decoration','finish']
+        and (${t.badgeDesign} - array['version','border','pattern','decoration','finish']) = '{}'::jsonb
+        and ${t.badgeDesign}->>'border' in ('single','double','dotted','laurel')
+        and ${t.badgeDesign}->>'pattern' in ('solid','rays','stars','diamonds')
+        and ${t.badgeDesign}->>'decoration' in ('none','ribbon','wings','stars')
+        and ${t.badgeDesign}->>'finish' in ('classic','soft','deep')) is true`),
     check('achievements_status_valid', sql`${t.status} in ('draft', 'published', 'retired')`),
     check('achievements_icon_valid', sql`${t.icon} in ('lesson', 'practice', 'xp', 'streak', 'trophy')`),
     check('achievements_code_nonblank', sql`length(btrim(${t.code})) > 0`),

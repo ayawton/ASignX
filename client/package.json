@@ -9,7 +9,7 @@
     "build:wasm": "wasm-pack build --target web --out-dir ../src/recognition/nlp/wasm nlp-wasm",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node scripts/learning-path.test.mjs && node scripts/registration.test.mjs && node scripts/confirmation.test.mjs && node scripts/login.test.mjs && node scripts/smoke.mjs && node scripts/frame-stream.test.mjs && node scripts/word-composer.test.mjs && node scripts/automatic-words.test.mjs && node scripts/wasm-syntax.test.mjs && node scripts/arcade.test.mjs"
+    "test": "node scripts/learning-path.test.mjs && node scripts/registration.test.mjs && node scripts/confirmation.test.mjs && node scripts/login.test.mjs && node scripts/smoke.mjs && node scripts/frame-stream.test.mjs && node scripts/word-composer.test.mjs && node scripts/automatic-words.test.mjs && node scripts/wasm-syntax.test.mjs && node scripts/arcade.test.mjs && node scripts/badge-designer.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

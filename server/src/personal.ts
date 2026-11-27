@@ -91,7 +91,7 @@ async function readProfile(user: { id: string; email?: string }) {
 async function readProgress(userId: string) {
     const [lessons, badges, [activity]] = await Promise.all([
         sql`select lp.lesson_id, l.title, lp.completed_at, lp.perfected_at, (select coalesce(sum(a.amount),0) from xp_awards a where a.enrollment_id=lp.enrollment_id and a.lesson_id=lp.lesson_id)::int as xp_earned from lesson_progress lp join enrollments e on e.id = lp.enrollment_id join lessons l on l.id = lp.lesson_id where e.user_id = ${userId}`,
-        sql`select a.id, a.name, a.description, a.metric, a.threshold, a.icon, a.status, a.is_secret, a.hint, pa.unlocked_at
+        sql`select a.id, a.name, a.description, a.metric, a.threshold, a.icon, a.status, a.is_secret, a.hint, a.tier, a.milestone_group, a.badge_design, pa.unlocked_at
             from achievements a left join profile_achievements pa on pa.achievement_id=a.id and pa.user_id=${userId}
             where a.status='published' or pa.unlocked_at is not null
             order by pa.unlocked_at desc nulls last, a.name, a.id`,

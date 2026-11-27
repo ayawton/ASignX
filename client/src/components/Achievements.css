@@ -147,3 +147,43 @@
  .badge-view-switch { justify-self:start; }
 }
 @media(prefers-reduced-motion:reduce) { .catalog-card { transition:none; } }
+
+/* Shared badge studio: flat blue controls, quiet panels, and scalable vector artwork. */
+.badge-art.is-designed { width:96px; height:108px; border:0; border-radius:0; background:none; color:inherit; }
+.badge-svg { display:block; width:100%; height:100%; overflow:visible; }
+.catalog-list .badge-art.is-designed { width:48px; height:54px; border:0; }
+.catalog-list .badge-art.is-designed svg { width:100%; }
+.inspector-detail > .badge-art.is-designed { width:144px; height:162px; }
+.badge-tier { font-size:12px; color:var(--text); font-weight:500; }
+.badge-editor-tabs { display:flex; gap:24px; border-bottom:1px solid var(--line); margin-bottom:24px; }
+.badge-editor-tabs button { min-height:44px; padding:8px 0; border:0; border-bottom:2px solid transparent; background:none; color:var(--text); font:inherit; font-size:14px; cursor:pointer; }
+.badge-editor-tabs button[aria-selected=true] { color:var(--ink); border-bottom-color:var(--accent); font-weight:600; }
+.badge-designer { min-width:0; }
+.badge-design-identity { display:grid; gap:6px; background:var(--badge-soft); padding:16px; border-radius:8px; margin-bottom:20px; font-size:14px; }
+.badge-design-identity span,.badge-design-help { color:var(--text); font-size:13px; line-height:1.6; }
+.badge-design-help { margin:10px 0 20px; }
+.badge-design-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 16px; }
+.badge-tier-suggestion { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:13px; margin:16px 0; }
+.badge-design-tools { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+.badge-design-tools button { display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); min-height:44px; padding:10px 12px; font:inherit; font-size:13px; cursor:pointer; }
+.badge-design-tools button:hover:not(:disabled) { background:var(--badge-soft); border-color:var(--accent); }
+.badge-design-tools button:disabled { color:var(--muted); background:var(--badge-soft); cursor:default; }
+.badge-design-warning { padding:14px; border-radius:8px; background:var(--badge-gold-soft); color:#765515; margin-top:16px; font-size:13px; line-height:1.6; }
+.badge-size-preview { margin-top:24px; }
+.badge-size-preview h3 { font-size:18px; margin-bottom:16px; }
+.badge-size-preview > div { display:flex; align-items:end; justify-content:space-between; gap:12px; }
+.badge-size-preview figure { margin:0; display:grid; justify-items:center; gap:8px; }
+.badge-size-preview figure .badge-art { width:100%; height:100%; margin:0; }
+.badge-size-preview figure .badge-art:not(.is-designed) svg { width:60%; height:60%; }
+.badge-size-preview figcaption,.badge-size-preview > p { font-size:12px; color:var(--text); }
+.badge-size-preview > p { margin-top:16px; }
+.badge-notice > .badge-art { width:44px; height:49px; flex-shrink:0; margin:0; }
+.badge-notice > .badge-art:not(.is-designed) { border:0; background:transparent; color:var(--amber); }
+.profile-badges { margin-top:32px; }
+.profile-badges h2 { font-size:28px; margin-bottom:20px; }
+.profile-badges .text-link { display:inline-flex; margin-top:20px; }
+@media(max-width:640px) {
+ .badge-design-fields { grid-template-columns:1fr; }
+ .badge-size-preview > div { flex-wrap:wrap; justify-content:start; gap:20px; }
+ .catalog-list .badge-art.is-designed { width:40px; height:45px; }
+}

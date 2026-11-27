@@ -168,6 +168,9 @@ erDiagram
         varchar(10) icon
         boolean is_secret
         varchar(250) hint
+        varchar(10) tier
+        varchar(80) milestone_group
+        jsonb badge_design
     }
     profile_achievements {
         uuid user_id PK,FK "required"

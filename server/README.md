@@ -569,7 +569,7 @@ The `simplify_practice` migration renames the existing Practice tables in place 
 
 ### Badge collections and discovery challenges
 
-The badge catalog supports Gallery, Publishing Board, and List views with search and status filters. Selecting a badge opens the Inspector. Preview Studio shows locked and earned learner states and supports an optional secret hint. These views share one catalog.
+The badge catalog supports Gallery and List views with search and status filters. Both views show 12 badges per page with Previous/Next controls and a result range. The desktop gallery has four badges per row, reducing to two on tablets and one on phones. Search and status changes reset the page; switching views preserves it. Selecting a badge opens the Inspector. Preview Studio shows locked and earned learner states and supports an optional secret hint. These views share one catalog.
 
 The badge_collections migration adds is_secret (boolean, default false) and hint (varchar(250), default empty) to achievements. Published secret badges are returned by the learner API as anonymous discoveries until earned. Their name, metric, target, icon, and progress are omitted. Direct catalog reads by anonymous or authenticated database roles expose published non-secret definitions. Admins use the server role to manage all definitions.
 

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Search, LayoutGrid, Columns3, List, ArrowLeft, EyeOff, Plus } from 'lucide-react'
+import { Search, LayoutGrid, List, ArrowLeft, EyeOff, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { achievementMetrics, BadgeCard, BadgeArt, badgeIcons, statusLabels } from '../components/Achievements'
 import { api } from '../auth'
 
 const empty = { name: '', description: '', metric: 'completed_lessons', threshold: 1, icon: 'trophy', status: 'draft', is_secret: false, hint: '' }
-const views = [['gallery', 'Gallery', LayoutGrid], ['board', 'Board', Columns3], ['list', 'List', List]]
+const views = [['gallery', 'Gallery', LayoutGrid], ['list', 'List', List]]
+const pageSize = 12
 
 export default function AdminAchievements() {
  const [badges, setBadges] = useState(null)
@@ -12,8 +13,9 @@ export default function AdminAchievements() {
  const [form, setForm] = useState(null)
  const [filter, setFilter] = useState('all')
  const [search, setSearch] = useState('')
+ const [page, setPage] = useState(1)
  const [view, setView] = useState(() => {
-  try { return ['gallery', 'board', 'list'].includes(localStorage.getItem('asignx-badge-view')) ? localStorage.getItem('asignx-badge-view') : 'gallery' }
+  try { return localStorage.getItem('asignx-badge-view') === 'list' ? 'list' : 'gallery' }
   catch { return 'gallery' }
  })
  const [previewEarned, setPreviewEarned] = useState(false)
@@ -26,8 +28,12 @@ export default function AdminAchievements() {
   catch (failure) { setError(failure.message) }
  }
  useEffect(() => { load() }, [])
- const visible = badges?.filter(b => (filter === 'all' || b.status === filter) &&
-  [b.name, b.description, achievementMetrics[b.metric]].join(' ').toLowerCase().includes(search.toLowerCase()))
+ const visible = (badges ?? []).filter(b => (filter === 'all' || b.status === filter) &&
+  [b.name, b.description, achievementMetrics[b.metric]].join(' ').toLowerCase().includes(search.trim().toLowerCase()))
+ const pageCount = Math.max(1, Math.ceil(visible.length / pageSize))
+ const currentPage = Math.min(page, pageCount)
+ const start = (currentPage - 1) * pageSize
+ const pageBadges = visible.slice(start, start + pageSize)
  function changeView(next) {
   setView(next)
   try { localStorage.setItem('asignx-badge-view', next) } catch { /* Preferences are optional. */ }
@@ -44,6 +50,7 @@ export default function AdminAchievements() {
     method: form.id ? 'PATCH' : 'POST', body: JSON.stringify({ ...form, status }),
    })
    setForm(null)
+   setPage(1)
    setMessage(status === 'published' ? 'Achievement published. Eligible learners receive it automatically.' : status === 'retired' ? 'Achievement retired.' : 'Changes saved.')
    await load()
   } catch (failure) { setError(failure.message) }
@@ -99,16 +106,23 @@ export default function AdminAchievements() {
      <button className="btn" onClick={() => edit(selected)}>Edit badge</button></article>
    </div>
   </> : badges ? <>
-   <div className="badge-toolbar"><div className="badge-view-switch" aria-label="Catalog view">{views.map(([key, label, Icon]) => <button key={key} aria-pressed={view === key} onClick={() => changeView(key)}><Icon size={16} />{label}</button>)}</div>
-    <label className="badge-search"><Search size={17} /><span className="sr-only">Search badges</span><input aria-label="Search badges" placeholder="Search badges" value={search} onChange={e => setSearch(e.target.value)} /></label>
-    <select aria-label="Filter badge status" value={filter} onChange={e => setFilter(e.target.value)}>{Object.entries({ all: 'All statuses', ...statusLabels }).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+   <div className="badge-toolbar">
+    <div className="badge-search"><Search size={17} aria-hidden="true" /><input type="search" aria-label="Search badges" placeholder="Search badges" value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} /></div>
+    <select aria-label="Filter badge status" value={filter} onChange={e => { setFilter(e.target.value); setPage(1) }}>{Object.entries({ all: 'All statuses', ...statusLabels }).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+    <div className="badge-view-switch" role="group" aria-label="Catalog view">{views.map(([key, label, Icon]) => <button key={key} aria-pressed={view === key} onClick={() => changeView(key)}><Icon size={16} aria-hidden="true" />{label}</button>)}</div>
    </div>
-   <p className="catalog-count">{visible.length} {visible.length === 1 ? 'badge' : 'badges'}</p>
-   {view === 'board' ? <div className="publishing-board">{Object.entries(statusLabels).map(([status, label]) => {
-    const lane = visible.filter(b => b.status === status)
-    return <section key={status}><h2>{label} <span>{lane.length}</span></h2>{lane.length ? <ul className="catalog-grid">{lane.map(card)}</ul> : <p>No {label.toLowerCase()} badges.</p>}</section>
-   })}</div> : view === 'gallery' ? visible.length ? <ul className="catalog-grid">{visible.map(card)}</ul> : <p className="badge-empty">No badges match your search.</p> :
-    visible.length ? <ul className="badge-list catalog-list">{visible.map(b => <li key={b.id}><button onClick={() => setSelected(b)}><BadgeArt badge={b} /><span><strong>{b.name}</strong><small>{b.threshold} {achievementMetrics[b.metric]?.toLowerCase()}</small></span><span>{b.is_secret ? 'Secret' : 'Visible'}</span><span className={`badge-status status-${b.status}`}>{statusLabels[b.status]}</span></button></li>)}</ul> : <p className="badge-empty">No badges match your search.</p>}
+   {!visible.length ? <p className="badge-empty" role="status">{badges.length ? 'No badges match your search or status filter.' : 'No badges yet. Create a new badge to get started.'}</p> : <>
+    {view === 'gallery' ? <ul className="catalog-grid">{pageBadges.map(card)}</ul> :
+     <ul className="badge-list catalog-list">{pageBadges.map(b => <li key={b.id}><button onClick={() => setSelected(b)}><BadgeArt badge={b} /><span><strong>{b.name}</strong><small>{b.threshold} {achievementMetrics[b.metric]?.toLowerCase()}</small></span><span>{b.is_secret ? 'Secret' : 'Visible'}</span><span className={`badge-status status-${b.status}`}>{statusLabels[b.status]}</span></button></li>)}</ul>}
+    <footer className="badge-pagination">
+     <p className="catalog-count" role="status">{start + 1}–{Math.min(start + pageSize, visible.length)} of {visible.length} {visible.length === 1 ? 'badge' : 'badges'}</p>
+     <nav aria-label="Badge pages">
+      <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={16} aria-hidden="true" />Previous</button>
+      <span>Page {currentPage} of {pageCount}</span>
+      <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Next<ChevronRight size={16} aria-hidden="true" /></button>
+     </nav>
+    </footer>
+   </>}
   </> : !error && <p role="status">Loading achievements…</p>}
  </section>
 }

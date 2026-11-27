@@ -9,7 +9,7 @@ function TypeGroup({ metric, badges, renderCard }) {
  return <section className="badge-type-group"><header><h2>{badgeCategories[metric].label}</h2><span>{badges.length} {badges.length === 1 ? 'badge' : 'badges'}</span></header>
   <ul className="catalog-grid">{badges.slice(start, start + 12).map(renderCard)}</ul>
   <footer className="badge-pagination"><p className="catalog-count" role="status">{start + 1}–{Math.min(start + 12, badges.length)} of {badges.length}</p>
-   <nav aria-label={`${badgeCategories[metric].label} badge pages`}><button type="button" disabled={current === 1} onClick={() => setPage(current - 1)}><ChevronLeft size={16} />Previous</button><span>Page {current} of {pages}</span><button type="button" disabled={current === pages} onClick={() => setPage(current + 1)}>Next<ChevronRight size={16} /></button></nav></footer>
+   <nav aria-label={`${badgeCategories[metric].label} badge pages`}><button type="button" aria-label="Previous page" title="Previous page" disabled={current === 1} onClick={() => setPage(current - 1)}><ChevronLeft size={18} aria-hidden="true" /></button><span>Page {current} of {pages}</span><button type="button" aria-label="Next page" title="Next page" disabled={current === pages} onClick={() => setPage(current + 1)}><ChevronRight size={18} aria-hidden="true" /></button></nav></footer>
  </section>
 }
 export default function BadgeTypeGroups({ badges, renderCard }) {

@@ -1,0 +1,6 @@
+/* Shared squircle scale. Circular artwork and progress tracks keep their shapes. */
+:root {
+ --radius-control: 12px;
+ --radius-panel: 20px;
+ --radius-detail: 8px;
+}

@@ -7,7 +7,7 @@
   height: clamp(540px, 72dvh, 800px);
   overflow: hidden;
   isolation: isolate;
-  border-radius: 16px;
+  border-radius:var(--radius-panel);corner-shape:squircle;
   color: #eef5ff;
   background: radial-gradient(ellipse at 50% 98%, #0b2250, transparent 47%), #040917;
   font-family: inherit;
@@ -45,7 +45,7 @@
   gap: 7px;
   padding: 8px 11px;
   border: 1px solid #46668d;
-  border-radius: 8px;
+  border-radius:var(--radius-control);corner-shape:squircle;
   background: #0b1429;
   color: #edf5ff;
   font: inherit;
@@ -87,7 +87,7 @@
   --panel: #614386;
   --light: #f5d6ff;
 }
-.strike-enemy.is-locked { outline: 2px solid #469dff; outline-offset: 3px; border-radius: 10px; }
+.strike-enemy.is-locked { outline: 2px solid #469dff; outline-offset: 3px; border-radius:var(--radius-control);corner-shape:squircle; }
 .strike-enemy-body {
   display: flex;
   flex-direction: column;
@@ -95,7 +95,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
+  border-radius:var(--radius-control);corner-shape:squircle;
 }
 .strike-enemy-body.is-wrong-letter { animation: strike-wrong-tint 280ms ease-out, strike-wrong-shake 240ms ease-out; }
 @keyframes strike-wrong-tint {
@@ -120,7 +120,7 @@
   display: block;
   padding: 1px 8px;
   border: 1px solid var(--edge);
-  border-radius: 6px;
+  border-radius:var(--radius-detail);corner-shape:squircle;
   background: #080d1d;
   color: #fff;
   font-weight: 750;
@@ -138,7 +138,7 @@
 .strike-feedback { position: absolute; inset: auto auto 3% 3%; margin: 0; color: #a5d8ff; max-width: min(33%, 26ch); font-size: .8rem; }
 .strike-feedback.is-miss { color: #ffd3a3; }
 .strike-camera { position: absolute; right: 2%; bottom: 3%; width: clamp(118px, 19%, 265px); z-index: 4; }
-.strike-camera .studio-camera { display: grid; align-items: stretch; height: auto; min-height: 0; border: 1px solid #46668d; border-radius: 10px; background: #0b1429; box-shadow: none; overflow: hidden; }
+.strike-camera .studio-camera { display: grid; align-items: stretch; height: auto; min-height: 0; border: 1px solid #46668d; border-radius:var(--radius-control);corner-shape:squircle; background: #0b1429; box-shadow: none; overflow: hidden; }
 .strike-camera .studio-camera video { position: static; display: block; width: 100%; min-height: 0; height: auto; aspect-ratio: 4 / 3; max-height: 26dvh; object-fit: contain; background: #040917; }
 .strike-camera .studio-camera video[hidden], .strike-camera .studio-camera-empty, .strike-camera .studio-camera-status > span:nth-child(2) { display: none; }
 .strike-camera .studio-camera-status, .strike-camera .studio-camera-controls { position: static; padding: 4px 6px; color: #c3d3ed; background: #0b1429; font-size: .7rem; }
@@ -156,14 +156,14 @@
   overflow: auto;
   padding: clamp(12px, 2.5vw, 28px);
   border: 1px solid #395479;
-  border-radius: 12px;
+  border-radius:var(--radius-panel);corner-shape:squircle;
   background: #0b1429;
 }
 .strike-card h2 { margin: 0; color: #f2f6ff; font-size: clamp(21px, 4vw, 32px); }
 .strike-card p { margin: 0; color: #b4c5de; font-size: .88rem; }
 .strike-settings { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .strike-settings label { display: grid; gap: 3px; color: #b4c5de; font-size: .8rem; }
-.strike-settings select { width: 100%; padding: 5px; border: 1px solid #46668d; border-radius: 6px; background: #101f39; color: #edf5ff; font: inherit; }
+.strike-settings select { width: 100%; padding: 5px; border: 1px solid #46668d; border-radius:var(--radius-detail);corner-shape:squircle; background: #101f39; color: #edf5ff; font: inherit; }
 .strike-primary { background: #1562bd; border-color: #65b5ff; }
 .strike-card .strike-best { font-size: .75rem; }
 .strike-countdown { width: auto; min-width: 126px; justify-items: center; }

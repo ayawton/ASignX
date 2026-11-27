@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import postgres from 'postgres';
-import { drizzle } from 'drizzle-orm/postgres-js';
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set. See server/.env.example.');
 
@@ -16,4 +15,5 @@ export const connection = postgres(process.env.DATABASE_URL, {
     connect_timeout: 10,
     ...(requireVerifiedTls ? { ssl: { rejectUnauthorized: true, ...(databaseCa ? { ca: databaseCa } : {}) } } : {}),
 });
-export const db = drizzle({ client: connection });
+// Runtime routes use tagged SQL and postgres.js JSON/date codecs.
+// Drizzle is used separately for schema definitions and migration tooling.

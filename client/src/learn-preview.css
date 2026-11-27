@@ -1,5 +1,5 @@
 .learn-preview .page-heading p{max-width:62ch}
-.preview-sample{display:grid;grid-template-columns:minmax(220px,1fr) 1.5fr;border:1px solid #dce5f4;border-radius:20px;overflow:hidden;margin:32px 0 48px}
+.preview-sample{display:grid;grid-template-columns:minmax(220px,1fr) 1.5fr;border:1px solid #dce5f4;border-radius:var(--radius-panel);corner-shape:squircle;overflow:hidden;margin:32px 0 48px}
 .preview-letter{background:#edf3ff;color:#2962f5;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:16px}
 .preview-letter strong{font-family:Outfit,sans-serif;font-size:112px;line-height:1}
 .preview-sample-copy{padding:40px}.preview-sample-copy h2{margin:12px 0;font-size:36px}.preview-sample-copy p{max-width:55ch}.preview-sample-copy .btn{margin:16px 0}

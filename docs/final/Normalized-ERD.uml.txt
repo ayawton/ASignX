@@ -152,6 +152,11 @@ entity "achievements" as achievements {
     * threshold : integer
     *status : varchar(10)
     *icon : varchar(10)
+    *is_secret : boolean
+    *hint : varchar(250)
+    *tier : varchar(10)
+    milestone_group : varchar(80)
+    badge_design : jsonb
 }
 entity "profile_achievements" as profile_achievements {
     * user_id : uuid <<PK,FK>>

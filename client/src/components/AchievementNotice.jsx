@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Trophy } from 'lucide-react'
+import { BadgeArt } from './Achievements'
 import { api } from '../auth'
 import Link from './WorkspaceLink'
 import './Achievements.css'
@@ -28,7 +28,7 @@ export default function AchievementNotice() {
   return () => clearTimeout(timer)
  }, [earned])
  return <div className="badge-announcer" aria-live="polite">
-  {earned.length > 0 && <div className="badge-notice"><Trophy size={21} aria-hidden="true" />
+  {earned.length > 0 && <div className="badge-notice"><BadgeArt badge={earned[0]} />
    <div><strong>{earned.length === 1 ? 'Achievement unlocked' : 'Achievements unlocked'}</strong>
     <p>{earned.map(badge => badge.name).join(', ')}</p></div>
    <Link to="/progress#achievements" onClick={() => setEarned([])}>View</Link>

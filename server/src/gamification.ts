@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { randomUUID } from 'node:crypto';
 import type { TransactionSql } from 'postgres';
 import { connection } from './db/index.js';
 import { learnerConnection } from './db/learnerConnection.js';
 const sql = learnerConnection(connection);
 type Tx=TransactionSql<{}>;
-const HEART_REGEN_MS=5*60*1000;
+const HEART_REGEN_SECONDS=30*60;
+const HEART_REGEN_MS=HEART_REGEN_SECONDS*1000;
 export const validUuid=(v:unknown):v is string=>typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 export function allocateXp(questions:{id:string;answer_type:string}[],total:number){
  const weights:Record<string,number>={choice:3,boolean:2,recognition:5};const counts:Record<string,number>={};
@@ -18,14 +18,14 @@ export function allocateXp(questions:{id:string;answer_type:string}[],total:numb
 }
 function heartView(state:Record<string,any>){
  const now=new Date(state.server_now).getTime();
- return {regen_interval_seconds:HEART_REGEN_MS/1000,hearts:Number(state.hearts),next_heart_at:state.hearts<3?new Date(new Date(state.regenerated_at).getTime()+HEART_REGEN_MS).toISOString():null,server_time:new Date(now).toISOString()};
+ return {regen_interval_seconds:HEART_REGEN_SECONDS,hearts:Number(state.hearts),next_heart_at:state.hearts<3?new Date(new Date(state.regenerated_at).getTime()+HEART_REGEN_MS).toISOString():null,server_time:new Date(now).toISOString()};
 }
 export async function heartState(tx:Tx,user:string){
  // One atomic upsert both locks the learner and applies elapsed regeneration.
  const [state]=await tx`insert into learner_hearts as h(user_id) values(${user}) on conflict(user_id) do update set
- hearts=least(3,h.hearts+greatest(0,floor(extract(epoch from (now()-h.regenerated_at))/${HEART_REGEN_MS/1000}))::int),
- regenerated_at=case when h.hearts+greatest(0,floor(extract(epoch from (now()-h.regenerated_at))/${HEART_REGEN_MS/1000}))>=3 then now()
- else h.regenerated_at+greatest(0,floor(extract(epoch from (now()-h.regenerated_at))/${HEART_REGEN_MS/1000}))*interval '5 minutes' end
+ hearts=least(3,h.hearts+greatest(0,floor(extract(epoch from (now()-h.regenerated_at))/${HEART_REGEN_SECONDS}))::int),
+ regenerated_at=case when h.hearts+greatest(0,floor(extract(epoch from (now()-h.regenerated_at))/${HEART_REGEN_SECONDS}))>=3 then now()
+ else h.regenerated_at+greatest(0,floor(extract(epoch from (now()-h.regenerated_at))/${HEART_REGEN_SECONDS}))*make_interval(secs => ${HEART_REGEN_SECONDS}) end
  returning hearts,regenerated_at,now() as server_now`;
  if(!state)throw new Error('Heart account unavailable');
  return heartView(state);
@@ -61,7 +61,7 @@ async function finishRun(tx:Tx,run:Record<string,any>,user:string){
  await tx`update lesson_progress set completed_at=now() where enrollment_id=${run.enrollment_id} and lesson_id=${run.lesson_id} and completed_at is null`;
  if(perfect)await tx`update lesson_progress set perfected_at=coalesce(perfected_at,now()) where enrollment_id=${run.enrollment_id} and lesson_id=${run.lesson_id}`;
 }
-export async function recordRunAnswer(tx:Tx,user:string,runId:string,exercise:string,optionId:string|null,attemptId:string,evidence?:{label:string;confidence:string;model:string},lesson?:string){
+export async function recordRunAnswer(tx:Tx,user:string,runId:string,exercise:string,optionId:string|null,attemptId:string,evidence?:{label:string;confidence:string},lesson?:string){
  let hearts=await heartState(tx,user);
  const [run]=await tx`select r.* from lesson_runs r join enrollments e on e.id=r.enrollment_id join lessons l on l.id=r.lesson_id join courses c on c.id=l.course_id where r.id=${runId} and e.user_id=${user} and l.is_published and c.is_published and (${lesson??null}::uuid is null or r.lesson_id=${lesson??null}::uuid) for update of r for share of l,c,e`;
  if(!run)return {status:404,body:{error:'Lesson attempt unavailable.'}};
@@ -72,9 +72,7 @@ export async function recordRunAnswer(tx:Tx,user:string,runId:string,exercise:st
  if(q.next_exercise_id!==exercise)return {status:409,body:{error:'Answer the current question first.'}};
  if(hearts.hearts===0)return {status:423,body:{error:'No hearts left. Review material or restore a heart to resume.',hearts}};
  if((q.answer_type==='recognition')!==Boolean(evidence))return {status:400,body:{error:'Use the required answer control.'}};
- let modelId:string|null=null;
- if(evidence){await tx`insert into model_versions(version,fingerprint,artifact_path) values(${randomUUID()},${evidence.model},null) on conflict(fingerprint) do nothing`;const [model]=await tx`select id from model_versions where fingerprint=${evidence.model}`;modelId=model!.id;}
- let [saved]=await tx`insert into exercise_attempts(id,enrollment_id,exercise_id,selected_option_id,response_text,recognition_confidence,model_version_id,is_correct) select ${attemptId},${run.enrollment_id},${exercise},${optionId},${evidence?.label??null},${evidence?.confidence??null},${modelId},false where ${Boolean(evidence)} or exists(select 1 from exercise_options where id=${optionId} and exercise_id=${exercise}) on conflict(id) do nothing returning id,is_correct`;
+ let [saved]=await tx`insert into exercise_attempts(id,enrollment_id,exercise_id,selected_option_id,response_text,recognition_confidence,is_correct) select ${attemptId},${run.enrollment_id},${exercise},${optionId},${evidence?.label??null},${evidence?.confidence??null},false where ${Boolean(evidence)} or exists(select 1 from exercise_options where id=${optionId} and exercise_id=${exercise}) on conflict(id) do nothing returning id,is_correct`;
  if(!saved)[saved]=await tx`select id,is_correct from exercise_attempts where id=${attemptId} and enrollment_id=${run.enrollment_id} and exercise_id=${exercise} and selected_option_id is not distinct from ${optionId}`;
  if(!saved){const [collision]=await tx`select id from exercise_attempts where id=${attemptId}`;return {status:collision?409:400,body:{error:collision?'Submission ID already used.':'Answer choice unavailable.'}};}
  // Camera mismatch feedback is heart-free and does not finalize that question.
@@ -120,32 +118,46 @@ export async function lessonAction(user:string,lesson:string,action:string,body:
 }
 export const gamification=Router();
 gamification.get('/hearts',async(_req,res)=>res.json(await sql.begin(tx=>heartState(tx,res.locals.user.id))));
-async function practiceView(tx:Tx,round:Record<string,any>):Promise<{id:string;correct_count:number;completed_at:unknown;question:(Record<string,any>&{options:Record<string,any>[]})|null}>{
- const [score]=await tx`select count(*)::int as correct_count from heart_practice_submissions where round_id=${round.id} and is_correct`;
- const [question]=round.completed_at?[]:await tx`select x.id,x.prompt,q.question_index from heart_practice_questions q join exercises x on x.id=q.exercise_id join lessons l on l.id=x.lesson_id join courses c on c.id=l.course_id where q.round_id=${round.id} and l.is_published and c.is_published and not exists(select 1 from heart_practice_submissions s where s.round_id=q.round_id and s.question_index=q.question_index and s.is_correct) order by q.question_index limit 1`;
+async function practiceView(tx:Tx,round:Record<string,any>){
+ const [score]=await tx`select count(*)::int as correct_count from practice_submissions where round_id=${round.id} and is_correct`;
+ const [question]=round.completed_at?[]:await tx`select x.id,x.prompt,q.question_index,
+ l.is_published and c.is_published and exists(
+   select 1 from enrollments e join lesson_progress p on p.enrollment_id=e.id
+   where e.user_id=${round.user_id} and e.course_id=c.id and p.lesson_id=l.id and p.completed_at is not null
+ ) as eligible
+ from practice_round_questions q join exercises x on x.id=q.exercise_id
+ join lessons l on l.id=x.lesson_id join courses c on c.id=l.course_id
+ where q.round_id=${round.id} and not exists(
+   select 1 from practice_submissions s where s.round_id=q.round_id and s.question_index=q.question_index and s.is_correct
+ ) order by q.question_index limit 1`;
+ if(question&&!question.eligible)return {id:round.id,correct_count:score?.correct_count??0,completed_at:round.completed_at,heart_restored:round.heart_restored,question:null};
  const options=question?await tx`select id,option_text from exercise_options where exercise_id=${question.id} order by sort_order`:[];
- return {id:round.id,correct_count:score?.correct_count??0,completed_at:round.completed_at,question:question?{...question,options}:null};
+ return {id:round.id,correct_count:score?.correct_count??0,completed_at:round.completed_at,heart_restored:round.heart_restored,question:question?{id:question.id,prompt:question.prompt,question_index:question.question_index,options}:null};
 }
-gamification.post('/heart-practice/start',async(_req,res)=>{
+gamification.post('/practice/start',async(_req,res)=>{
  const result=await sql.begin(async tx=>{
   const user=res.locals.user.id,hearts=await heartState(tx,user);
-  const [active]=await tx`select * from heart_practice_rounds where user_id=${user} and completed_at is null for update`;
-  if(active){const round=await practiceView(tx,active);if(round.question)return {status:200,body:{round,hearts}};await tx`update heart_practice_rounds set completed_at=now() where id=${active.id}`;}
-  const seen=await tx`select distinct x.id from exercises x join lessons l on l.id=x.lesson_id join courses c on c.id=l.course_id join exercise_attempts a on a.exercise_id=x.id join enrollments e on e.id=a.enrollment_id where e.user_id=${user} and x.answer_type in ('choice','boolean') and l.is_published and c.is_published limit 30`;
-  if(!seen.length)return {status:404,body:{error:'No previously answered choice questions are available yet. Review lesson material while your hearts regenerate.',hearts}};
-  const [round]=await tx`insert into heart_practice_rounds(user_id) values(${user}) returning *`;
-  for(let i=0;i<3;i++)await tx`insert into heart_practice_questions(round_id,question_index,exercise_id) values(${round!.id},${i},${seen[i%seen.length]!.id})`;
+  const [active]=await tx`select * from practice_rounds where user_id=${user} and completed_at is null for update`;
+  if(active){const round=await practiceView(tx,active);if(round.question)return {status:200,body:{round,hearts}};await tx`update practice_rounds set completed_at=now() where id=${active.id}`;}
+  const seen=await tx`select x.id from enrollments e join lesson_progress p on p.enrollment_id=e.id
+  join lessons l on l.id=p.lesson_id and l.course_id=e.course_id join courses c on c.id=l.course_id
+  join exercises x on x.lesson_id=l.id
+  where e.user_id=${user} and p.completed_at is not null and x.answer_type in ('choice','boolean')
+  and l.is_published and c.is_published order by random() limit 3`;
+  if(!seen.length)return {status:404,body:{error:'Complete a lesson with multiple-choice or true-or-false exercises to unlock Practice.',hearts}};
+  const [round]=await tx`insert into practice_rounds(user_id) values(${user}) returning *`;
+  for(let i=0;i<3;i++)await tx`insert into practice_round_questions(round_id,question_index,exercise_id) values(${round!.id},${i},${seen[i%seen.length]!.id})`;
   return {status:200,body:{round:await practiceView(tx,round!),hearts}};
  });res.status(result.status).json(result.body);
 });
-gamification.post('/heart-practice/answer',async(req,res)=>{
+gamification.post('/practice/answer',async(req,res)=>{
  const {round_id,attempt_id,selected_option_id,question_index}=req.body??{};
  if(![round_id,attempt_id,selected_option_id].every(validUuid) || !Number.isInteger(question_index) || question_index<0 || question_index>2){res.status(400).json({error:'Choose a practice answer.'});return;}
  const result=await sql.begin(async tx=>{
   const user=res.locals.user.id,hearts=await heartState(tx,user);
-  const [round]=await tx`select * from heart_practice_rounds where id=${round_id} and user_id=${user} for update`;
+  const [round]=await tx`select * from practice_rounds where id=${round_id} and user_id=${user} for update`;
   if(!round)return {status:404,body:{error:'Practice round unavailable.'}};
-  const [previous]=await tx`select * from heart_practice_submissions where id=${attempt_id}`;
+  const [previous]=await tx`select * from practice_submissions where id=${attempt_id}`;
   if(previous)return previous.round_id===round_id && previous.question_index===question_index && previous.selected_option_id===selected_option_id?{status:200,body:{correct:previous.is_correct,round:await practiceView(tx,round),hearts}}:{status:409,body:{error:'Submission ID already used.'}};
   if(round.completed_at)return {status:409,body:{error:'This practice round is finished.'}};
   const view=await practiceView(tx,round);
@@ -153,9 +165,17 @@ gamification.post('/heart-practice/answer',async(req,res)=>{
   if(question_index!==view.question.question_index)return {status:409,body:{error:'This question has changed. Resume your current practice round.'}};
   const [option]=await tx`select id from exercise_options where id=${selected_option_id} and exercise_id=${view.question.id}`;
   if(!option)return {status:400,body:{error:'Choice does not belong to this practice question.'}};
-  const [saved]=await tx`insert into heart_practice_submissions(id,round_id,question_index,selected_option_id,is_correct) values(${attempt_id},${round_id},${question_index},${selected_option_id},false) returning is_correct`;
+  const [saved]=await tx`insert into practice_submissions(id,round_id,question_index,selected_option_id,is_correct) values(${attempt_id},${round_id},${question_index},${selected_option_id},false) returning is_correct`;
   const next=await practiceView(tx,round);
-  if(next.correct_count===3){await tx`update heart_practice_rounds set completed_at=now() where id=${round_id}`;next.completed_at=new Date().toISOString();await tx`update learner_hearts set hearts=least(3,hearts+1),regenerated_at=case when hearts+1>=3 then now() else regenerated_at end where user_id=${user}`;}
+  if(next.correct_count===3){
+   const [reward]=await tx`update learner_hearts set hearts=hearts+1,
+     regenerated_at=case when hearts+1=3 then now() else regenerated_at end
+     where user_id=${user} and hearts<3 returning hearts`;
+   const [completed]=await tx`update practice_rounds set completed_at=now(),heart_restored=${Boolean(reward)}
+     where id=${round_id} returning completed_at,heart_restored`;
+   next.completed_at=completed!.completed_at;
+   next.heart_restored=completed!.heart_restored;
+  }
   return {status:200,body:{correct:saved!.is_correct,round:next,hearts:await heartState(tx,user)}};
  });res.status(result.status).json(result.body);
 });

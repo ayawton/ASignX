@@ -243,13 +243,15 @@ Achievement definitions, identified by a unique code, with a metric and target t
 | description | TEXT | - | NS | NS | Description of the course or achievement. |
 | metric | VARCHAR(25) | - | NS | NS | Metric used to assess achievement eligibility; allowed values are not specified in the ERD. |
 | threshold | INTEGER | - | NS | NS | Target value associated with the achievement metric. |
+| status | VARCHAR(10) | - | No | published | Draft, published, or retired. |
+| icon | VARCHAR(10) | - | No | trophy | Badge icon key. |
 
 **Declared keys and references**
 
 - Primary key: (id).
 - Unique key: (code).
 
-## user_achievements
+## profile_achievements
 
 Junction table recording which achievement a learner has unlocked and when it was unlocked.
 
@@ -375,8 +377,8 @@ Ordered recognition results within a session, with an optional recognized sign, 
 | enrollments | exercise_attempts.enrollment_id | 1 to 0..many | Required | makes |
 | exercises | exercise_attempts.exercise_id | 1 to 0..many | Required | attempted in |
 | exercise_options | exercise_attempts.selected_option_id | 1 to 0..many | Required | selected option |
-| profiles | user_achievements.user_id | 1 to 0..many | Required | earns |
-| achievements | user_achievements.achievement_id | 1 to 0..many | Required | awarded as |
+| profiles | profile_achievements.user_id | 1 to 0..many | Required | earns |
+| achievements | profile_achievements.achievement_id | 1 to 0..many | Required | awarded as |
 | profiles | practice_attempts.user_id | 1 to 0..many | Required | performs |
 | lessons | practice_attempts.lesson_id | 0..1 to 0..many | Optional | practiced in |
 | signs | practice_attempts.target_sign_id | 1 to 0..many | Required | target sign |

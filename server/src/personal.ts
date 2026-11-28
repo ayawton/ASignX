@@ -83,8 +83,10 @@ personal.get('/courses/:id', async (req, res) => {
     res.json({ ...details, lessons });
 });
 
+const PRESET_AVATARS = new Set(['wave', 'love', 'owl', 'fox', 'star', 'rocket', 'sprout', 'compass']);
+
 async function readProfile(user: { id: string; email?: string }) {
- const [profile] = await sql`select id, display_name, role, timezone from profiles where id = ${user.id}`;
+ const [profile] = await sql`select id, display_name, role, timezone, avatar, featured_achievements, created_at from profiles where id = ${user.id}`;
  if (!profile) throw new Error('Your account profile is not ready.');
  return { ...profile, role: guestConnection.getStore() ? 'guest' : profile.role, email: user.email };
 }
@@ -125,15 +127,37 @@ personal.get('/dashboard', async (_req,res) => {
  res.json({resources,errors});
 });
 personal.get('/profile', async (_req, res) => {
-    const [profile] = await sql`select id, display_name, role, timezone from profiles where id = ${res.locals.user.id}`;
+    const [profile] = await sql`select id, display_name, role, timezone, avatar, featured_achievements, created_at from profiles where id = ${res.locals.user.id}`;
     if (!profile) { res.status(503).json({ error: 'Your account profile is not ready. Contact the project administrator.' }); return; }
     res.json({ ...profile, role: res.locals.user.role === 'guest' ? 'guest' : profile.role, email: res.locals.user.email });
 });
 personal.patch('/profile', async (req, res) => {
-    const { display_name, timezone } = req.body;
-    if (typeof display_name !== 'string' || !display_name.trim() || display_name.trim().length > 100 || typeof timezone !== 'string' || timezone.length > 64) { res.status(400).json({ error: 'Enter a name and valid time zone.' }); return; }
+    const body = req.body ?? {};
+    const [current] = await sql`select id, display_name, role, timezone, avatar, featured_achievements, created_at from profiles where id = ${res.locals.user.id}`;
+    if (!current) { res.status(404).json({ error: 'Profile not found.' }); return; }
+    const displayName = body.display_name === undefined ? current.display_name : body.display_name;
+    const timezone = body.timezone === undefined ? current.timezone : body.timezone;
+    const avatar = body.avatar === undefined ? current.avatar : body.avatar;
+    const featuredInput = body.featured_achievements === undefined ? current.featured_achievements : body.featured_achievements;
+    if (typeof displayName !== 'string' || !displayName.trim() || displayName.trim().length > 100 || typeof timezone !== 'string' || timezone.length > 64) {
+        res.status(400).json({ error: 'Enter a name and valid time zone.' }); return;
+    }
     try { new Intl.DateTimeFormat('en', { timeZone: timezone }); } catch { res.status(400).json({ error: 'Choose a valid IANA time zone.' }); return; }
-    const [profile] = await sql`update profiles set display_name = ${display_name.trim()}, timezone = ${timezone}, updated_at = now() where id = ${res.locals.user.id} returning id, display_name, role, timezone`;
+    if (typeof avatar !== 'string' || !PRESET_AVATARS.has(avatar)) {
+        res.status(400).json({ error: 'Choose a valid preset avatar.' }); return;
+    }
+    if (!Array.isArray(featuredInput) || featuredInput.length > 3 || featuredInput.some(id => !uuid(id))) {
+        res.status(400).json({ error: 'Choose up to 3 earned badges for your Achievement Hall.' }); return;
+    }
+    const featured: string[] = [...new Set(featuredInput)];
+    if (featured.length) {
+        const unlocked = await sql`select achievement_id from profile_achievements where user_id = ${res.locals.user.id}`;
+        const owned = new Set(unlocked.map(row => row.achievement_id));
+        if (featured.some(id => !owned.has(id))) {
+            res.status(400).json({ error: 'Only earned badges can be showcased in your Achievement Hall.' }); return;
+        }
+    }
+    const [profile] = await sql`update profiles set display_name = ${displayName.trim()}, timezone = ${timezone}, avatar = ${avatar}, featured_achievements = ${sql.json(featured)}::jsonb, updated_at = now() where id = ${res.locals.user.id} returning id, display_name, role, timezone, avatar, featured_achievements, created_at`;
     if (!profile) { res.status(404).json({ error: 'Profile not found.' }); return; }
     res.json({ ...profile, role: res.locals.user.role === 'guest' ? 'guest' : profile.role, email: res.locals.user.email });
 });

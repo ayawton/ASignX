@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { defenseLine, GAME_MODES, gameReducer, initialGame, makeTarget } from '../src/data/arcade.js'
+import { arcadeAccuracy, defenseLine, GAME_MODES, gameReducer, initialGame, makeTarget, unlockedShipSkins } from '../src/data/arcade.js'
 import { createRecognitionEngine } from '../src/recognition/recognitionEngine.js'
 
 const tick = game => gameReducer(game, { type: 'TICK' })
@@ -121,4 +121,99 @@ const finalImpact = tick({ ...endless, phase: 'playing', shields: 1, targets: [m
 assert.equal(finalImpact.phase, 'complete')
 assert.deepEqual(finalImpact.audio.cues, ['impact', 'end'])
 
-console.log('PASS Arcade targeting, repeated letters, shuffled vocabulary, and Endless progression')
+assert.equal(arcadeAccuracy({ shots: 0, hits: 0 }), 0)
+assert.equal(arcadeAccuracy({ shots: 10, hits: 8 }), 80)
+
+let expiring = sign(start(), 'X')
+assert.ok(expiring.feedback)
+for (let i = 0; i < 8; i++) expiring = tick(expiring)
+assert.equal(expiring.feedback, null, 'Feedback auto-clears after its lifetime')
+
+const lowLeft = makeTarget(1, 'STAR', defenseLine - 5, 22)
+const lowRight = makeTarget(2, 'SUN', defenseLine - 5, 78)
+assert.ok(lowRight.x - lowLeft.x > 25, 'Approaching ships keep readable horizontal separation')
+
+// Enemies chase the player's horizontal position instead of always heading to center
+const chaserStart = { ...launch(), targets: [makeTarget(1, 'STAR', 20, 22)] }
+const chasedRight = gameReducer(chaserStart, { type: 'TICK', playerX: 80 })
+const chasedLeft = gameReducer(chaserStart, { type: 'TICK', playerX: 15 })
+assert.ok(chasedRight.targets[0].x > chaserStart.targets[0].x, 'Enemy chases player to the right')
+assert.ok(chasedLeft.targets[0].x < chaserStart.targets[0].x, 'Enemy chases player to the left')
+
+// Wave 15 spawns a mini-boss carrier; Wave 10 spawns a Mothership main boss
+const miniBoss15 = tick({ ...initialGame({ mode: 'endless' }), phase: 'countdown', countdown: .25, wave: 15, remaining: 1 })
+assert.ok(miniBoss15.targets[0].carrier && !miniBoss15.targets[0].boss, 'Wave 15 spawns a mini-boss carrier')
+
+let bossWave = tick({ ...initialGame({ mode: 'endless' }), phase: 'countdown', countdown: .25, wave: 10, remaining: 1 })
+assert.ok(bossWave.targets[0].boss && bossWave.targets[0].hp === 3, 'Wave 10 spawns a 3-HP Mothership')
+
+// Mothership telegraphs a laser warning, fires, and can be dodged or hit
+let warned = bossWave
+for (let i = 0; i < 60 && !warned.bossLaser; i++) warned = gameReducer(warned, { type: 'TICK', playerX: 50 })
+assert.equal(warned.bossLaser?.phase, 'warning', 'Mothership telegraphs its laser before firing')
+assert.equal(warned.bossLaser.beamX, 50)
+
+let dodged = warned
+for (let i = 0; i < 15 && dodged.bossLaser?.phase === 'warning'; i++) dodged = gameReducer(dodged, { type: 'TICK', playerX: 80 })
+assert.equal(dodged.bossLaser?.phase, 'firing')
+assert.equal(dodged.shields, warned.shields, 'Moving out of the laser beam avoids damage')
+
+let hitByLaser = warned
+for (let i = 0; i < 15 && hitByLaser.bossLaser?.phase === 'warning'; i++) hitByLaser = gameReducer(hitByLaser, { type: 'TICK', playerX: 50 })
+assert.equal(hitByLaser.bossLaser?.phase, 'firing')
+assert.equal(hitByLaser.shields, warned.shields - 1, 'Staying inside the laser beam damages shields')
+
+// Closest matching enemy gets priority even when another ship is partially typed/locked
+const priorityState = {
+  ...launch(),
+  lockedId: 3,
+  targets: [
+    makeTarget(1, 'CAT', 55, 30),
+    makeTarget(2, 'DOG', 42, 65),
+    { ...makeTarget(3, 'TOMCAT', 20, 50), typed: 3 },
+  ],
+  nextId: 4,
+}
+const afterC = sign(priorityState, 'C')
+assert.equal(afterC.lockedId, 1, 'Closest leading enemy CAT takes priority over further TOMCAT on C')
+assert.equal(afterC.targets.find(t => t.id === 1).typed, 1)
+assert.equal(afterC.targets.find(t => t.id === 3).typed, 3, 'TOMCAT keeps its partial progress')
+const afterD = sign(afterC, 'D')
+assert.equal(afterD.lockedId, 2, 'Player can switch to DOG with D without being trapped on one target')
+assert.equal(afterD.targets.find(t => t.id === 2).typed, 1)
+
+// Mothership stays stationary at center X=50 once hovered
+let hoveredBoss = bossWave
+for (let i = 0; i < 20; i++) hoveredBoss = gameReducer(hoveredBoss, { type: 'TICK', playerX: 80 })
+assert.equal(hoveredBoss.targets.find(t => t.boss).x, 50, 'Mothership stays stationary at center')
+
+// Power-up ships: Shield Repair restores +1 shield, EMP slows enemies
+const damagedWithRepair = { ...start(), shields: 3, targets: [{ ...makeTarget(1, 'CAT', 30, 50), kind: 'repair' }] }
+let afterRepair = damagedWithRepair
+for (const l of 'CAT') afterRepair = sign(afterRepair, l)
+assert.equal(afterRepair.shields, 4, 'Clearing a Shield Repair ship restores +1 shield')
+
+const empState = { ...start(), targets: [{ ...makeTarget(1, 'DOG', 30, 50), kind: 'emp' }, makeTarget(2, 'STAR', 20, 30)] }
+let afterEmp = empState
+for (const l of 'DOG') afterEmp = sign(afterEmp, l)
+assert.equal(afterEmp.empRemaining, 5, 'Clearing an EMP ship activates 5s slow-mo')
+const normalStep = tick({ ...start(), targets: [makeTarget(2, 'STAR', 20, 30)] }).targets[0].y - 20
+const slowedStep = tick(afterEmp).targets[0].y - 20
+assert.ok(slowedStep < normalStep * 0.5, 'EMP slows incoming enemies')
+
+// Enraged Mothership (HP 1) fires twin laser beams
+let enragedBoss = {
+  ...hoveredBoss,
+  bossLaser: null,
+  targets: hoveredBoss.targets.map(t => t.boss ? { ...t, hp: 1, laserClock: 10 } : t),
+}
+enragedBoss = gameReducer(enragedBoss, { type: 'TICK', playerX: 50 })
+assert.equal(enragedBoss.bossLaser?.beams?.length, 2, 'Enraged Mothership fires twin laser beams')
+
+// Ship skin unlock milestones
+assert.deepEqual(unlockedShipSkins(0, false), ['classic'])
+assert.deepEqual(unlockedShipSkins(2500, false), ['classic', 'emerald'])
+assert.deepEqual(unlockedShipSkins(10500, false), ['classic', 'emerald', 'gold', 'crimson'])
+assert.deepEqual(unlockedShipSkins(0, true), ['classic', 'nova'])
+
+console.log('PASS Arcade targeting, repeated letters, shuffled vocabulary, chasing, mini-bosses, Mothership, power-ups, and ship skins')

@@ -66,6 +66,7 @@ export async function createGuestDatabase(catalog: Sql) {
             }
         });
         const sql = Object.assign(tag(database), {
+            json: (value: unknown) => JSON.stringify(value),
             begin: (callback: (tx: ReturnType<typeof tag>) => Promise<unknown>) =>
                 database.transaction(tx => callback(tag(tx))),
         }) as unknown as Sql;

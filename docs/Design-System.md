@@ -185,3 +185,20 @@ editor tab, and focuses the first invalid field after Save. Correcting a field
 clears its error. API validation returns a field-error map for the same treatment.
 Connection failures remain general alerts. Earned requirement locks, secret
 masking, tier semantics, and isolated guest-session behavior remain in force.
+
+## Profile and Achievement Hall — 27 November 2026
+
+The Profile screen uses a 30/70 two-column top row beside the dashboard sidebar:
+the left card (30%) shows the learner's circular preset avatar, display name, role
+tag, and Level & EXP progress bar, while the right panel (70%) hosts the Achievement
+Hall showcasing up to three earned badges inside a flat ASignX Navy (`--ink`,
+`#18294c`) squircle frame using the shared `BadgeArt` / `BadgeSvg` renderer, with
+a Customize Hall modal dialog showing all badges as their actual artwork—unlocked
+badges in full color and selectable, locked badges greyed out and disabled.
+Avatars use approved preset icons only (no initials fallback).
+
+A horizontal rule separates the top row from a two-column lower area: Basic
+Details (with on-demand editing) and Learning Summary on the left, and Minigame
+Highscores (ASignStrike personal bests saved in the browser across Alphabet
+Patrol, Timed Word Defense, and Endless Word Defense) on the right, without
+introducing gradients, glows, or heavy shadows.

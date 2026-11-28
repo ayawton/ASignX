@@ -17,10 +17,14 @@ export const profiles = pgTable('profiles', {
     displayName: varchar('display_name', { length: 100 }).notNull(),
     role: varchar('role', { length: 10 }).notNull().default('learner'),
     timezone: varchar('timezone', { length: 64 }).notNull().default('UTC'),
+    avatar: varchar('avatar', { length: 24 }).notNull().default('wave'),
+    featuredAchievements: jsonb('featured_achievements').$type<string[]>().notNull().default([]),
     createdAt: instant('created_at'), updatedAt: instant('updated_at'),
 }, t => [
     check('profiles_display_name_nonblank', sql`length(btrim(${t.displayName})) > 0`),
     check('profiles_role_valid', sql`${t.role} in ('learner', 'admin')`),
+    check('profiles_avatar_valid', sql`${t.avatar} in ('wave','love','owl','fox','star','rocket','sprout','compass')`),
+    check('profiles_featured_achievements_valid', sql`jsonb_typeof(${t.featuredAchievements}) = 'array' and jsonb_array_length(${t.featuredAchievements}) <= 3`),
     pgPolicy('profiles_read_own', { for: 'select', to: authenticatedRole, using: owner(t.id) }),
     pgPolicy('profiles_update_own', { for: 'update', to: authenticatedRole, using: owner(t.id), withCheck: owner(t.id) }),
 ]).enableRLS();

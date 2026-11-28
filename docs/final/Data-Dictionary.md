@@ -47,6 +47,8 @@ Application profile and authorization role linked to a Supabase identity.
 | display_name | varchar(100) | — | No | — | Name displayed in the application. |
 | role | varchar(10) | — | No | 'learner' | ASignX authorization role: learner or admin. Separate from Supabase Auth database roles. |
 | timezone | varchar(64) | — | No | 'UTC' | Valid IANA time zone used when deriving learning streaks. |
+| avatar | varchar(24) | — | No | 'wave' | Preset avatar identifier chosen for the profile header. |
+| featured_achievements | jsonb | — | No | '[]'::jsonb | Ordered JSON array of up to 3 unlocked achievement UUIDs showcased in the Achievement Hall. |
 | created_at | timestamp with time zone | — | No | now() | Profile creation time. |
 | updated_at | timestamp with time zone | — | No | now() | Profile modification time; refreshed by the validation trigger on UPDATE. |
 
@@ -56,6 +58,8 @@ Application profile and authorization role linked to a Supabase identity.
 - FK (id) → auth.users (id); delete CASCADE.
 - Check: length(btrim(display_name)) > 0.
 - Check: role in ('learner', 'admin').
+- Check: avatar in ('wave','love','owl','fox','star','rocket','sprout','compass').
+- Check: jsonb_typeof(featured_achievements) = 'array' and jsonb_array_length(featured_achievements) <= 3.
 
 ### Trigger and application rules
 

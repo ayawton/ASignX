@@ -85,6 +85,15 @@ test('temporary guest sessions grade lessons independently and logout invalidate
         const earnedDesign = (await request('/me/progress', 'GET', first)).data.achievements.find(badge => badge.name === 'First Lesson');
         assert.deepEqual(earnedDesign.badge_design, artwork);
         assert.equal(earnedDesign.tier, 'mastery');
+        assert.equal((await request('/me/profile', 'PATCH', first, { avatar: 'initials' })).status, 400);
+        assert.equal((await request('/me/profile', 'PATCH', first, { featured_achievements: [uid(999)] })).status, 400);
+        const savedHall = await request('/me/profile', 'PATCH', first, { avatar: 'owl', featured_achievements: [earnedDesign.id] });
+        assert.equal(savedHall.status, 200);
+        assert.equal(savedHall.data.avatar, 'owl');
+        assert.deepEqual(savedHall.data.featured_achievements, [earnedDesign.id]);
+        const secondProfile = await request('/me/profile', 'GET', second);
+        assert.equal(secondProfile.data.avatar, 'wave');
+        assert.deepEqual(secondProfile.data.featured_achievements, []);
         const practice = await request('/me/practice/start', 'POST', first);
         assert.equal(practice.status, 200);
         assert.equal(practice.data.hearts.hearts, 3);

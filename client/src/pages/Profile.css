@@ -1,0 +1,964 @@
+.profile-page {
+  display: grid;
+  gap: 24px;
+  color: var(--ink);
+}
+
+.profile-panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  corner-shape: squircle;
+  padding: 24px;
+}
+
+/* Top row: Profile summary (30%) aligned cleanly with Achievement Hall (70%) */
+.profile-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.profile-top-row.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.profile-identity-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--cream);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+
+.profile-avatar-rose { background: #fdf0f4; color: #b43c65; border-color: #f4d6e0; }
+.profile-avatar-teal { background: #edf8f6; color: #14716c; border-color: #cde8e4; }
+.profile-avatar-amber { background: #fff3eb; color: #ab4c19; border-color: #f4d9c8; }
+.profile-avatar-gold { background: #fff8df; color: #8b6513; border-color: #f2e2a6; }
+.profile-avatar-navy { background: #eaf0f7; color: #254168; border-color: #cfdbe9; }
+.profile-avatar-green { background: #edf6f0; color: #307044; border-color: #cfe6d6; }
+
+.profile-avatar-edit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--paper);
+  background: var(--accent);
+  color: var(--paper);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.profile-avatar-edit:hover {
+  background: var(--accent-dark);
+}
+
+.profile-avatar-picker {
+  width: 100%;
+  padding: 12px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  display: grid;
+  gap: 10px;
+}
+
+.profile-avatar-picker > p {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.profile-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  justify-items: center;
+}
+
+.profile-avatar-option {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.profile-avatar-option:hover {
+  border-color: var(--accent);
+}
+
+.profile-avatar-option[aria-pressed="true"] {
+  border: 2px solid var(--accent);
+}
+
+.profile-identity {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: 100%;
+}
+
+.profile-identity h1 {
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.profile-role-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-detail);
+  corner-shape: squircle;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-meta {
+  font-size: 12px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.profile-level-compact {
+  width: 100%;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  padding: 12px 14px;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+}
+
+.profile-level-top,
+.profile-level-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.profile-level-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.profile-level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-detail);
+  corner-shape: squircle;
+  background: var(--amber);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.profile-xp-numbers {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-xp-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.profile-xp-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.profile-level-bottom {
+  color: var(--muted);
+}
+
+/* Right side of top row: Achievement Hall */
+.profile-hall-section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.profile-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-section-head h2 {
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.profile-section-head p {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.profile-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-section-actions .btn {
+  min-height: 44px;
+  padding: 0 16px;
+  gap: 8px;
+}
+
+/* ASignX Navy Achievement Hall */
+.achievement-hall-frame {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-panel);
+  corner-shape: squircle;
+  padding: 24px 20px;
+  color: var(--paper);
+}
+
+.achievement-hall-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.achievement-hall-grid.ship-hangar-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.hall-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 10px 6px;
+}
+
+.hall-slot .badge-art {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 2px;
+}
+
+.hall-slot .badge-art.is-designed {
+  width: 96px;
+  height: 108px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.hall-slot .badge-art.is-designed .badge-svg {
+  width: 96px;
+  height: 108px;
+}
+
+.hall-ship-art {
+  width: 96px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+}
+
+.hall-ship-art .strike-player-art {
+  width: 82px;
+  height: auto;
+  filter: none;
+  --hull: #14376e;
+  --edge: #74bfff;
+  --panel: #246ed2;
+  --light: #b8edff;
+}
+
+.hall-ship-art .strike-skin-emerald { --hull: #0f3d36; --edge: #4be8c8; --panel: #197062; --light: #a6ffea; }
+.hall-ship-art .strike-skin-gold { --hull: #45340d; --edge: #ffe066; --panel: #8c6b16; --light: #fff5b8; }
+.hall-ship-art .strike-skin-crimson { --hull: #42111d; --edge: #ff6b8b; --panel: #851c36; --light: #ffc2d4; }
+.hall-ship-art .strike-skin-nova { --hull: #241447; --edge: #c792ff; --panel: #552e96; --light: #f0dbff; }
+
+.hall-slot-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--paper);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.hall-slot-tier {
+  font-size: 12px;
+  color: #c5d4ec;
+}
+
+.hall-slot-empty {
+  justify-content: center;
+  min-height: 158px;
+  border: 1px dashed #3d5582;
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  color: #c5d4ec;
+  font-size: 12px;
+}
+
+.hall-empty-state {
+  text-align: center;
+  padding: 24px 12px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.hall-empty-state p {
+  color: #d6e2f5;
+  font-size: 14px;
+  max-width: 40ch;
+}
+
+/* Customize Achievement Hall modal popup */
+.hall-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(24, 41, 76, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.hall-modal {
+  width: min(1040px, 100%);
+  max-height: min(86vh, 780px);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  corner-shape: squircle;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--ink);
+}
+
+.hall-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hall-modal-head h2 {
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.hall-modal-head p {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.hall-modal-close {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  background: var(--paper);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.hall-modal-close:hover:not(:disabled) {
+  background: var(--cream);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hall-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.hall-discoveries-group {
+  margin-top: 32px;
+}
+
+.hall-picker-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 28px 16px 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  color: var(--ink);
+  min-width: 0;
+  cursor: pointer;
+}
+
+.hall-picker-card:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--cream);
+}
+
+.hall-picker-card.is-selected {
+  border: 2px solid var(--accent);
+  background: var(--cream);
+}
+
+.hall-picker-card .badge-art {
+  width: 78px;
+  height: 78px;
+  margin-bottom: 2px;
+}
+
+.hall-picker-card .badge-art.is-designed {
+  width: 84px;
+  height: 94px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.hall-picker-card .badge-art.is-designed .badge-svg {
+  width: 84px;
+  height: 94px;
+}
+
+.hall-picker-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.hall-picker-tier {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.hall-picker-selected,
+.hall-picker-lock {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-detail);
+  corner-shape: squircle;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hall-picker-selected {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+.hall-picker-lock {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.hall-picker-card.is-locked {
+  background: #f8fafc;
+  border-color: var(--line);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.hall-picker-card.is-locked .badge-art,
+.hall-picker-card.is-locked .profile-hangar-bay .strike-player-art {
+  filter: grayscale(1);
+  opacity: 0.42;
+}
+
+.hall-picker-card.is-locked .hall-picker-name,
+.hall-picker-card.is-locked .hall-picker-tier {
+  color: var(--muted);
+}
+
+.hall-modal-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.hall-modal-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hall-modal-cancel {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hall-modal-cancel:hover:not(:disabled) {
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Horizontal divider matching wireframe */
+.profile-divider {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0;
+}
+
+/* Lower section: other user info on left, minigame highscores on right */
+.profile-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.profile-lower-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.profile-info-stack {
+  display: grid;
+  gap: 20px;
+}
+
+.profile-details-list {
+  margin: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.profile-details-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 14px;
+}
+
+.profile-details-row dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.profile-details-row dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-stat-tile {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  padding: 14px 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.profile-stat-tile strong {
+  font-family: 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.profile-stat-tile span {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.profile-details-form {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-details-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.profile-required {
+  color: #b42318;
+  margin-left: 3px;
+}
+
+.profile-details-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.profile-details-form input:disabled {
+  background: var(--cream);
+  color: var(--muted);
+}
+
+.profile-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.profile-form-actions .btn {
+  min-height: 44px;
+  padding: 0 18px;
+  gap: 8px;
+}
+
+/* Minigame Highscores (stacked cleanly in the right column) */
+.highscore-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.highscore-card {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.highscore-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.highscore-game-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.highscore-card h3 {
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.highscore-list {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.highscore-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.highscore-row dt {
+  color: var(--text);
+}
+
+.highscore-row dt small {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.highscore-row dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.highscore-row dd.is-empty {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Sign Strike Ship Hangar Showcase */
+.profile-hangar {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+}
+
+.profile-hangar-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.profile-hangar-head h3 {
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.profile-hangar-head p {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.profile-hangar-active {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--cream);
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: var(--radius-detail);
+  corner-shape: squircle;
+}
+
+.profile-hangar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-hangar-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 12px 10px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  corner-shape: squircle;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.profile-hangar-card:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--cream);
+}
+
+.profile-hangar-card.is-equipped {
+  border: 2px solid var(--accent);
+  background: var(--cream);
+}
+
+.profile-hangar-bay {
+  width: 100%;
+  height: 62px;
+  border-radius: var(--radius-detail);
+  corner-shape: squircle;
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+  padding: 8px;
+}
+
+.profile-hangar-bay .strike-player-art {
+  width: 50px;
+  height: auto;
+  filter: none;
+  --hull: #14376e;
+  --edge: #74bfff;
+  --panel: #246ed2;
+  --light: #b8edff;
+}
+
+.profile-hangar-bay .strike-skin-emerald { --hull: #0f3d36; --edge: #4be8c8; --panel: #197062; --light: #a6ffea; }
+.profile-hangar-bay .strike-skin-gold { --hull: #45340d; --edge: #ffe066; --panel: #8c6b16; --light: #fff5b8; }
+.profile-hangar-bay .strike-skin-crimson { --hull: #42111d; --edge: #ff6b8b; --panel: #851c36; --light: #ffc2d4; }
+.profile-hangar-bay .strike-skin-nova { --hull: #241447; --edge: #c792ff; --panel: #552e96; --light: #f0dbff; }
+
+.profile-hangar-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.profile-hangar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.profile-hangar-card.is-equipped .profile-hangar-status {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.profile-hangar-card.is-locked {
+  background: #f8fafc;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.profile-hangar-card.is-locked .profile-hangar-bay .strike-player-art {
+  filter: grayscale(1);
+  opacity: 0.42;
+}
+
+.profile-hangar-card.is-locked .profile-hangar-name,
+.profile-hangar-card.is-locked .profile-hangar-status {
+  color: var(--muted);
+}
+
+.profile-footer-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.profile-footer-actions .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 980px) {
+  .profile-top-row,
+  .profile-lower-grid {
+    grid-template-columns: 1fr;
+  }
+  .achievement-hall-grid.ship-hangar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .profile-panel {
+    padding: 20px;
+  }
+  .achievement-hall-grid {
+    grid-template-columns: 1fr;
+  }
+  .achievement-hall-grid.ship-hangar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hall-modal-head,
+  .hall-modal-body,
+  .hall-modal-foot {
+    padding-inline: 16px;
+  }
+  .profile-details-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .profile-hangar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
